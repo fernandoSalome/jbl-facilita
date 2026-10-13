@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(USER)
+  createdAt    DateTime   @default(now())
+  proposals    Proposal[] @relation("createdBy")
+}
+
+/// Um projeto é um loteamento (a "subconta"). Tudo do loteamento pendura aqui:
+/// propostas hoje; documentos, licenças, tarefas e o grupo de WhatsApp depois.
+model Project {
+  id          String     @id @default(cuid())
+  name        String
+  tipo        String     @default("Loteamento aberto")
+  municipio   String
+  uf          String     @default("SP")
+  matricula   String?
+  areaTotal   Float
+  /// URL pública (/demo/...) ou data URL da foto aérea
+  aerialImage String?
+  /// prospeccao | proposta | parceria | aprovacao | obras | vendas | carteira | arquivado
+  fase        String     @default("prospeccao")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  proposals   Proposal[]
+}
+
+model Template {
+  id             String     @id @default(cuid())
+  /// Chave do componente que renderiza o template ("jbl-padrao")
+  key            String?
+  name           String
+  description    String?
+  /// ativo | em_preparacao
+  status         String     @default("ativo")
+  sourceFileName String?
+  sourceFile     Bytes?
+  createdAt      DateTime   @default(now())
+  deletedAt      DateTime?
+  proposals      Proposal[]
+}
+
+model Proposal {
+  id            String          @id @default(cuid())
+  projectId     String
+  project       Project         @relation(fields: [projectId], references: [id])
+  templateId    String
+  template      Template        @relation(fields: [templateId], references: [id])
+  name          String
+  ownerName     String
+  ownerPhone    String?
+  /// Entradas do estudo (StudyInputs). Os resultados são recalculados a partir delas.
+  inputs        Json
+  /// cartaIntencao, validadeDias, corretor...
+  options       Json            @default("{}")
+  /// Valores e textos alterados à mão na proposta: { chave: texto }
+  overrides     Json            @default("{}")
+  /// rascunho | enviada | aberta | carta_recebida | negociacao | aceita | recusada
+  status        String          @default("rascunho")
+  publicToken   String          @unique
+  publishedAt   DateTime?
+  expiresAt     DateTime?
+  viewCount     Int             @default(0)
+  firstViewedAt DateTime?
+  lastViewedAt  DateTime?
+  createdById   String?
+  createdBy     User?           @relation("createdBy", fields: [createdById], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  /// Exclusão lógica: nunca apaga, só esconde. Admin pode reativar.
+  deletedAt     DateTime?
+  deletedById   String?
+  events        ProposalEvent[]
+  letters       IntentLetter[]
+
+  @@index([projectId])
+}
+
+model ProposalEvent {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id])
+  /// view | heartbeat | publish | edit | delete | restore | status | letter
+  type       String
+  meta       Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([proposalId, type])
+}
+
+model IntentLetter {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id])
+  protocolo  String   @unique
+  data       Json
+  createdAt  DateTime @default(now())
+}

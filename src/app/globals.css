@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #122a45;
+  --gold: #c1943d;
+  --gold-deep: #a2782f;
+}
+
+html,
+body {
+  background: #ffffff;
+  color: #2b3a4a;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-gold {
+    @apply btn text-navy;
+    background: linear-gradient(180deg, #d4aa55 0%, #c1943d 55%, #a9802f 100%);
+    border: 1px solid #a2782f;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 16px -8px rgba(162, 120, 47, 0.75);
+  }
+  .btn-gold:hover {
+    filter: brightness(1.06);
+  }
+  .btn-navy {
+    @apply btn bg-navy text-white hover:bg-navy-700;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-white text-navy hover:border-gold hover:bg-gold-soft;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-700;
+  }
+  .input {
+    @apply w-full rounded border-[1.5px] border-line bg-white px-3 py-2 text-[15px] text-ink outline-none transition focus:border-gold focus:ring-[3px] focus:ring-gold-soft;
+  }
+  .label {
+    @apply mb-1 block text-[13px] font-semibold text-navy;
+  }
+  .card {
+    @apply rounded-md border border-line bg-white;
+  }
+  .eyebrow {
+    @apply flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-navy before:h-[2px] before:w-6 before:bg-gold before:content-[''];
+  }
+  .h-display {
+    @apply font-display font-normal tracking-[-0.015em] text-navy;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

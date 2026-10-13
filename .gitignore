@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.log
+next-env.d.ts
+*.tsbuildinfo
+
+# Planilhas e documentos com dados reais de clientes: nunca versionar
+referencias/
