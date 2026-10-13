@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { parseInputs, parseOptions, STATUS, type Overrides } from "@/lib/proposals";
+import { cleanOverride } from "@/lib/sanitize";
 
 type Ctx = { params: { id: string } };
 
@@ -19,7 +20,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (b.overrides) {
       // Uma chave com valor null volta ao valor calculado
       const merged: Overrides = { ...(p.overrides as Overrides) };
-      for (const [k, v] of Object.entries(b.overrides as Record<string, string | null>)) {
+      for (const [k, raw] of Object.entries(b.overrides as Record<string, unknown>)) {
+        const v = cleanOverride(k, raw);
+        if (v === undefined) return json({ error: `Valor inválido para "${k}"` }, 400);
         if (v === null) delete merged[k];
         else merged[k] = v;
       }

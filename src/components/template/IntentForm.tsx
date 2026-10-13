@@ -150,7 +150,7 @@ export default function IntentForm({
         <span><E k="form.declaracao">Declaramos nosso consentimento para a elaboração da Carta de Intenção e nos comprometemos a fornecer as informações e documentos solicitados, a fim de possibilitar à JBL Incorporadora e Urbanismo o prosseguimento dos estudos de viabilidade do empreendimento.</E></span>
       </label>
       {err && <p className="err">{err}</p>}
-      <div><button className="cta-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar">Enviar carta de intenção</E>}</button></div>
+      <div><button className="intent-btn" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar">Enviar carta de intenção</E>}</button></div>
     </form>
   );
 }

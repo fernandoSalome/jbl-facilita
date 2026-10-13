@@ -48,3 +48,43 @@ export function relTime(d: Date | string | null | undefined) {
   if (diff < 86400) return `há ${Math.floor(diff / 3600)}h`;
   return `há ${Math.floor(diff / 86400)} dias`;
 }
+
+const UNID = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+const DEZ = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+const CEM = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+const GRUPOS: [string, string][] = [["", ""], ["mil", "mil"], ["milhão", "milhões"], ["bilhão", "bilhões"]];
+
+function ate999(n: number) {
+  if (n === 100) return "cem";
+  const parts: string[] = [];
+  const c = Math.floor(n / 100);
+  const r = n % 100;
+  if (c) parts.push(CEM[c]);
+  if (r) parts.push(r < 20 ? UNID[r] : r % 10 ? `${DEZ[Math.floor(r / 10)]} e ${UNID[r % 10]}` : DEZ[r / 10]);
+  return parts.join(" e ");
+}
+
+/** 9957005 → "Nove milhões, novecentos e cinquenta e sete mil e cinco reais" */
+export function extensoReais(valor: number) {
+  const inteiro = Math.floor(Math.abs(valor) + 1e-9);
+  const centavos = Math.round((Math.abs(valor) - inteiro) * 100);
+  const grupos: number[] = [];
+  for (let n = inteiro; n > 0; n = Math.floor(n / 1000)) grupos.push(n % 1000);
+  const partes: { t: string; g: number }[] = [];
+  for (let i = grupos.length - 1; i >= 0; i--) {
+    const g = grupos[i];
+    if (!g) continue;
+    const nome = i ? ` ${g === 1 ? GRUPOS[i][0] : GRUPOS[i][1]}` : "";
+    partes.push({ t: i === 1 && g === 1 ? "mil" : ate999(g) + nome, g });
+  }
+  let txt = "";
+  partes.forEach((p, i) => {
+    if (i === 0) txt = p.t;
+    else if (i === partes.length - 1 && (p.g < 100 || p.g % 100 === 0)) txt += ` e ${p.t}`;
+    else txt += `, ${p.t}`;
+  });
+  if (!inteiro) txt = centavos ? "" : "zero";
+  else txt += inteiro === 1 ? " real" : grupos[0] === 0 && grupos.length > 2 && grupos[1] === 0 ? " de reais" : " reais";
+  if (centavos) txt += `${inteiro ? " e " : ""}${ate999(centavos)} ${centavos === 1 ? "centavo" : "centavos"}`;
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+}

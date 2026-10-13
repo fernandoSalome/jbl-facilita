@@ -24,7 +24,9 @@ type Props = {
 };
 
 const SECTION_NAMES: Record<string, string> = {
-  terreno: "Tamanho do terreno", execucao: "Obras", vgv: "VGV", participacao: "Divisão", recebimentos: "Recebimentos", vendas: "Vendas", regras: "Regras",
+  grupo: "O grupo", empresas: "Empresas", missao: "Missão", como: "Como trabalha", terreno: "Terreno", obras: "Obras",
+  execucao: "Custo das obras", cronograma: "Cronograma", vgv: "VGV", etapa1: "1ª etapa", participacao: "Divisão",
+  recebimentos: "Recebimentos", antecipacao: "Antecipação", vendas: "Vendas", regras: "Regras", aviso: "Aviso legal", "carta-intencao": "Carta de intenção",
 };
 
 function minutes(s: number) {
@@ -64,7 +66,7 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
     router.refresh();
   }
 
-  async function saveOverride(k: string, v: string | null) {
+  async function saveOverride(k: string, v: unknown) {
     const r = await fetch(`/api/proposals/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ overrides: { [k]: v } }) });
     const d = await r.json();
     setOverridesCount(Object.keys(d.overrides ?? {}).length);
@@ -204,7 +206,7 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
           </div>
           {mode === "edit" && (
             <span className="text-[12.5px] text-muted">
-              Clique em qualquer texto ou número e digite ali mesmo. Enter salva, Esc cancela.
+              Clique em qualquer texto para editar e formatar, em uma imagem para trocar, ou passe o mouse numa seção para mudar o fundo.
               {overridesCount > 0 && <> <span className="ml-1 rounded-sm bg-[#fff6d6] px-1.5 py-0.5 font-semibold text-amber-800 ring-1 ring-[#e0a800]">✎ {overridesCount} alterado(s) à mão</span></>}
             </span>
           )}

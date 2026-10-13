@@ -113,3 +113,16 @@ model IntentLetter {
   data       Json
   createdAt  DateTime @default(now())
 }
+
+/// Banco de imagens: fotos e logos usados nas propostas.
+model Asset {
+  id        String    @id @default(cuid())
+  name      String
+  mime      String
+  width     Int?
+  height    Int?
+  size      Int
+  data      Bytes
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}

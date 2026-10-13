@@ -1,0 +1,109 @@
+/**
+ * Limpeza do texto formatado salvo pelo editor da proposta. Funciona igual no
+ * servidor e no navegador (sem DOM): só passam negrito, itálico, sublinhado,
+ * grifo, quebra de linha e <span style> com cor, fundo e tamanho da fonte.
+ * Todo o resto (scripts, links, atributos, eventos) é removido.
+ */
+
+const TAGS = new Set(["b", "strong", "i", "em", "u", "s", "mark", "span", "br", "sup", "sub", "small", "font"]);
+const STYLE_PROPS = new Set(["color", "background-color", "font-size", "font-weight", "font-style", "text-decoration", "text-decoration-line"]);
+const SAFE_VALUE = /^[#a-zA-Z0-9\s.,()%-]+$/;
+
+/** Prefixo que marca um valor salvo como HTML formatado */
+export const HTML_PREFIX = "html:";
+
+function cleanStyle(style: string) {
+  return style
+    .split(";")
+    .map((d) => {
+      const i = d.indexOf(":");
+      if (i < 0) return "";
+      const prop = d.slice(0, i).trim().toLowerCase();
+      const val = d.slice(i + 1).trim();
+      if (!STYLE_PROPS.has(prop) || !SAFE_VALUE.test(val) || /url|expression|var\(/i.test(val)) return "";
+      return `${prop}:${val}`;
+    })
+    .filter(Boolean)
+    .join(";");
+}
+
+function attr(attrs: string, name: string) {
+  const m = attrs.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return m ? (m[2] ?? m[3] ?? m[4] ?? "") : "";
+}
+
+function escapeText(t: string) {
+  // mantém entidades válidas (&amp; &nbsp; &#123;) e escapa o resto
+  return t.replace(/&(?!(?:[a-zA-Z]+|#\d+|#x[0-9a-fA-F]+);)/g, "&amp;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+export function sanitizeHtml(input: string): string {
+  // Quebras de parágrafo do contentEditable viram <br>
+  const html = input
+    .replace(/<(div|p)(\s[^>]*)?>/gi, "<br>")
+    .replace(/<\/(div|p)>/gi, "")
+    .replace(/^(<br>)+/, "");
+  let out = "";
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^<>]*)>|<!--[\s\S]*?-->|([^<]+)|</g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    if (m[4] !== undefined) {
+      out += escapeText(m[4]);
+      continue;
+    }
+    if (m[2] === undefined) {
+      if (m[0] === "<") out += "&lt;";
+      continue; // comentário
+    }
+    const tag = m[2].toLowerCase();
+    if (!TAGS.has(tag)) continue;
+    if (tag === "br") {
+      out += "<br>";
+      continue;
+    }
+    const outTag = tag === "font" ? "span" : tag;
+    if (m[1]) {
+      out += `</${outTag}>`;
+      continue;
+    }
+    let style = cleanStyle(attr(m[3], "style"));
+    if (tag === "font") {
+      const color = attr(m[3], "color");
+      if (color && SAFE_VALUE.test(color)) style = [style, `color:${color}`].filter(Boolean).join(";");
+    }
+    out += style ? `<${outTag} style="${style.replace(/"/g, "")}">` : `<${outTag}>`;
+  }
+  return out;
+}
+
+export function escapeHtml(t: string) {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+const COLOR = /^#[0-9a-fA-F]{3,8}$/;
+const LINK = /^(https?:\/\/|mailto:|tel:|#)[^\s<>"']*$/i;
+const IMG_SRC = /^(\/api\/assets\/[a-z0-9]+|\/brand\/[\w.-]+|\/demo\/[\w.-]+)$/i;
+
+/**
+ * Valida um valor de "overrides" pelo prefixo da chave antes de gravar.
+ * Devolve undefined quando o valor não é aceito.
+ */
+export function cleanOverride(key: string, v: unknown): unknown {
+  if (v === null) return null;
+  if (key.startsWith("theme.")) return typeof v === "string" && COLOR.test(v) ? v : undefined;
+  if (key.startsWith("link.")) return typeof v === "string" && LINK.test(v.trim()) ? v.trim() : undefined;
+  if (key.startsWith("btn.")) return v === "sm" || v === "md" || v === "lg" ? v : undefined;
+  if (key.startsWith("img.")) {
+    const o = v as { src?: unknown; x?: unknown; y?: unknown; zoom?: unknown };
+    if (!o || typeof o !== "object" || typeof o.src !== "string" || !(IMG_SRC.test(o.src) || o.src === "default")) return undefined;
+    const n = (x: unknown, min: number, max: number, d: number) => (typeof x === "number" && isFinite(x) ? Math.min(max, Math.max(min, x)) : d);
+    return { src: o.src, x: n(o.x, 0, 100, 50), y: n(o.y, 0, 100, 50), zoom: n(o.zoom, 0.3, 3, 1) };
+  }
+  if (key.startsWith("block.")) {
+    const o = v as { bg?: unknown; hidden?: unknown };
+    if (!o || typeof o !== "object") return undefined;
+    return { bg: typeof o.bg === "string" && COLOR.test(o.bg) ? o.bg : undefined, hidden: o.hidden === true };
+  }
+  if (typeof v !== "string" || v.length > 20000) return undefined;
+  return v.startsWith(HTML_PREFIX) ? HTML_PREFIX + sanitizeHtml(v.slice(HTML_PREFIX.length)) : v;
+}

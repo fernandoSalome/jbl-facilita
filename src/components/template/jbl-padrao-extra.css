@@ -1,0 +1,50 @@
+/* Ajustes do portal sobre o estilo do site original (jbl-padrao.css). */
+
+/* Dentro do portal o menu da proposta não gruda no topo (o portal já tem a barra dele) */
+.jblt.embedded .nav { position: relative; top: 0; }
+
+/* ---------- edição: texto ---------- */
+.jblt .ed { cursor: text; border-radius: 3px; transition: background .15s, box-shadow .15s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.jblt .ed:hover { background: rgba(193,148,61,.14); box-shadow: 0 0 0 2px rgba(193,148,61,.35); }
+.jblt .ed.changed { box-shadow: 0 0 0 2px #e0a800; background: #fff6d6; }
+.jblt .ed.changed::after { content: "✎"; display: inline-block; margin-left: 4px; width: 16px; height: 16px; border-radius: 50%; background: #e0a800; color: #fff; font: 700 10px/16px var(--body); text-align: center; vertical-align: super; font-style: normal; letter-spacing: 0; text-transform: none; }
+.jblt .ed.editing { outline: none; background: #fff; color: var(--navy); box-shadow: 0 0 0 2px var(--gold), 0 8px 24px -10px rgba(18,42,69,.35); }
+.jblt .ed.editing::after { display: none; }
+.jblt a .ed, .jblt button .ed { cursor: text; }
+
+/* ---------- edição: imagens ---------- */
+.jblt img.ed-img { cursor: pointer; transition: outline-color .15s, filter .15s; outline: 2px dashed transparent; outline-offset: 3px; }
+.jblt img.ed-img:hover { outline-color: var(--gold); filter: brightness(1.04); }
+.jblt img.ed-img.changed { outline: 2px solid #e0a800; }
+
+/* ---------- edição: seções ---------- */
+.jblt .sec-ed { position: relative; }
+.jblt .sec-ed:hover { box-shadow: 0 0 0 1px rgba(193,148,61,.45); }
+.jblt .has-bg { border-radius: 8px; padding-inline: 24px; }
+.jblt .sec-hidden { opacity: .42; }
+.jblt .sec-tools { position: absolute; top: 8px; right: 8px; z-index: 30; display: flex; gap: 6px; align-items: flex-start; font-family: var(--body); opacity: 0; transition: opacity .15s; }
+.jblt .sec-ed:hover > .sec-tools, .jblt .sec-hidden > .sec-tools, .jblt .sec-tools:focus-within { opacity: 1; }
+.jblt .sec-btn { font: 600 12px var(--body); background: var(--navy); color: #fff; border: 0; border-radius: 4px; padding: 6px 10px; cursor: pointer; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+.jblt .sec-flag { font: 600 11.5px var(--body); background: #fff6d6; color: #8a6100; border: 1px solid #e0a800; border-radius: 4px; padding: 5px 8px; }
+.jblt .sec-pop { position: absolute; right: 0; top: calc(100% + 6px); width: 210px; display: grid; gap: 10px; background: #fff; border-top: 3px solid var(--gold); border-radius: 6px; padding: 12px; box-shadow: 0 18px 40px -16px rgba(18,42,69,.55); font-size: 13px; color: var(--fg); }
+.jblt .sec-pop label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; color: var(--navy); }
+.jblt .sec-pop input[type=color] { width: 40px; height: 26px; border: 1px solid var(--line); border-radius: 4px; padding: 0; cursor: pointer; }
+.jblt .sec-sw { display: flex; gap: 6px; }
+.jblt .sec-sw button { width: 26px; height: 26px; border-radius: 4px; border: 1px solid var(--line); cursor: pointer; }
+.jblt .sec-link { font: 600 12.5px var(--body); background: var(--alt); color: var(--navy); border: 1px solid var(--line); border-radius: 4px; padding: 7px; cursor: pointer; }
+.jblt .sec-link:hover { border-color: var(--gold); }
+
+/* ---------- carta de intenção (formulário do portal) ---------- */
+.jblt .intent .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.jblt .intent form { max-width: 920px; margin-top: 28px; }
+.jblt .intent .lead-intent { color: var(--muted); margin-top: 8px; max-width: 70ch; font-size: 16px; }
+.jblt .intent-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(180deg, color-mix(in srgb,var(--gold) 82%,#fff) 0%, var(--gold) 55%, color-mix(in srgb,var(--gold) 86%,#000) 100%); color: var(--navy); border: 1px solid var(--gold-deep); font: 700 16px var(--body); padding: 14px 24px; border-radius: 4px; cursor: pointer; text-decoration: none; }
+.jblt .intent-btn:hover { filter: brightness(1.06); }
+
+/* ---------- PDF: imprimir a página como proposta ---------- */
+@media print {
+  .jblt .nav, .jblt .burger, .jblt .mnav, .jblt .progress, .jblt .intent, .jblt .dl-foot, .jblt .cover-ctas, .jblt .tabs { display: none !important; }
+  .jblt section.step, .jblt .letter, .jblt .big-idea, .jblt .calc, .jblt .tile, .jblt table, .jblt .card { break-inside: avoid; }
+  .jblt { font-size: 14px; }
+  @page { size: A4; margin: 14mm 12mm; }
+}

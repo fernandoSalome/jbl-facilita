@@ -10,7 +10,8 @@ export type ProposalOptions = {
 
 export const DEFAULT_OPTIONS: ProposalOptions = { cartaIntencao: true, validadeDias: 15 };
 
-export type Overrides = Record<string, string>;
+/** Alterações feitas à mão na proposta: textos (txt./v./t./form.), links, botões, imagens, seções e cores do tema */
+export type Overrides = Record<string, unknown>;
 
 export const STATUS: Record<string, { label: string; tone: string }> = {
   rascunho: { label: "Rascunho", tone: "bg-slate-100 text-slate-600 ring-slate-200" },

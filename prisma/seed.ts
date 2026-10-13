@@ -44,16 +44,18 @@ async function main() {
         fase: "proposta",
       },
     });
-    // Mesmas premissas usadas no PDF de jan/2026 (VGV global R$ 188.015.858,21)
+    // Mesmas premissas do site da proposta e da planilha atual (proprietário 40%, IGPM 4,50%)
     await db.proposal.create({
       data: {
         projectId: project.id,
         templateId: template.id,
-        name: "Parceria 35% · 20 anos",
+        name: "Parceria 40% · 20 anos",
         ownerName: "Família",
         inputs: {
-          areaTotal: 137338.46, aproveitamento: 0.5, metragemLote: 200, frenteLote: 8, valorM2: 500, corretorPct: 0.06, entradaPct: 0.05,
-          ipca: 0.04, jurosMes: 0.0067, reajusteManual: 0.12, multiplicador: 1.6, anos: 20, incorporadorPct: 0.65, custoInfraM2: 145,
+          areaTotal: 137338.46, aproveitamento: 0.5, metragemLote: 200, incorporadorPct: 0.6, valorM2: 500, corretorPct: 0.05,
+          indice: "IGPM", ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, valorArea: 0, entradaPct: 0.06, multiplicador: 1.68, anos: 20,
+          entradaIncTerPct: 0.08, parcelaEntregaPct: 0.27, balaoPct: 0.05, frenteLote: 8, custoInfraM2: 145, extensaoRede: null,
+          lotesEtapa1: 106.38, desagio: 0.66667, taxaAplicacao: 0.01, reajusteManual: null,
         },
         options: { cartaIntencao: true, validadeDias: 15 },
         status: "enviada",

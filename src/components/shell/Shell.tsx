@@ -9,6 +9,7 @@ const empresaNav: NavItem[] = [
   { href: "/app/projetos", label: "Loteamentos", icon: "map" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
   { href: "/app/templates", label: "Templates", icon: "layers" },
+  { href: "/app/imagens", label: "Banco de imagens", icon: "image" },
   { label: "Metas", icon: "target", soon: true },
   { label: "Parceiros", icon: "users", soon: true },
   { label: "Usuários", icon: "key", soon: true },
