@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { fmtNum } from "@/lib/format";
+import { E } from "./Editable";
 
 /** Termo de aceite para carta de intenção (pág. 27 do PDF), em formulário. */
 
 function F({ name, label, type = "text", required, defaultValue, wide }: { name: string; label: string; type?: string; required?: boolean; defaultValue?: string; wide?: boolean }) {
   return (
     <div className="field" style={wide ? { gridColumn: "1 / -1" } : undefined}>
-      <label htmlFor={name}>{label}{required && <span style={{ color: "var(--gold)" }}> *</span>}</label>
+      <label htmlFor={name}><E k={`form.${name}`}>{label}</E>{required && <span style={{ color: "var(--gold)" }}> *</span>}</label>
       <input id={name} name={name} type={type} required={required} defaultValue={defaultValue} />
     </div>
   );
@@ -82,7 +83,7 @@ export default function IntentForm({
     <form onSubmit={submit}>
       {disabled && <div className="declara">Pré-visualização: o formulário só envia na página pública da proposta.</div>}
       <fieldset className="group">
-        <legend><i>1</i>Dados do proprietário</legend>
+        <legend><i>1</i><E k="form.grupo1">Dados do proprietário</E></legend>
         <div className="row">
           <F name="p_nome" label="Nome completo" required wide />
           <F name="p_cpf" label="CPF" required />
@@ -94,10 +95,10 @@ export default function IntentForm({
         </div>
       </fieldset>
       <fieldset className="group">
-        <legend><i>2</i>Informações matrimoniais</legend>
+        <legend><i>2</i><E k="form.grupo2">Informações matrimoniais</E></legend>
         <div className="row">
           <div className="field">
-            <label htmlFor="estado_civil">Estado civil</label>
+            <label htmlFor="estado_civil"><E k="form.estado_civil">Estado civil</E></label>
             <select id="estado_civil" name="estado_civil" defaultValue="">
               <option value="">Selecione</option>
               <option>Solteiro(a)</option><option>Casado(a)</option><option>União estável</option><option>Divorciado(a)</option><option>Viúvo(a)</option>
@@ -105,7 +106,7 @@ export default function IntentForm({
           </div>
           <F name="c_data" label="Data do casamento" type="date" />
           <div className="field">
-            <label htmlFor="c_regime">Regime de bens</label>
+            <label htmlFor="c_regime"><E k="form.c_regime">Regime de bens</E></label>
             <select id="c_regime" name="c_regime" defaultValue="">
               <option value="">Selecione</option>
               <option>Comunhão parcial de bens</option><option>Comunhão universal de bens</option><option>Separação total de bens</option><option>Participação final nos aquestos</option>
@@ -118,7 +119,7 @@ export default function IntentForm({
         </div>
       </fieldset>
       <fieldset className="group">
-        <legend><i>3</i>Dados do cônjuge</legend>
+        <legend><i>3</i><E k="form.grupo3">Dados do cônjuge</E></legend>
         <div className="row">
           <F name="j_nome" label="Nome completo" wide />
           <F name="j_cpf" label="CPF" />
@@ -128,7 +129,7 @@ export default function IntentForm({
         </div>
       </fieldset>
       <fieldset className="group">
-        <legend><i>4</i>Dados do imóvel</legend>
+        <legend><i>4</i><E k="form.grupo4">Dados do imóvel</E></legend>
         <div className="row">
           <F name="i_area" label="Área total (ha)" defaultValue={fmtNum(areaHa, 4)} />
           <F name="i_zona" label="Zona" />
@@ -137,7 +138,7 @@ export default function IntentForm({
           <F name="i_matriculas" label="Matrícula(s) do imóvel" defaultValue={project.matricula ?? ""} />
           <F name="i_car" label="CAR(s)" />
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <label htmlFor="arquivo">Cópia da matrícula atualizada (PDF ou foto)</label>
+            <label htmlFor="arquivo"><E k="form.arquivo">Cópia da matrícula atualizada (PDF ou foto)</E></label>
             <input id="arquivo" name="arquivo" type="file" accept=".pdf,image/*" />
           </div>
           <F name="local" label="Local" />
@@ -146,10 +147,10 @@ export default function IntentForm({
       </fieldset>
       <label className="declara">
         <input type="checkbox" required style={{ marginTop: 4 }} />
-        <span>Declaramos nosso consentimento para a elaboração da Carta de Intenção e nos comprometemos a fornecer as informações e documentos solicitados, a fim de possibilitar à JBL Incorporadora e Urbanismo o prosseguimento dos estudos de viabilidade do empreendimento.</span>
+        <span><E k="form.declaracao">Declaramos nosso consentimento para a elaboração da Carta de Intenção e nos comprometemos a fornecer as informações e documentos solicitados, a fim de possibilitar à JBL Incorporadora e Urbanismo o prosseguimento dos estudos de viabilidade do empreendimento.</E></span>
       </label>
       {err && <p className="err">{err}</p>}
-      <div><button className="cta-gold" disabled={sending || disabled}>{sending ? "Enviando…" : "Enviar carta de intenção"}</button></div>
+      <div><button className="cta-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar">Enviar carta de intenção</E>}</button></div>
     </form>
   );
 }

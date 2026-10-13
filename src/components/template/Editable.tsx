@@ -1,38 +1,110 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Overrides } from "@/lib/proposals";
 
 /**
- * Qualquer valor ou texto do template passa por <E k="chave">. Na página pública
- * mostra o texto (ou o que foi alterado à mão). No portal, com `editable`, um clique
- * abre o editor e o valor alterado fica marcado em amarelo com ✎.
+ * Todo texto do template passa por <E k="chave">. Na página pública mostra o texto
+ * (ou a versão alterada à mão). No portal, em modo edição, basta clicar no texto para
+ * editar ali mesmo: Enter (ou clicar fora) salva, Esc cancela. O que foi alterado
+ * fica marcado em amarelo com ✎ e pode voltar ao original.
  */
 
 type Ctx = {
   overrides: Overrides;
   editable: boolean;
-  open: (k: string, label: string, calculated: string, multiline: boolean) => void;
+  save: (k: string, v: string | null) => Promise<void>;
 };
 
-const EditCtx = createContext<Ctx>({ overrides: {}, editable: false, open: () => {} });
+const EditCtx = createContext<Ctx>({ overrides: {}, editable: false, save: async () => {} });
 
-export function E({ k, children, label, multiline }: { k: string; children: string; label?: string; multiline?: boolean }) {
-  const { overrides, editable, open } = useContext(EditCtx);
+function selectAll(el: HTMLElement) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  const s = window.getSelection();
+  s?.removeAllRanges();
+  s?.addRange(r);
+}
+
+export function E({ k, children, multiline }: { k: string; children: string; label?: string; multiline?: boolean }) {
+  const { overrides, editable, save } = useContext(EditCtx);
   const changed = k in overrides;
   const text = changed ? overrides[k] : children;
+  const ref = useRef<HTMLSpanElement>(null);
+  const [editing, setEditing] = useState(false);
+  const isMulti = multiline ?? children.length > 90;
+
   if (!editable) return <>{text}</>;
+
+  function finish(commit: boolean) {
+    const el = ref.current;
+    setEditing(false);
+    if (!el) return;
+    const v = el.innerText.replace(/ /g, " ").trim();
+    if (!commit || v === text) {
+      el.innerText = text;
+      return;
+    }
+    if (!v || v === children) save(k, null);
+    else save(k, v);
+  }
+
   return (
-    <span
-      className={`ed ${changed ? "changed" : ""}`}
-      title={changed ? `Alterado manualmente. Calculado: ${children}` : "Clique para editar"}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        open(k, label ?? k, children, multiline ?? children.length > 80);
-      }}
-    >
-      {text}
+    <span className="edw" key={`${k}:${text}`}>
+      <span
+        ref={ref}
+        className={`ed ${changed ? "changed" : ""} ${editing ? "editing" : ""}`}
+        title={editing ? undefined : changed ? `Alterado à mão. Original: ${children}` : "Clique para editar"}
+        contentEditable={editing}
+        suppressContentEditableWarning
+        spellCheck={editing}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (editing) return;
+          setEditing(true);
+          requestAnimationFrame(() => {
+            if (!ref.current) return;
+            ref.current.focus();
+            selectAll(ref.current);
+          });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            finish(false);
+            ref.current?.blur();
+          }
+          if (e.key === "Enter" && (!isMulti || e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            ref.current?.blur();
+          }
+        }}
+        onPaste={(e) => {
+          // cola só texto puro, sem formatação de outro site/documento
+          e.preventDefault();
+          document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+        }}
+        onBlur={() => editing && finish(true)}
+      >
+        {text}
+      </span>
+      {editing && (
+        <span className="ed-bar" contentEditable={false} onMouseDown={(e) => e.preventDefault()}>
+          <button onClick={() => ref.current?.blur()}>✓ Salvar</button>
+          {changed && (
+            <button
+              onClick={() => {
+                setEditing(false);
+                save(k, null);
+              }}
+            >
+              ↺ Original
+            </button>
+          )}
+          <span>{isMulti ? "Ctrl+Enter salva · Esc cancela" : "Enter salva · Esc cancela"}</span>
+        </span>
+      )}
     </span>
   );
 }
@@ -49,62 +121,28 @@ export function EditProvider({
   children: React.ReactNode;
 }) {
   const [overrides, setOverrides] = useState(initial);
-  const [cur, setCur] = useState<{ k: string; label: string; calculated: string; multiline: boolean } | null>(null);
-  const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState("");
 
   useEffect(() => setOverrides(initial), [initial]);
 
-  async function save(v: string | null) {
-    if (!cur) return;
-    setSaving(true);
-    await onSave?.(cur.k, v);
+  async function save(k: string, v: string | null) {
     setOverrides((o) => {
       const n = { ...o };
-      if (v === null || v === cur.calculated) delete n[cur.k];
-      else n[cur.k] = v;
+      if (v === null) delete n[k];
+      else n[k] = v;
       return n;
     });
-    setSaving(false);
-    setCur(null);
+    await onSave?.(k, v);
+    setToast(v === null ? "Voltou ao original" : "Salvo");
+    setTimeout(() => setToast(""), 1600);
   }
 
   return (
-    <EditCtx.Provider
-      value={{
-        overrides,
-        editable,
-        open: (k, label, calculated, multiline) => {
-          setCur({ k, label, calculated, multiline });
-          setDraft(k in overrides ? overrides[k] : calculated);
-        },
-      }}
-    >
+    <EditCtx.Provider value={{ overrides, editable, save }}>
       {children}
-      {cur && (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-navy/50 p-4" onMouseDown={() => !saving && setCur(null)}>
-          <div className="w-full max-w-lg rounded-md border-t-[3px] border-gold bg-white p-6 font-sans shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="eyebrow">Editar na proposta</div>
-            <h3 className="h-display mt-2 text-xl">{cur.label}</h3>
-            <div className="mt-3 rounded bg-alt px-3 py-2 text-[13px] text-muted">
-              Valor {cur.k.startsWith("txt.") ? "original" : "calculado"}: <b className="text-navy">{cur.calculated}</b>
-            </div>
-            {cur.multiline ? (
-              <textarea autoFocus rows={7} value={draft} onChange={(e) => setDraft(e.target.value)} className="input mt-3 text-[15px] leading-relaxed" />
-            ) : (
-              <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save(draft)} className="input mt-3 text-lg" />
-            )}
-            <p className="mt-2 text-[12px] text-muted">O que você alterar fica marcado em amarelo aqui no portal. A família vê o texto normal.</p>
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              {cur.k in overrides && (
-                <button className="btn-ghost mr-auto" disabled={saving} onClick={() => save(null)}>
-                  ↺ Voltar ao {cur.k.startsWith("txt.") ? "original" : "calculado"}
-                </button>
-              )}
-              <button className="btn-ghost ml-auto" disabled={saving} onClick={() => setCur(null)}>Cancelar</button>
-              <button className="btn-gold" disabled={saving} onClick={() => save(draft)}>{saving ? "Salvando…" : "Salvar"}</button>
-            </div>
-          </div>
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 rounded bg-navy px-4 py-2 font-sans text-sm font-semibold text-white shadow-xl">
+          ✓ {toast}
         </div>
       )}
     </EditCtx.Provider>

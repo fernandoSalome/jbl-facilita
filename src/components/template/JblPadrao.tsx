@@ -23,6 +23,16 @@ export type TemplateProps = {
 
 const WHATSAPP_MARCELO = "5511940091744";
 
+/** Texto fixo do template, editável no portal. Chave "txt.<k>". */
+function T({ k, children, multiline }: { k: string; children: string; multiline?: boolean }) {
+  return <E k={`txt.${k}`} multiline={multiline}>{children}</E>;
+}
+
+/** Valor calculado, editável no portal. Chave "v.<k>". */
+function V({ k, children }: { k: string; children: string }) {
+  return <E k={`v.${k}`}>{children}</E>;
+}
+
 function Pie({ parts }: { parts: { pct: number; color: string }[] }) {
   let acc = 0;
   const R = 15.9155;
@@ -39,6 +49,9 @@ function Pie({ parts }: { parts: { pct: number; color: string }[] }) {
   );
 }
 
+const OBRAS = ["Topografia e terraplenagem", "Abertura de ruas", "Rede de esgoto", "Rede de água", "Drenagem pluvial", "Rede elétrica", "Asfalto (CBUQ)", "Guias e sarjetas", "Calçadas", "Árvore em frente a cada lote", "Paisagismo"];
+const CRONOGRAMA: [string, number][] = [["Drenagem e esgoto", 0], ["Água", 1], ["Elétrica", 2], ["Pavimentação", 3]];
+
 export default function JblPadrao(props: TemplateProps) {
   const { project, inputs, options, mode } = props;
   const r = useMemo(() => calcular(inputs), [inputs]);
@@ -47,6 +60,7 @@ export default function JblPadrao(props: TemplateProps) {
   const anosTxt = fmtNum(r.nParcelas / 12, 0);
   const gleba = project.name;
   const cidade = `${project.municipio} - ${project.uf}`;
+  const editing = mode === "edit";
 
   useEffect(() => {
     const on = () => {
@@ -57,26 +71,30 @@ export default function JblPadrao(props: TemplateProps) {
     return () => window.removeEventListener("scroll", on);
   }, []);
 
-  const cta = options.cartaIntencao
-    ? { href: "#carta-intencao", label: "Carta de intenção ↓" }
-    : { href: `https://wa.me/${WHATSAPP_MARCELO}?text=${encodeURIComponent(`Olá! Recebi a proposta da gleba ${gleba} e gostaria de conversar.`)}`, label: "Falar com a JBL" };
+  const ctaHref = options.cartaIntencao
+    ? "#carta-intencao"
+    : `https://wa.me/${WHATSAPP_MARCELO}?text=${encodeURIComponent(`Olá! Recebi a proposta da gleba ${gleba} e gostaria de conversar.`)}`;
+  // No modo edição os links não navegam: o clique serve para editar o texto
+  const go = (e: React.MouseEvent) => editing && e.preventDefault();
 
   return (
-    <EditProvider overrides={props.overrides} editable={mode === "edit"} onSave={props.onSave}>
-      <div className={`jblt ${mode === "edit" ? "editing" : ""} ${mode !== "public" ? "embedded" : ""}`}>
+    <EditProvider overrides={props.overrides} editable={editing} onSave={props.onSave}>
+      <div className={`jblt ${editing ? "editing" : ""} ${mode !== "public" ? "embedded" : ""}`}>
         {mode === "public" && <Tracker token={props.token} />}
 
         <header className="nav">
           <div className="wrap">
-            <a href="#topo" aria-label="JBL Incorporadora e Urbanismo">
+            <a href="#topo" onClick={go} aria-label="JBL Incorporadora e Urbanismo">
               <img className="lockup" src="/brand/lockup.webp" alt="Grupo JBL Incorporadora · Urbanismo e Empreendimentos" />
             </a>
             <nav className="links">
-              <a href="#participacao">Sua participação</a>
-              <a href="#recebimentos">Recebimentos</a>
-              <a href="#execucao">Execução</a>
+              <a href="#participacao" onClick={go}><T k="menu1">Sua participação</T></a>
+              <a href="#recebimentos" onClick={go}><T k="menu2">Recebimentos</T></a>
+              <a href="#execucao" onClick={go}><T k="menu3">Execução</T></a>
             </nav>
-            <a className="cta-gold" href={cta.href} target={cta.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{cta.label}</a>
+            <a className="cta-gold" href={ctaHref} onClick={go} target={ctaHref.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
+              {options.cartaIntencao ? <T k="ctaCarta">Carta de intenção ↓</T> : <T k="ctaFalar">Falar com a JBL</T>}
+            </a>
           </div>
           <div className="progress" style={{ width: `${scroll}%` }} />
         </header>
@@ -84,100 +102,100 @@ export default function JblPadrao(props: TemplateProps) {
         {/* CAPA */}
         <div className="wrap" id="topo">
           <div className="cover-meta">
-            <span>Proposta de parceria · Confidencial</span>
-            <span>São Paulo, {fmtLongDate(props.date)}</span>
+            <span><T k="capaMeta">Proposta de parceria · Confidencial</T></span>
+            <span><T k="capaData">{`São Paulo, ${fmtLongDate(props.date)}`}</T></span>
           </div>
           <div className="hero">
             <div>
-              <div className="eyebrow">Proposta de parceria</div>
+              <div className="eyebrow"><T k="capaEyebrow">Proposta de parceria</T></div>
               <h1>
-                {gleba}
-                <em>{project.tipo} em {project.municipio}</em>
+                <T k="capaTitulo">{gleba}</T>
+                <em><T k="capaSubtitulo">{`${project.tipo} em ${project.municipio}`}</T></em>
               </h1>
             </div>
             <div className="hero-right">
               <p>
-                <E k="txt.hero" label="Texto da capa">{`A família entra com a terra. A JBL entra com os projetos, as obras e as vendas. O resultado é dividido entre os parceiros, em dinheiro, em lotes ou nos dois.`}</E>
+                <T k="hero">A família entra com a terra. A JBL entra com os projetos, as obras e as vendas. O resultado é dividido entre os parceiros, em dinheiro, em lotes ou nos dois.</T>
               </p>
               <div className="chips">
-                <span className="chip">{project.tipo}</span>
-                <span className="chip">{cidade}</span>
-                {project.matricula && <span className="chip">Matrícula {project.matricula}</span>}
+                <span className="chip"><T k="chip1">{project.tipo}</T></span>
+                <span className="chip"><T k="chip2">{cidade}</T></span>
+                {project.matricula && <span className="chip"><T k="chip3">{`Matrícula ${project.matricula}`}</T></span>}
               </div>
-              <a className="ghost" href="#participacao">Ver como funciona</a>
+              <a className="ghost" href="#participacao" onClick={go}><T k="capaBotao">Ver como funciona</T></a>
             </div>
           </div>
           {project.aerialImage && (
             <figure className="photo">
               <img src={project.aerialImage} alt={`Vista aérea da gleba ${gleba}`} />
               <figcaption>
-                <span>Gleba {gleba} · {fmtNum(ha, 4)} hectares</span>
-                <small>Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</small>
+                <span><T k="fotoLegenda">{`Gleba ${gleba} · ${fmtNum(ha, 4)} hectares`}</T></span>
+                <small><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></small>
               </figcaption>
             </figure>
           )}
           <div className="hero-stats">
-            <div><b><E k="v.areaTotal" label="Área total">{fmtM2(inputs.areaTotal)}</E></b><span>área total indicada</span></div>
-            <div><b><E k="v.areaUtil" label="Área aproveitável">{fmtM2(r.areaUtil)}</E></b><span>área aproveitável estimada ({fmtPct(inputs.aproveitamento)} da área total)</span></div>
-            <div><b>{fmtM2(inputs.metragemLote, 0)}</b><span>lotes de {fmtNum(inputs.frenteLote, 0)} × {fmtNum(r.fundoLote, 0)} metros</span></div>
-            <div><b>{project.matricula ?? "—"}</b><span>matrícula do imóvel</span></div>
+            <div><b><V k="areaTotal">{fmtM2(inputs.areaTotal)}</V></b><span><T k="stat1">área total indicada</T></span></div>
+            <div><b><V k="areaUtil">{fmtM2(r.areaUtil)}</V></b><span><T k="stat2">{`área aproveitável estimada (${fmtPct(inputs.aproveitamento)} da área total)`}</T></span></div>
+            <div><b><V k="metragem">{fmtM2(inputs.metragemLote, 0)}</V></b><span><T k="stat3">{`lotes de ${fmtNum(inputs.frenteLote, 0)} × ${fmtNum(r.fundoLote, 0)} metros`}</T></span></div>
+            <div><b><V k="matricula">{project.matricula ?? "—"}</V></b><span><T k="stat4">matrícula do imóvel</T></span></div>
           </div>
           <div className="quote">
             <blockquote>
-              <E k="txt.frase" label="Frase">“O empreendimento mais importante para nós é o realizado!”</E>
-              <small>Marcelo Aguilar · Diretor de Expansão</small>
+              <T k="frase">“O empreendimento mais importante para nós é o realizado!”</T>
+              <small><T k="fraseAutor">Marcelo Aguilar · Diretor de Expansão</T></small>
             </blockquote>
             <div className="tech">
-              <E k="txt.tecnicos" label="Responsáveis técnicos" multiline>{"Eng.º Felipe Stampini Oliveira Lopes · CREA 248492/D\nArquiteto Fábio Barros Belizário · CAU A117931-4"}</E>
+              <T k="tecnicos" multiline>{"Eng.º Felipe Stampini Oliveira Lopes · CREA 248492/D\nArquiteto Fábio Barros Belizário · CAU A117931-4"}</T>
             </div>
           </div>
 
           {/* CARTA */}
           <article className="letter">
             <div className="letterhead">
-              <div className="eyebrow">Uma parceria para realizar</div>
+              <div className="eyebrow"><T k="cartaEyebrow">Uma parceria para realizar</T></div>
               <img src="/brand/logo-vertical.webp" alt="" />
             </div>
-            <h2><E k="txt.saudacao" label="Saudação">{`Prezada ${props.ownerName.toLowerCase().startsWith("família") ? props.ownerName : "Família"},`}</E></h2>
-            <p><E k="txt.carta1" label="Carta · 1º parágrafo">{`Recebam nosso abraço e nosso agradecimento pela oportunidade de conhecer a história e o potencial da gleba ${gleba}. Sabemos que uma área carrega o trabalho, os planos e o cuidado de uma família. É com respeito por essa trajetória que apresentamos nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de ${project.tipo} (Lei Federal n.º 6.766/79), para vossa análise e apreciação. A proposta refere-se à gleba ${gleba}, com área total de ${fmtM2(inputs.areaTotal)}, localizada em ${cidade}.`}</E></p>
-            <p><E k="txt.carta2" label="Carta · 2º parágrafo">{`A JBL Incorporadora e Urbanismo é uma empresa especializada em loteamentos e urbanização, com ampla experiência de mercado e profissionais altamente qualificados. Cada novo projeto reúne especialistas em arquitetura, engenharia, ciências biológicas, geologia, direito, administração, contabilidade, perícia de avaliação, topografia, comercial e marketing, viabilizando empreendimentos desde o padrão econômico até o de alto padrão.`}</E></p>
-            <p><E k="txt.carta3" label="Carta · 3º parágrafo">{`Nas próximas páginas, compartilhamos as atividades e os números deste projeto, para que vocês possam avaliar a parceria com tranquilidade e clareza. Queremos construir essa decisão juntos, ouvindo suas expectativas e esclarecendo cada dúvida. Nossa estrutura física, equipe capacitada e experiência estão à disposição da família. Será um prazer recebê-los para uma conversa e agendar uma reunião.`}</E></p>
-            <p className="sign">Atenciosamente,<br />Marcelo Aguilar<small>Diretor de Expansão</small></p>
+            <h2><T k="saudacao">{`Prezada ${props.ownerName.toLowerCase().startsWith("família") ? props.ownerName : "Família"},`}</T></h2>
+            <p><T k="carta1">{`Recebam nosso abraço e nosso agradecimento pela oportunidade de conhecer a história e o potencial da gleba ${gleba}. Sabemos que uma área carrega o trabalho, os planos e o cuidado de uma família. É com respeito por essa trajetória que apresentamos nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de ${project.tipo} (Lei Federal n.º 6.766/79), para vossa análise e apreciação. A proposta refere-se à gleba ${gleba}, com área total de ${fmtM2(inputs.areaTotal)}, localizada em ${cidade}.`}</T></p>
+            <p><T k="carta2">A JBL Incorporadora e Urbanismo é uma empresa especializada em loteamentos e urbanização, com ampla experiência de mercado e profissionais altamente qualificados. Cada novo projeto reúne especialistas em arquitetura, engenharia, ciências biológicas, geologia, direito, administração, contabilidade, perícia de avaliação, topografia, comercial e marketing, viabilizando empreendimentos desde o padrão econômico até o de alto padrão.</T></p>
+            <p><T k="carta3">Nas próximas páginas, compartilhamos as atividades e os números deste projeto, para que vocês possam avaliar a parceria com tranquilidade e clareza. Queremos construir essa decisão juntos, ouvindo suas expectativas e esclarecendo cada dúvida. Nossa estrutura física, equipe capacitada e experiência estão à disposição da família. Será um prazer recebê-los para uma conversa e agendar uma reunião.</T></p>
+            <p className="sign"><T k="assinatura" multiline>{"Atenciosamente,\nMarcelo Aguilar"}</T><small><T k="assinaturaCargo">Diretor de Expansão</T></small></p>
           </article>
 
           <div className="big-idea">
-            <div className="eyebrow">A ideia em uma frase</div>
-            <h2><E k="txt.ideia" label="A ideia em uma frase">Vocês entram com o terreno. A JBL entra com o dinheiro e o trabalho. O que for vendido é dividido.</E></h2>
+            <div className="eyebrow"><T k="ideiaEyebrow">A ideia em uma frase</T></div>
+            <h2><T k="ideia">Vocês entram com o terreno. A JBL entra com o dinheiro e o trabalho. O que for vendido é dividido.</T></h2>
             <div className="tiles" style={{ marginTop: 22 }}>
-              <div className="tile"><h3>A família</h3><p>Entra com a terra. Não coloca dinheiro nas obras de infraestrutura previstas.</p></div>
-              <div className="tile"><h3>A JBL</h3><p>Cuida dos estudos, aprovações, infraestrutura, marketing, vendas e da carteira de recebíveis.</p></div>
-              <div className="tile"><h3>Os parceiros</h3><p>Dividem o resultado. A família escolhe receber em dinheiro, em lotes ou numa mistura dos dois.</p></div>
+              <div className="tile"><h3><T k="ideia1t">A família</T></h3><p><T k="ideia1">Entra com a terra. Não coloca dinheiro nas obras de infraestrutura previstas.</T></p></div>
+              <div className="tile"><h3><T k="ideia2t">A JBL</T></h3><p><T k="ideia2">Cuida dos estudos, aprovações, infraestrutura, marketing, vendas e da carteira de recebíveis.</T></p></div>
+              <div className="tile"><h3><T k="ideia3t">Os parceiros</T></h3><p><T k="ideia3">Dividem o resultado. A família escolhe receber em dinheiro, em lotes ou numa mistura dos dois.</T></p></div>
             </div>
           </div>
 
-          <div className="part">Os números do seu terreno</div>
+          <div className="part"><T k="parte">Os números do seu terreno</T></div>
 
           {/* 1. TERRENO */}
           <section className="step" id="terreno">
             <div className="step-head"><div className="badge">1</div><div>
-              <h2>O tamanho do terreno</h2>
-              <p>Nem todo o terreno vira lote. Uma parte precisa virar rua, calçada e área verde, como em qualquer bairro.</p>
+              <h2><T k="s1Titulo">O tamanho do terreno</T></h2>
+              <p><T k="s1Sub">Nem todo o terreno vira lote. Uma parte precisa virar rua, calçada e área verde, como em qualquer bairro.</T></p>
             </div></div>
             <div className="content">
               <div className="tiles">
-                <div className="tile"><div className="k">Terreno inteiro</div><div className="v"><E k="v.areaTotal2" label="Terreno inteiro">{fmtM2(inputs.areaTotal)}</E></div><div className="d">{fmtNum(ha, 4)} hectares.</div></div>
-                <div className="tile hl"><div className="k">Vira lotes ({fmtPct(inputs.aproveitamento)})</div><div className="v"><E k="v.areaUtil2" label="Área que vira lotes">{fmtM2(r.areaUtil)}</E></div><div className="d">{fmtNum(r.areaUtil / 10000, 4)} hectares aproveitáveis.</div></div>
-                <div className="tile"><div className="k">Número de lotes</div><div className="v"><E k="v.lotes" label="Número de lotes">{fmtNum(r.lotes, 2)}</E></div><div className="d">Estimativa do estudo. Na prática, cerca de {r.lotesInteiros} a {r.lotesInteiros + 1} lotes.</div></div>
+                <div className="tile"><div className="k"><T k="s1k1">Terreno inteiro</T></div><div className="v"><V k="areaTotal2">{fmtM2(inputs.areaTotal)}</V></div><div className="d"><T k="s1d1">{`${fmtNum(ha, 4)} hectares.`}</T></div></div>
+                <div className="tile hl"><div className="k"><T k="s1k2">{`Vira lotes (${fmtPct(inputs.aproveitamento)})`}</T></div><div className="v"><V k="areaUtil2">{fmtM2(r.areaUtil)}</V></div><div className="d"><T k="s1d2">{`${fmtNum(r.areaUtil / 10000, 4)} hectares aproveitáveis.`}</T></div></div>
+                <div className="tile"><div className="k"><T k="s1k3">Número de lotes</T></div><div className="v"><V k="lotes">{fmtNum(r.lotes, 2)}</V></div><div className="d"><T k="s1d3">{`Estimativa do estudo. Na prática, cerca de ${r.lotesInteiros} a ${r.lotesInteiros + 1} lotes.`}</T></div></div>
               </div>
               <div className="calc">
                 <div className="n">=</div>
-                <div className="t">De onde vem o número de lotes</div>
-                <div className="f"><span>{fmtM2(r.areaUtil)}</span><span className="op">÷</span><span>{fmtM2(inputs.metragemLote, 0)} por lote</span><span className="op">=</span><span className="res">{fmtNum(r.lotes, 2)} lotes equivalentes</span></div>
+                <div className="t"><T k="s1CalcT">De onde vem o número de lotes</T></div>
+                <div className="f"><span><V k="f1a">{fmtM2(r.areaUtil)}</V></span><span className="op">÷</span><span><V k="f1b">{`${fmtM2(inputs.metragemLote, 0)} por lote`}</V></span><span className="op">=</span><span className="res"><V k="lotesEq">{`${fmtNum(r.lotes, 2)} lotes equivalentes`}</V></span></div>
               </div>
-              <p className="note">“Lotes equivalentes” porque não existe fração de lote: é uma conta para estimar valores. O número exato de lotes depende do projeto aprovado.</p>
+              <p className="note"><T k="s1Nota">“Lotes equivalentes” porque não existe fração de lote: é uma conta para estimar valores. O número exato de lotes depende do projeto aprovado.</T></p>
               <div className="split">
-                <div className="s-lots" style={{ width: `${inputs.aproveitamento * 100}%` }}>Parte vira lotes</div>
-                <div className="s-streets" style={{ width: `${(1 - inputs.aproveitamento) * 100}%` }}>Ruas, calçadas, áreas verdes e lazer</div>
+                <div className="s-lots" style={{ width: `${inputs.aproveitamento * 100}%` }}><T k="s1Bar1">Parte vira lotes</T></div>
+                <div className="s-streets" style={{ width: `${(1 - inputs.aproveitamento) * 100}%` }}><T k="s1Bar2">Ruas, calçadas, áreas verdes e lazer</T></div>
               </div>
             </div>
           </section>
@@ -185,30 +203,31 @@ export default function JblPadrao(props: TemplateProps) {
           {/* 2. OBRAS */}
           <section className="step" id="execucao">
             <div className="step-head"><div className="badge">2</div><div>
-              <h2>Quanto custam as obras, e quem paga</h2>
-              <p>Toda a infraestrutura é financiada e executada pela JBL.</p>
+              <h2><T k="s2Titulo">Quanto custam as obras, e quem paga</T></h2>
+              <p><T k="s2Sub">Toda a infraestrutura é financiada e executada pela JBL.</T></p>
             </div></div>
             <div className="content">
               <div className="pills">
-                {["Topografia e terraplenagem", "Abertura de ruas", "Rede de esgoto", "Rede de água", "Drenagem pluvial", "Rede elétrica", "Asfalto (CBUQ)", "Guias e sarjetas", "Calçadas", "Árvore em frente a cada lote", "Paisagismo"].map((x) => <span key={x}>{x}</span>)}
+                {OBRAS.map((x, i) => <span key={i}><T k={`obra${i}`}>{x}</T></span>)}
               </div>
               <div className="calc">
                 <div className="n">=</div>
-                <div className="t">Orçamento das obras</div>
-                <div className="f"><span>{fmtM2(r.areaUtil)}</span><span className="op">×</span><span>{fmtBRL(inputs.custoInfraM2)}/m²</span><span className="op">=</span><span className="res"><E k="v.custoInfra" label="Custo das obras">{fmtBRL(r.custoInfra)}</E></span></div>
-                <p className="why">O custo resulta da área aproveitável multiplicada pelo valor de infraestrutura por m².</p>
+                <div className="t"><T k="s2CalcT">Orçamento das obras</T></div>
+                <div className="f"><span><V k="f2a">{fmtM2(r.areaUtil)}</V></span><span className="op">×</span><span><V k="f2b">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res"><V k="custoInfra">{fmtBRL(r.custoInfra)}</V></span></div>
+                <p className="why"><T k="s2Why">O custo resulta da área aproveitável multiplicada pelo valor de infraestrutura por m².</T></p>
               </div>
-              <div className="tip good"><b>A JBL financia e executa a infraestrutura.</b> Em nenhuma hipótese será solicitado aos proprietários da área quantias ou valores para execução desses serviços.</div>
+              <div className="tip good"><b><T k="s2TipT">A JBL financia e executa a infraestrutura.</T></b> <T k="s2Tip">Em nenhuma hipótese será solicitado aos proprietários da área quantias ou valores para execução desses serviços.</T></div>
               <div className="gantt-wrap">
                 <div className="gantt">
-                  <div className="h" style={{ textAlign: "left" }}>Obra</div><div className="h">1º ano</div><div className="h">2º ano</div><div className="h">3º ano</div><div className="h">4º ano</div>
-                  {[["Drenagem e esgoto", 0], ["Água", 1], ["Elétrica", 2], ["Pavimentação", 3]].map(([l, on]) => (
-                    <div key={l as string} style={{ display: "contents" }}>
-                      <div className="l">{l}</div>
+                  <div className="h" style={{ textAlign: "left" }}><T k="ganttObra">Obra</T></div>
+                  {[1, 2, 3, 4].map((a) => <div key={a} className="h"><T k={`ganttAno${a}`}>{`${a}º ano`}</T></div>)}
+                  {CRONOGRAMA.map(([l, on], j) => (
+                    <div key={j} style={{ display: "contents" }}>
+                      <div className="l"><T k={`gantt${j}`}>{l}</T></div>
                       {[0, 1, 2, 3].map((i) => <div key={i} className={`c ${i === on ? "on" : ""}`} />)}
                     </div>
                   ))}
-                  <div className="l">Outros</div>{[0, 1, 2, 3].map((i) => <div key={i} className="c on" style={{ opacity: 0.45 }} />)}
+                  <div className="l"><T k="ganttOutros">Outros</T></div>{[0, 1, 2, 3].map((i) => <div key={i} className="c on" style={{ opacity: 0.45 }} />)}
                 </div>
               </div>
             </div>
@@ -217,32 +236,32 @@ export default function JblPadrao(props: TemplateProps) {
           {/* 3. VGV */}
           <section className="step" id="vgv">
             <div className="step-head"><div className="badge">3</div><div>
-              <h2>Quanto vale tudo isso (VGV)</h2>
-              <p>VGV é o Valor Geral de Vendas: a soma do que os lotes valem quando vendidos.</p>
+              <h2><T k="s3Titulo">Quanto vale tudo isso (VGV)</T></h2>
+              <p><T k="s3Sub">VGV é o Valor Geral de Vendas: a soma do que os lotes valem quando vendidos.</T></p>
             </div></div>
             <div className="content chain">
               <div className="calc">
-                <div className="n">1</div><div className="t">Preço do lote à vista</div>
-                <div className="f"><span>{fmtM2(inputs.metragemLote, 0)}</span><span className="op">×</span><span>{fmtBRL(inputs.valorM2)} por m²</span><span className="op">=</span><span className="res"><E k="v.valorLote" label="Preço do lote à vista">{fmtBRL(r.valorLote)}</E></span></div>
-                <p className="why">Preço de mercado estimado a partir de corretores da região e pesquisas.</p>
+                <div className="n">1</div><div className="t"><T k="s3c1">Preço do lote à vista</T></div>
+                <div className="f"><span><V k="f3a">{fmtM2(inputs.metragemLote, 0)}</V></span><span className="op">×</span><span><V k="f3b">{`${fmtBRL(inputs.valorM2)} por m²`}</V></span><span className="op">=</span><span className="res"><V k="valorLote">{fmtBRL(r.valorLote)}</V></span></div>
+                <p className="why"><T k="s3w1">Preço de mercado estimado a partir de corretores da região e pesquisas.</T></p>
               </div>
               <div className="calc">
-                <div className="n">2</div><div className="t">Entrada do comprador ({fmtPct(inputs.entradaPct)})</div>
-                <div className="f"><span>{fmtBRL(r.valorLote)}</span><span className="op">×</span><span>{fmtPct(inputs.entradaPct)}</span><span className="op">=</span><span className="res"><E k="v.entrada" label="Entrada">{fmtBRL(r.entrada)}</E></span></div>
+                <div className="n">2</div><div className="t"><T k="s3c2">{`Entrada do comprador (${fmtPct(inputs.entradaPct)})`}</T></div>
+                <div className="f"><span><V k="f4a">{fmtBRL(r.valorLote)}</V></span><span className="op">×</span><span><V k="f4b">{fmtPct(inputs.entradaPct)}</V></span><span className="op">=</span><span className="res"><V k="entrada">{fmtBRL(r.entrada)}</V></span></div>
               </div>
               <div className="calc">
-                <div className="n">3</div><div className="t">Parcela do comprador em {r.nParcelas} meses</div>
-                <div className="f"><span>({fmtBRL0(r.valorLote)} − {fmtBRL0(r.entrada)})</span><span className="op">×</span><span>{fmtNum(inputs.multiplicador, 2)}</span><span className="op">÷</span><span>{r.nParcelas}</span><span className="op">=</span><span className="res"><E k="v.parcela" label="Parcela do comprador">{fmtBRL(r.parcela)}</E></span></div>
-                <p className="why">O multiplicador de {fmtNum(inputs.multiplicador, 2)} incorpora os juros do financiamento próprio. A parcela é reajustada uma vez por ano em {fmtPct(r.reajuste)} (IPCA + juros).</p>
+                <div className="n">3</div><div className="t"><T k="s3c3">{`Parcela do comprador em ${r.nParcelas} meses`}</T></div>
+                <div className="f"><span><V k="f5a">{`(${fmtBRL0(r.valorLote)} − ${fmtBRL0(r.entrada)})`}</V></span><span className="op">×</span><span><V k="f5b">{fmtNum(inputs.multiplicador, 2)}</V></span><span className="op">÷</span><span><V k="f5c">{String(r.nParcelas)}</V></span><span className="op">=</span><span className="res"><V k="parcela">{fmtBRL(r.parcela)}</V></span></div>
+                <p className="why"><T k="s3w3">{`O multiplicador de ${fmtNum(inputs.multiplicador, 2)} incorpora os juros do financiamento próprio. A parcela é reajustada uma vez por ano em ${fmtPct(r.reajuste)} (IPCA + juros).`}</T></p>
               </div>
               <div className="calc">
-                <div className="n">4</div><div className="t">VGV total à vista</div>
-                <div className="f"><span>{fmtNum(r.lotes, 2)} lotes</span><span className="op">×</span><span>{fmtBRL0(r.valorLote)}</span><span className="op">=</span><span className="res"><E k="v.vgvAvista" label="VGV à vista">{fmtBRL(r.vgvAvista)}</E></span></div>
+                <div className="n">4</div><div className="t"><T k="s3c4">VGV total à vista</T></div>
+                <div className="f"><span><V k="f6a">{`${fmtNum(r.lotes, 2)} lotes`}</V></span><span className="op">×</span><span><V k="f6b">{fmtBRL0(r.valorLote)}</V></span><span className="op">=</span><span className="res"><V k="vgvAvista">{fmtBRL(r.vgvAvista)}</V></span></div>
               </div>
               <div className="calc">
-                <div className="n">5</div><div className="t">VGV global projetado em {r.nParcelas} meses</div>
-                <div className="f"><span>Carteira com reajuste de {fmtPct(r.reajuste)} ao ano</span><span className="op">=</span><span className="res big"><E k="v.vgvGlobal" label="VGV global projetado">{fmtBRL(r.principal.carteiraEmp)}</E></span></div>
-                <p className="why">Soma de todas as parcelas que os compradores pagam em {anosTxt} anos, já com o reajuste anual, considerando 100% dos lotes vendidos.</p>
+                <div className="n">5</div><div className="t"><T k="s3c5">{`VGV global projetado em ${r.nParcelas} meses`}</T></div>
+                <div className="f"><span><T k="s3f5">{`Carteira com reajuste de ${fmtPct(r.reajuste)} ao ano`}</T></span><span className="op">=</span><span className="res big"><V k="vgvGlobal">{fmtBRL(r.principal.carteiraEmp)}</V></span></div>
+                <p className="why"><T k="s3w5">{`Soma de todas as parcelas que os compradores pagam em ${anosTxt} anos, já com o reajuste anual, considerando 100% dos lotes vendidos.`}</T></p>
               </div>
             </div>
           </section>
@@ -250,8 +269,8 @@ export default function JblPadrao(props: TemplateProps) {
           {/* 4. DIVISÃO */}
           <section className="step" id="participacao">
             <div className="step-head"><div className="badge">4</div><div>
-              <h2>Como o dinheiro é dividido</h2>
-              <p>Participação de cada parte sobre o VGV.</p>
+              <h2><T k="s4Titulo">Como o dinheiro é dividido</T></h2>
+              <p><T k="s4Sub">Participação de cada parte sobre o VGV.</T></p>
             </div></div>
             <div className="content">
               <div className="pie-row">
@@ -259,81 +278,90 @@ export default function JblPadrao(props: TemplateProps) {
                 <div className="shares">
                   <div className="share you">
                     <span className="dot" style={{ background: "#C1943D" }} />
-                    <div><b>Proprietários</b><small>À vista: <E k="v.terAvista" label="Proprietários à vista">{fmtBRL(r.vgvAvistaTer)}</E> · Em {r.nParcelas} meses: <E k="v.terPrazo" label="Proprietários em parcelas">{fmtBRL(r.principal.carteiraTer)}</E></small></div>
-                    <span className="pct"><E k="v.terPct" label="% Proprietários">{fmtPct(r.terrenistaPct, 0)}</E></span>
+                    <div><b><T k="s4p1">Proprietários</T></b><small><T k="s4p1a">À vista:</T> <V k="terAvista">{fmtBRL(r.vgvAvistaTer)}</V> · <T k="s4p1b">{`Em ${r.nParcelas} meses:`}</T> <V k="terPrazo">{fmtBRL(r.principal.carteiraTer)}</V></small></div>
+                    <span className="pct"><V k="terPct">{fmtPct(r.terrenistaPct, 0)}</V></span>
                   </div>
                   <div className="share">
                     <span className="dot" style={{ background: "#122A45" }} />
-                    <div><b>JBL Incorporadora</b><small>À vista: {fmtBRL(r.vgvAvista * r.jblPct)}</small></div>
-                    <span className="pct"><E k="v.jblPct" label="% JBL">{fmtPct(r.jblPct, 0)}</E></span>
+                    <div><b><T k="s4p2">JBL Incorporadora</T></b><small><T k="s4p2a">À vista:</T> <V k="jblAvista">{fmtBRL(r.vgvAvista * r.jblPct)}</V></small></div>
+                    <span className="pct"><V k="jblPct">{fmtPct(r.jblPct, 0)}</V></span>
                   </div>
                   <div className="share">
                     <span className="dot" style={{ background: "#C9D3DE" }} />
-                    <div><b>Infraestrutura</b><small>Orçamento de obras: {fmtBRL(r.custoInfra)}</small></div>
-                    <span className="pct"><E k="v.infraPct" label="% Infraestrutura">{fmtPct(r.infraPct, 0)}</E></span>
+                    <div><b><T k="s4p3">Infraestrutura</T></b><small><T k="s4p3a">Orçamento de obras:</T> <V k="custoInfra2">{fmtBRL(r.custoInfra)}</V></small></div>
+                    <span className="pct"><V k="infraPct">{fmtPct(r.infraPct, 0)}</V></span>
                   </div>
                 </div>
               </div>
-              <div className="tip"><b>Alternativa: parceria física em lotes.</b> Em vez de dinheiro, os proprietários podem receber cerca de <E k="v.lotesTer" label="Lotes dos proprietários">{`${fmtNum(r.lotes * r.terrenistaPct, 0)} lotes`}</E> ({fmtPct(r.terrenistaPct, 0)} das unidades), ou um modelo híbrido.</div>
+              <div className="tip">
+                <b><T k="s4TipT">Alternativa: parceria física em lotes.</T></b>{" "}
+                <T k="s4Tip">{`Em vez de dinheiro, os proprietários podem receber cerca de ${fmtNum(r.lotes * r.terrenistaPct, 0)} lotes (${fmtPct(r.terrenistaPct, 0)} das unidades), ou um modelo híbrido.`}</T>
+              </div>
             </div>
           </section>
 
           {/* 5. RECEBIMENTOS */}
           <section className="step" id="recebimentos">
             <div className="step-head"><div className="badge">5</div><div>
-              <h2>Quanto a família recebe por mês</h2>
-              <p>Receitas brutas dos proprietários, considerando 100% das unidades vendidas, por prazo de financiamento.</p>
+              <h2><T k="s5Titulo">Quanto a família recebe por mês</T></h2>
+              <p><T k="s5Sub">Receitas brutas dos proprietários, considerando 100% das unidades vendidas, por prazo de financiamento.</T></p>
             </div></div>
             <div className="content">
               <div className="tbl">
                 <table>
                   <thead>
-                    <tr><th style={{ textAlign: "left" }}>Prazo</th><th>Parcela do cliente</th><th>Proprietários · receita mensal (1º ano)</th><th>Proprietários · receita mensal (último ano)</th><th>Proprietários · arrecadação final</th></tr>
+                    <tr>
+                      <th style={{ textAlign: "left" }}><T k="th1">Prazo</T></th>
+                      <th><T k="th2">Parcela do cliente</T></th>
+                      <th><T k="th3">Proprietários · receita mensal (1º ano)</T></th>
+                      <th><T k="th4">Proprietários · receita mensal (último ano)</T></th>
+                      <th><T k="th5">Proprietários · arrecadação final</T></th>
+                    </tr>
                   </thead>
                   <tbody>
-                    <tr><td>À vista</td><td>—</td><td>—</td><td>—</td><td><E k="t.avista" label="À vista · arrecadação final">{fmtBRL(r.vgvAvistaTer)}</E></td></tr>
+                    <tr><td><T k="tdAvista">À vista</T></td><td>—</td><td>—</td><td>—</td><td><E k="t.avista">{fmtBRL(r.vgvAvistaTer)}</E></td></tr>
                     {r.cenarios.map((c) => (
                       <tr key={c.meses} className={c.meses === r.nParcelas ? "you" : ""}>
-                        <td>{fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos · {c.meses}x</td>
-                        <td><E k={`t.${c.meses}.parcela`} label={`${c.meses}x · parcela`}>{fmtBRL(c.parcela)}</E></td>
-                        <td><E k={`t.${c.meses}.mensal`} label={`${c.meses}x · receita mensal`}>{fmtBRL(c.mensalTer)}</E></td>
-                        <td><E k={`t.${c.meses}.final`} label={`${c.meses}x · último ano`}>{fmtBRL(c.mensalTerFinal)}</E></td>
-                        <td><b><E k={`t.${c.meses}.total`} label={`${c.meses}x · arrecadação final`}>{fmtBRL(c.carteiraTer)}</E></b></td>
+                        <td><E k={`t.${c.meses}.prazo`}>{`${fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos · ${c.meses}x`}</E></td>
+                        <td><E k={`t.${c.meses}.parcela`}>{fmtBRL(c.parcela)}</E></td>
+                        <td><E k={`t.${c.meses}.mensal`}>{fmtBRL(c.mensalTer)}</E></td>
+                        <td><E k={`t.${c.meses}.final`}>{fmtBRL(c.mensalTerFinal)}</E></td>
+                        <td><b><E k={`t.${c.meses}.total`}>{fmtBRL(c.carteiraTer)}</E></b></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <p className="note">As parcelas são reajustadas uma vez por ano em {fmtPct(r.reajuste)}. Receita bruta, sem dedução de impostos, contabilidade, despesas bancárias, notificações e distratos. Sem considerar a caução de 20% de lotes pelo município, quando houver.</p>
+              <p className="note"><T k="s5Nota">{`As parcelas são reajustadas uma vez por ano em ${fmtPct(r.reajuste)}. Receita bruta, sem dedução de impostos, contabilidade, despesas bancárias, notificações e distratos. Sem considerar a caução de 20% de lotes pelo município, quando houver.`}</T></p>
             </div>
           </section>
 
           {/* 6. VENDAS */}
           <section className="step" id="vendas">
             <div className="step-head"><div className="badge">6</div><div>
-              <h2>Com que rapidez os lotes vendem</h2>
-              <p>Distribuição estimada dos {r.vendas.total} lotes nos primeiros meses após o lançamento.</p>
+              <h2><T k="s6Titulo">Com que rapidez os lotes vendem</T></h2>
+              <p><T k="s6Sub">{`Distribuição estimada dos ${r.vendas.total} lotes nos primeiros meses após o lançamento.`}</T></p>
             </div></div>
             <div className="content">
               <div className="tiles">
-                <div className="tile"><div className="k">1º mês · 45%</div><div className="v"><E k="v.vendas1" label="Vendas 1º mês">{`${r.vendas.mes1} lotes`}</E></div></div>
-                <div className="tile"><div className="k">2º mês · 35%</div><div className="v"><E k="v.vendas2" label="Vendas 2º mês">{`${r.vendas.mes2} lotes`}</E></div></div>
-                <div className="tile"><div className="k">3º mês · 20%</div><div className="v"><E k="v.vendas3" label="Vendas 3º mês">{`${r.vendas.mes3} lotes`}</E></div></div>
+                <div className="tile"><div className="k"><T k="s6k1">1º mês · 45%</T></div><div className="v"><V k="vendas1">{`${r.vendas.mes1} lotes`}</V></div></div>
+                <div className="tile"><div className="k"><T k="s6k2">2º mês · 35%</T></div><div className="v"><V k="vendas2">{`${r.vendas.mes2} lotes`}</V></div></div>
+                <div className="tile"><div className="k"><T k="s6k3">3º mês · 20%</T></div><div className="v"><V k="vendas3">{`${r.vendas.mes3} lotes`}</V></div></div>
               </div>
-              <p className="note">Lançamento estimado: até 120 dias após o protocolo na prefeitura. O número definitivo de lotes depende do projeto aprovado.</p>
+              <p className="note"><T k="s6Nota">Lançamento estimado: até 120 dias após o protocolo na prefeitura. O número definitivo de lotes depende do projeto aprovado.</T></p>
             </div>
           </section>
 
           {/* 7. REGRAS */}
           <section className="step" id="regras">
             <div className="step-head"><div className="badge">7</div><div>
-              <h2>Regras, responsabilidades e garantias</h2>
+              <h2><T k="s7Titulo">Regras, responsabilidades e garantias</T></h2>
             </div></div>
             <div className="content faq">
-              <div><b>Responsabilidades</b><p><E k="txt.resp" label="Responsabilidades" multiline>{"O parceiro proprietário concorre exclusivamente com a gleba de sua propriedade e a parceira incorporadora concorre integralmente com os recursos financeiros para infraestrutura e demais diligências. Cada parceiro responde pelos tributos da sua parte nas vendas, nos termos do Parecer Normativo CST n.º 15/1984."}</E></p></div>
-              <div><b>Constituição da parceria</b><p><E k="txt.spe" label="Constituição da parceria" multiline>{"Constituição de uma SPE - LTDA, com integralização e averbação do imóvel no Cartório de Registro de Imóveis, nos termos das Leis 6.766/79 e 13.465/2017. Havendo cotistas, as condições serão formalizadas em SCP."}</E></p></div>
-              <div><b>Desvio padrão</b><p><E k="txt.desvio" label="Desvio padrão" multiline>{"Após os estudos de viabilidade e aprovações, há a possibilidade de um desvio padrão de 14,66% para mais ou para menos nos valores e na quantidade de lotes apresentados."}</E></p></div>
-              <div><b>Aviso legal</b><p>{`Instrumento confidencial, destinado exclusivamente ao destinatário. Validade de ${options.validadeDias} dias corridos, prorrogável por mais 7 dias mediante solicitação. Informações, estimativas e projeções sujeitas a mudanças e à investigação própria da JBL no avanço das negociações.`}</p></div>
+              <div><b><T k="respT">Responsabilidades</T></b><p><T k="resp" multiline>O parceiro proprietário concorre exclusivamente com a gleba de sua propriedade e a parceira incorporadora concorre integralmente com os recursos financeiros para infraestrutura e demais diligências. Cada parceiro responde pelos tributos da sua parte nas vendas, nos termos do Parecer Normativo CST n.º 15/1984.</T></p></div>
+              <div><b><T k="speT">Constituição da parceria</T></b><p><T k="spe" multiline>Constituição de uma SPE - LTDA, com integralização e averbação do imóvel no Cartório de Registro de Imóveis, nos termos das Leis 6.766/79 e 13.465/2017. Havendo cotistas, as condições serão formalizadas em SCP.</T></p></div>
+              <div><b><T k="desvioT">Desvio padrão</T></b><p><T k="desvio" multiline>Após os estudos de viabilidade e aprovações, há a possibilidade de um desvio padrão de 14,66% para mais ou para menos nos valores e na quantidade de lotes apresentados.</T></p></div>
+              <div><b><T k="avisoT">Aviso legal</T></b><p><T k="aviso" multiline>{`Instrumento confidencial, destinado exclusivamente ao destinatário. Validade de ${options.validadeDias} dias corridos, prorrogável por mais 7 dias mediante solicitação. Informações, estimativas e projeções sujeitas a mudanças e à investigação própria da JBL no avanço das negociações.`}</T></p></div>
             </div>
           </section>
         </div>
@@ -341,10 +369,10 @@ export default function JblPadrao(props: TemplateProps) {
         {options.cartaIntencao && (
           <section className="intent" id="carta-intencao">
             <div className="wrap">
-              <div className="eyebrow">Próximo passo</div>
-              <h2>Carta de intenção</h2>
+              <div className="eyebrow"><T k="intentEyebrow">Próximo passo</T></div>
+              <h2><T k="intentTitulo">Carta de intenção</T></h2>
               <p style={{ color: "var(--muted)", marginTop: 8, maxWidth: "70ch" }}>
-                Ao preencher, vocês autorizam a JBL a seguir com os estudos de viabilidade técnica, jurídica, ambiental, comercial e econômica. Não é um contrato e não gera custo para a família.
+                <T k="intentTexto">Ao preencher, vocês autorizam a JBL a seguir com os estudos de viabilidade técnica, jurídica, ambiental, comercial e econômica. Não é um contrato e não gera custo para a família.</T>
               </p>
               <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} />
             </div>
@@ -353,31 +381,31 @@ export default function JblPadrao(props: TemplateProps) {
 
         <section className="end">
           <div className="wrap">
-            <h2>Próximos passos</h2>
-            <p className="lead">Estamos convictos de que a incorporação na gleba {gleba} representa uma oportunidade estratégica que beneficiará ambas as partes.</p>
+            <h2><T k="fimTitulo">Próximos passos</T></h2>
+            <p className="lead"><T k="fimTexto">{`Estamos convictos de que a incorporação na gleba ${gleba} representa uma oportunidade estratégica que beneficiará ambas as partes.`}</T></p>
             <div className="next">
-              <div><b>1. Conversa</b>Uma reunião com a família para tirar todas as dúvidas.</div>
-              <div><b>2. Carta de intenção</b>Para seguirmos com o estudo de viabilidade completo.</div>
-              <div><b>3. Parceria</b>Contrato, SPE e início das aprovações.</div>
+              <div><b><T k="passo1t">1. Conversa</T></b><T k="passo1">Uma reunião com a família para tirar todas as dúvidas.</T></div>
+              <div><b><T k="passo2t">2. Carta de intenção</T></b><T k="passo2">Para seguirmos com o estudo de viabilidade completo.</T></div>
+              <div><b><T k="passo3t">3. Parceria</T></b><T k="passo3">Contrato, SPE e início das aprovações.</T></div>
             </div>
             <div className="contacts">
               <img src="/brand/logo-vertical.webp" alt="Grupo JBL Incorporadora" />
               <div className="cols">
-                <div><b>Marcelo Aguilar</b>Diretor de Expansão<span>(11) 94009-1744</span></div>
+                <div><b><T k="ct1Nome">Marcelo Aguilar</T></b><T k="ct1Cargo">Diretor de Expansão</T><span><T k="ct1Tel">(11) 94009-1744</T></span></div>
                 <div>
-                  <b>{options.corretorNome ? options.corretorNome : "Central JBL"}</b>
-                  {options.corretorNome ? "Corretor responsável" : "Atendimento"}
-                  <span>{options.corretorTelefone || "(11) 2110-2731"}</span>
+                  <b><T k="ct2Nome">{options.corretorNome || "Central JBL"}</T></b>
+                  <T k="ct2Cargo">{options.corretorNome ? "Corretor responsável" : "Atendimento"}</T>
+                  <span><T k="ct2Tel">{options.corretorTelefone || "(11) 2110-2731"}</T></span>
                 </div>
-                <div><b>Matriz</b>Alameda Rio Negro, 503, Cj. 2011 · Alphaville Empresarial · Barueri/SP<span>contato@jblincorporadora.com.br</span></div>
+                <div><b><T k="ct3Nome">Matriz</T></b><T k="ct3End">Alameda Rio Negro, 503, Cj. 2011 · Alphaville Empresarial · Barueri/SP</T><span><T k="ct3Email">contato@jblincorporadora.com.br</T></span></div>
               </div>
             </div>
           </div>
         </section>
         <footer className="foot">
           <div className="wrap">
-            <span>JBL Incorporadora | Proposta de parceria | Confidencial</span>
-            <span>www.jblincorporadora.com.br · @jbl_incorporadora</span>
+            <span><T k="rodape1">JBL Incorporadora | Proposta de parceria | Confidencial</T></span>
+            <span><T k="rodape2">www.jblincorporadora.com.br · @jbl_incorporadora</T></span>
           </div>
         </footer>
       </div>

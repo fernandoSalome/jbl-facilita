@@ -168,11 +168,18 @@
 .jblt .foot { border-top: 1px solid var(--line); padding-block: 24px; font-size: 13px; color: var(--muted); }
 .jblt .foot .wrap { display: flex; flex-wrap: wrap; gap: 6px 24px; justify-content: space-between; }
 
-/* edição no portal */
-.jblt .ed { cursor: pointer; border-radius: 3px; transition: background .15s, box-shadow .15s; }
+/* edição no portal: clicar no texto e digitar ali mesmo */
+.jblt .edw { position: relative; }
+.jblt .ed { cursor: text; border-radius: 3px; transition: background .15s, box-shadow .15s; white-space: pre-line; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .jblt .ed:hover { background: rgba(193,148,61,.14); box-shadow: 0 0 0 2px rgba(193,148,61,.35); }
-.jblt .ed.changed { box-shadow: 0 0 0 2px #e0a800; background: #fff6d6; position: relative; }
-.jblt .ed.changed::after { content: "✎"; position: absolute; top: -9px; right: -9px; width: 18px; height: 18px; border-radius: 50%; background: #e0a800; color: #fff; font: 700 11px/18px var(--body); text-align: center; }
+.jblt .ed.changed { box-shadow: 0 0 0 2px #e0a800; background: #fff6d6; }
+.jblt .ed.changed::after { content: "✎"; display: inline-block; margin-left: 4px; width: 16px; height: 16px; border-radius: 50%; background: #e0a800; color: #fff; font: 700 10px/16px var(--body); text-align: center; vertical-align: super; font-style: normal; letter-spacing: 0; text-transform: none; }
+.jblt .ed.editing { outline: none; background: #fff; box-shadow: 0 0 0 2px var(--gold), 0 8px 24px -10px rgba(18,42,69,.35); color: var(--navy); }
+.jblt .ed.editing::after { display: none; }
+.jblt .ed-bar { position: absolute; left: 0; top: calc(100% + 8px); z-index: 60; display: flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--navy); border-radius: 6px; padding: 5px 6px 5px 6px; box-shadow: 0 10px 24px -8px rgba(0,0,0,.4); font: 600 12px/1 var(--body); letter-spacing: 0; text-transform: none; text-align: left; }
+.jblt .ed-bar button { font: inherit; border: 0; border-radius: 4px; padding: 6px 9px; cursor: pointer; background: var(--gold); color: var(--navy); }
+.jblt .ed-bar button + button { background: rgba(255,255,255,.12); color: #fff; }
+.jblt .ed-bar span { color: rgba(255,255,255,.6); font-weight: 400; padding: 0 4px; }
 .jblt.editing .letter p { text-align: left; }
 .jblt.embedded .nav { position: relative; }
 

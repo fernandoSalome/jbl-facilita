@@ -204,7 +204,7 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
           </div>
           {mode === "edit" && (
             <span className="text-[12.5px] text-muted">
-              Clique em qualquer número ou texto para alterar.
+              Clique em qualquer texto ou número e digite ali mesmo. Enter salva, Esc cancela.
               {overridesCount > 0 && <> <span className="ml-1 rounded-sm bg-[#fff6d6] px-1.5 py-0.5 font-semibold text-amber-800 ring-1 ring-[#e0a800]">✎ {overridesCount} alterado(s) à mão</span></>}
             </span>
           )}
