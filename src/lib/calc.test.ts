@@ -152,11 +152,11 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
 
   it("quantidades de infraestrutura do PDF", () => {
     expect(r.infra.rede).toBeCloseTo(2977.96, 2);
-    expect(r.infra.logradouros).toBeCloseTo(23823.64, 0);
-    expect(r.infra.eletrica).toBeCloseTo(3275.75, 0);
-    expect(r.infra.guias).toBeCloseTo(5955.91, 0);
-    expect(r.infra.calcadas).toBeCloseTo(11911.82, 0);
-    expect(r.infra.ligacoes).toBeCloseTo(2060, -1);
+    expect(r.infra.logradouros).toBeCloseTo(23823.64, 2);
+    expect(r.infra.eletrica).toBeCloseTo(3275.75, 2);
+    expect(r.infra.guias).toBeCloseTo(5955.91, 2);
+    expect(r.infra.calcadas).toBeCloseTo(11911.82, 2);
+    expect(r.infra.ligacoes).toBeCloseTo(2060, 2);
     expect(r.infra.arvores).toBe(343);
   });
 

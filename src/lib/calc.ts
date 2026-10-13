@@ -96,8 +96,8 @@ export const DEFAULT_INPUTS: StudyInputs = {
 /** Prazos da tabela "Outros Períodos de Parcelamento" + 13 anos da proposta, em meses */
 export const PRAZOS_MESES = [36, 60, 96, 120, 156, 180, 216, 240] as const;
 
-/** Rede principal por m² de área total, medida no estudo da gleba São Judas Tadeu II */
-const REDE_POR_M2 = 2977.96 / 137338.46;
+/** Quantidades medidas no estudo da gleba São Judas Tadeu II (137.338,46 m², 343,346 lotes), usadas como proporção */
+const BASE = { area: 137338.46, lotes: 343.34615, rede: 2977.96, ligacoes: 2060, logradouros: 23823.64, eletrica: 3275.75, guias: 5955.91, calcadas: 11911.82 };
 
 export type Cenario = {
   meses: number;
@@ -247,7 +247,8 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const mes1 = Math.round(total * 0.45);
   const mes2 = Math.round(total * 0.35);
 
-  const rede = i.extensaoRede ?? i.areaTotal * REDE_POR_M2;
+  // Proporção pela área (ou pela extensão da rede, quando informada)
+  const escala = i.extensaoRede ? i.extensaoRede / BASE.rede : i.areaTotal / BASE.area;
   const etapa1 =
     i.lotesEtapa1 && lotes > 0
       ? { lotes: i.lotesEtapa1, pct: i.lotesEtapa1 / lotes, avista: i.lotesEtapa1 * valorLote, prazo: principal.carteiraEmp * (i.lotesEtapa1 / lotes) }
@@ -309,12 +310,12 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     cenarios,
     vendas: { mes1, mes2, mes3: total - mes1 - mes2, total },
     infra: {
-      rede,
-      ligacoes: lotes * 6,
-      logradouros: rede * 8,
-      eletrica: rede * 1.1,
-      guias: rede * 2,
-      calcadas: rede * 4,
+      rede: BASE.rede * escala,
+      ligacoes: (BASE.ligacoes / BASE.lotes) * lotes,
+      logradouros: BASE.logradouros * escala,
+      eletrica: BASE.eletrica * escala,
+      guias: BASE.guias * escala,
+      calcadas: BASE.calcadas * escala,
       arvores: Math.floor(lotes),
     },
     etapa1,

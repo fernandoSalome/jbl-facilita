@@ -48,3 +48,10 @@
   .jblt { font-size: 14px; }
   @page { size: A4; margin: 14mm 12mm; }
 }
+
+/* No portal a proposta divide a tela com o menu lateral: a largura segue o container, não a tela */
+@media (min-width: 901px) {
+  .jblt.embedded main.wrap, .jblt.embedded .end .wrap, .jblt.embedded .dark-foot .wrap, .jblt.embedded .df-bottom .wrap, .jblt.embedded .cover .wrap, .jblt.embedded .intent .wrap {
+    max-width: none; padding-inline: 4%;
+  }
+}
