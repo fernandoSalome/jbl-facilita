@@ -187,7 +187,7 @@ export default function JblPadrao(props: TemplateProps) {
               ))}
             </span>
             <Lnk k="ctaPdf" href="#pdf" className="cta js-pdf" onDefault={print}>
-              <T k="ctaPdf">Baixar proposta em PDF</T>
+              <T k="ctaPdf1">Baixar</T> <span className="cta-long"><T k="ctaPdf2">proposta em</T> </span><T k="ctaPdf3">PDF</T>
             </Lnk>
             <button type="button" className="burger" aria-label={menu ? "Fechar menu" : "Abrir menu"} aria-expanded={menu} onClick={() => setMenu((v) => !v)}>
               <span /><span /><span />

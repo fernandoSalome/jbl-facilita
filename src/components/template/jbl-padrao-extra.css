@@ -55,3 +55,7 @@
     max-width: none; padding-inline: 4%;
   }
 }
+
+/* o logo nunca deforma quando o menu aperta */
+.jblt .nav .lockup { object-fit: contain; object-position: left center; }
+.jblt .nav .mark { flex: none; }
