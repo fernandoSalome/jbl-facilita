@@ -12,7 +12,7 @@ const empresaNav: NavItem[] = [
   { href: "/app/imagens", label: "Banco de imagens", icon: "image" },
   { label: "Metas", icon: "target", soon: true },
   { label: "Parceiros", icon: "users", soon: true },
-  { label: "Usuários", icon: "key", soon: true },
+  { href: "/app/usuarios", label: "Usuários", icon: "key" },
 ];
 
 function projectNav(id: string): NavItem[] {

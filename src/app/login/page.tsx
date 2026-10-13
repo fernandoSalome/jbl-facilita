@@ -1,4 +1,5 @@
 import LoginForm from "./LoginForm";
+import LoginArt from "./LoginArt";
 
 export const metadata = { title: "Entrar · Portal JBL" };
 
@@ -7,8 +8,8 @@ export default function LoginPage() {
     <main className="grid min-h-screen lg:grid-cols-[1.25fr_1fr]">
       {/* Foto aérea: a "janela" do portal */}
       <section className="relative hidden overflow-hidden lg:block">
-        <img src="/demo/sao-judas-tadeu-ii.jpg" alt="" className="absolute inset-0 h-full w-full scale-105 object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-navy via-navy/80 to-navy/10" />
+        <LoginArt />
+        <div className="absolute inset-0 bg-gradient-to-r from-navy/85 via-navy/40 to-transparent" />
         <div className="absolute inset-y-0 left-0 w-[3px] bg-gold" />
         <div className="relative flex h-full flex-col justify-between p-14 text-white">
           <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.28em] text-gold before:h-[2px] before:w-8 before:bg-gold before:content-['']">
@@ -29,7 +30,7 @@ export default function LoginPage() {
             </blockquote>
           </div>
           <div className="flex items-end justify-between text-xs text-white/50">
-            <span>Gleba São Judas Tadeu II · Martinópolis, SP</span>
+            <span>JBL Incorporadora e Urbanismo</span>
             <span>Alphaville Empresarial · Barueri/SP</span>
           </div>
         </div>
