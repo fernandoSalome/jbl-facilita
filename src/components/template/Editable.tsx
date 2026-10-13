@@ -31,6 +31,9 @@ function plainToHtml(t: string) {
   return escapeHtml(t).replace(/\n/g, "<br>");
 }
 
+/** Espaço comum no lugar do espaço especial (o "R$ " dos valores usa  ) */
+const norm = (s: string) => s.replace(/&nbsp;| /g, " ").trim();
+
 function valueToHtml(v: unknown, fallback: string) {
   if (typeof v !== "string") return plainToHtml(fallback);
   return v.startsWith(HTML_PREFIX) ? sanitizeHtml(v.slice(HTML_PREFIX.length)) : plainToHtml(v);
@@ -57,8 +60,8 @@ export function E({ k, children, multiline }: { k: string; children: string; lab
     setEditing(false);
     if (!el) return;
     const clean = sanitizeHtml(el.innerHTML).replace(/(<br>)+$/, "").trim();
-    if (clean === sanitizeHtml(html)) return;
-    if (clean === sanitizeHtml(plainToHtml(children)) || !clean) return void save(k, null);
+    if (norm(clean) === norm(sanitizeHtml(html))) return; // nada mudou
+    if (!clean || norm(clean) === norm(sanitizeHtml(plainToHtml(children)))) return void (changed && save(k, null));
     const hasTags = /<(?!br>)[a-z]/i.test(clean);
     save(k, hasTags || clean.includes("<br>") ? HTML_PREFIX + clean : el.innerText.trim());
   }

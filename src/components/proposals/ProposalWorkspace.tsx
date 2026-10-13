@@ -230,7 +230,22 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
           {mode === "edit" && (
             <span className="text-[12.5px] text-muted">
               Clique em qualquer texto para editar e formatar, em uma imagem para trocar, ou passe o mouse numa seção para mudar o fundo.
-              {overridesCount > 0 && <> <span className="ml-1 rounded-sm bg-[#fff6d6] px-1.5 py-0.5 font-semibold text-amber-800 ring-1 ring-[#e0a800]">✎ {overridesCount} alterado(s) à mão</span></>}
+              {overridesCount > 0 && (
+                <>
+                  {" "}<span className="ml-1 rounded-sm bg-[#fff6d6] px-1.5 py-0.5 font-semibold text-amber-800 ring-1 ring-[#e0a800]">✎ {overridesCount} alterado(s) à mão</span>
+                  <button
+                    className="ml-2 font-semibold text-gold-deep underline"
+                    onClick={async () => {
+                      if (!confirm("Desfazer todas as alterações feitas à mão nesta proposta (textos, imagens, cores, links e seções)? Os textos voltam ao original e os números ao calculado.")) return;
+                      await fetch(`/api/proposals/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resetOverrides: true }) });
+                      setOverridesCount(0);
+                      router.refresh();
+                    }}
+                  >
+                    Desfazer alterações à mão
+                  </button>
+                </>
+              )}
             </span>
           )}
         </div>

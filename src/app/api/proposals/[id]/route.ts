@@ -17,7 +17,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (typeof b.ownerPhone === "string") data.ownerPhone = b.ownerPhone.trim() || null;
     if (b.inputs) data.inputs = parseInputs(b.inputs);
     if (b.options) data.options = parseOptions({ ...(p.options as object), ...b.options });
-    if (b.overrides) {
+    if (b.resetOverrides === true) data.overrides = {};
+    else if (b.overrides) {
       // Uma chave com valor null volta ao valor calculado
       const merged: Overrides = { ...(p.overrides as Overrides) };
       for (const [k, raw] of Object.entries(b.overrides as Record<string, unknown>)) {
