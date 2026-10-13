@@ -17,7 +17,8 @@
 .jblt .nav .wrap { display: flex; align-items: center; gap: 12px 32px; padding-block: 14px; max-width: none; padding-inline: 4vw; }
 .jblt .nav .lockup { height: clamp(38px, 3.4vw, 58px); width: auto; display: block; }
 .jblt .nav .links { flex: 1; display: flex; justify-content: center; gap: clamp(18px, 2.2vw, 40px); }
-.jblt .nav .links a { color: var(--navy); text-decoration: none; font-weight: 600; font-size: 15.5px; }
+.jblt .nav > .wrap > a:first-child { flex: none; }
+.jblt .nav .links a { white-space: nowrap; color: var(--navy); text-decoration: none; font-weight: 600; font-size: 15.5px; }
 .jblt .nav .links a:hover { color: var(--gold-deep); }
 .jblt .cta-gold { background: linear-gradient(180deg,#d4aa55 0%,#c1943d 55%,#a9802f 100%); color: var(--navy); border: 1px solid #a2782f; box-shadow: inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px -8px rgba(162,120,47,.75); font-weight: 700; padding: 14px 26px; border-radius: 4px; text-decoration: none; white-space: nowrap; font-size: 15px; cursor: pointer; font-family: var(--body); }
 .jblt .cta-gold:hover { filter: brightness(1.06); }
@@ -186,6 +187,9 @@
   .jblt .quote .tech { text-align: left; }
 }
 @media (max-width: 760px) {
+  .jblt .nav .wrap { padding-inline: 16px; gap: 12px; }
+  .jblt .nav .lockup { height: 34px; }
+  .jblt .cta-gold { padding: 10px 14px; font-size: 13px; }
   .jblt .content { margin-left: 0; }
   .jblt .tiles, .jblt .tiles.four, .jblt .next, .jblt .pie-row { grid-template-columns: 1fr; }
   .jblt .letter, .jblt .big-idea { padding: 22px; }

@@ -58,7 +58,7 @@ export default function JblPadrao(props: TemplateProps) {
   }, []);
 
   const cta = options.cartaIntencao
-    ? { href: "#carta-intencao", label: "Preencher carta de intenção ↓" }
+    ? { href: "#carta-intencao", label: "Carta de intenção ↓" }
     : { href: `https://wa.me/${WHATSAPP_MARCELO}?text=${encodeURIComponent(`Olá! Recebi a proposta da gleba ${gleba} e gostaria de conversar.`)}`, label: "Falar com a JBL" };
 
   return (

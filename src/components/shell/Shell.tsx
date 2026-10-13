@@ -21,10 +21,10 @@ function projectNav(id: string): NavItem[] {
     { href: `${base}/propostas`, label: "Propostas", icon: "doc" },
     { label: "Análises", icon: "chart", soon: true },
     { label: "Documentação", icon: "folder", soon: true },
-    { label: "Licenças e etapas", icon: "flag", soon: true },
-    { label: "Tarefas dos parceiros", icon: "check", soon: true },
-    { label: "CRM de vendas", icon: "users", soon: true },
-    { label: "Grupo WhatsApp", icon: "chat", soon: true },
+    { label: "Licenças", icon: "flag", soon: true },
+    { label: "Tarefas", icon: "check", soon: true },
+    { label: "CRM", icon: "users", soon: true },
+    { label: "WhatsApp", icon: "chat", soon: true },
   ];
 }
 
