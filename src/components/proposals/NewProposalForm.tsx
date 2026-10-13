@@ -4,8 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
 import type { StudyInputs } from "@/lib/calc";
+import JblPadrao, { type TemplateProps } from "@/components/template/JblPadrao";
 
 type T = { id: string; name: string; description: string | null };
+
+const NO_OVERRIDES = {};
+const TODAY = new Date().toISOString();
 
 function Step({ n, title, children, hint }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -22,7 +26,7 @@ function Step({ n, title, children, hint }: { n: number; title: string; hint?: s
   );
 }
 
-export default function NewProposalForm({ projectId, templates, initialInputs }: { projectId: string; templates: T[]; initialInputs: StudyInputs }) {
+export default function NewProposalForm({ projectId, project, templates, initialInputs }: { projectId: string; project: TemplateProps["project"]; templates: T[]; initialInputs: StudyInputs }) {
   const router = useRouter();
   const study = useStudyState(initialInputs);
   const [name, setName] = useState("");
@@ -105,6 +109,23 @@ export default function NewProposalForm({ projectId, templates, initialInputs }:
           </div>
         </div>
       </Step>
+
+      <section className="card overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
+          <h2 className="h-display text-xl">Prévia do site da proposta</h2>
+          <span className="text-[12.5px] text-muted">Atualiza enquanto você digita os números acima. Os textos podem ser ajustados depois de criar.</span>
+        </div>
+        <JblPadrao
+          mode="preview"
+          token="previa"
+          project={project}
+          ownerName={ownerName || "Família"}
+          inputs={study.inputs}
+          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone }}
+          overrides={NO_OVERRIDES}
+          date={TODAY}
+        />
+      </section>
 
       <div className="sticky bottom-0 -mx-8 flex items-center justify-end gap-3 border-t border-line bg-white/95 px-8 py-4 backdrop-blur">
         {err && <p className="mr-auto text-sm font-semibold text-rose-700">{err}</p>}

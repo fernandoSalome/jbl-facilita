@@ -12,7 +12,12 @@ export default async function NewProposal({ params }: { params: { projectId: str
     <>
       <PageHeader eyebrow={project.name} title="Nova proposta" subtitle="Preencha os dados como na planilha. Os resultados aparecem na hora, logo abaixo." />
       <div className="p-8">
-        <NewProposalForm projectId={project.id} templates={templates} initialInputs={{ ...DEFAULT_INPUTS, areaTotal: project.areaTotal }} />
+        <NewProposalForm
+          projectId={project.id}
+          project={{ name: project.name, tipo: project.tipo, municipio: project.municipio, uf: project.uf, matricula: project.matricula, aerialImage: project.aerialImage }}
+          templates={templates}
+          initialInputs={{ ...DEFAULT_INPUTS, areaTotal: project.areaTotal }}
+        />
       </div>
     </>
   );

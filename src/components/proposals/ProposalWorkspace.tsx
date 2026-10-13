@@ -10,7 +10,7 @@ import { fmtDate, fmtDateTime, relTime } from "@/lib/format";
 import JblPadrao from "@/components/template/JblPadrao";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "./StatusBadge";
-import EditNumbersModal from "./EditNumbersModal";
+import { ProposalNumbersForm, type Draft } from "./EditNumbersModal";
 
 type Props = {
   proposal: {
@@ -36,6 +36,8 @@ function minutes(s: number) {
 export default function ProposalWorkspace({ proposal: p, project, letters, visits }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  // números em edição: a proposta abaixo usa o rascunho enquanto a pessoa digita
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [sendOpen, setSendOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -98,9 +100,9 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
             </div>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <button className="btn-ghost" onClick={() => setEditing(true)}>
+            <button className={editing ? "btn-navy" : "btn-ghost"} onClick={() => { setEditing((v) => !v); setDraft(null); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" /></svg>
-              Editar números
+              {editing ? "Fechar números" : "Editar números"}
             </button>
             {published && (
               <>
@@ -197,6 +199,24 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
         </div>
       </div>
 
+      {/* Números da planilha, ligados à proposta abaixo */}
+      {editing && (
+        <div className="sticky top-[76px] z-30 mx-8 mt-6 max-h-[56vh] overflow-auto rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white p-5 shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="eyebrow">Números da planilha</div>
+            <span className="text-[12.5px] text-muted">A proposta logo abaixo muda enquanto você digita. Nada é salvo até clicar em “Salvar”.</span>
+          </div>
+          <ProposalNumbersForm
+            proposal={{ ...p, overridesCount }}
+            onDraft={setDraft}
+            onDone={() => {
+              setEditing(false);
+              setDraft(null);
+            }}
+          />
+        </div>
+      )}
+
       {/* Proposta */}
       <div className="px-8 pb-12 pt-6">
         <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -204,6 +224,9 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
             <button onClick={() => setMode("edit")} className={`rounded-sm px-3 py-1.5 ${mode === "edit" ? "bg-navy text-white" : "text-muted"}`}>Editar textos</button>
             <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como a família</button>
           </div>
+          {draft && (
+            <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Prévia com os números ainda não salvos</span>
+          )}
           {mode === "edit" && (
             <span className="text-[12.5px] text-muted">
               Clique em qualquer texto para editar e formatar, em uma imagem para trocar, ou passe o mouse numa seção para mudar o fundo.
@@ -211,15 +234,15 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
             </span>
           )}
         </div>
-        <div className="overflow-hidden rounded-md border border-line shadow-[0_24px_60px_-40px_rgba(18,42,69,.5)] [transform:translateZ(0)]">
+        <div className="overflow-hidden rounded-md border border-line shadow-[0_24px_60px_-40px_rgba(18,42,69,.5)]">
           <JblPadrao
             key={mode}
             mode={mode}
             token={p.publicToken}
             project={project}
-            ownerName={p.ownerName}
-            inputs={p.inputs}
-            options={p.options}
+            ownerName={draft?.ownerName ?? p.ownerName}
+            inputs={draft?.inputs ?? p.inputs}
+            options={draft?.options ?? p.options}
             overrides={p.overrides}
             date={p.publishedAt ?? p.createdAt}
             onSave={saveOverride}
@@ -227,7 +250,6 @@ export default function ProposalWorkspace({ proposal: p, project, letters, visit
         </div>
       </div>
 
-      {editing && <EditNumbersModal proposal={{ ...p, overridesCount }} onClose={() => setEditing(false)} />}
 
       <Modal
         open={sendOpen}
