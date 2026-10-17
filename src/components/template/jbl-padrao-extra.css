@@ -73,3 +73,6 @@
 .jblt .qtd-ed { display: inline-flex; align-items: center; gap: 6px; }
 .jblt .qtd-btn { border: 1px solid var(--line); background: #fff; color: var(--muted); border-radius: 4px; width: 22px; height: 22px; line-height: 20px; font-size: 12px; cursor: pointer; opacity: .6; }
 .jblt .row-ed:hover .qtd-btn { opacity: 1; border-color: var(--gold); color: var(--gold-deep); }
+
+/* o texto editável dentro de uma etiqueta não ganha outra borda */
+.jblt .pills > span span { border: 0; padding: 0; background: transparent; font: inherit; }

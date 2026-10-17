@@ -58,8 +58,9 @@ export async function POST(req: Request, { params }: { params: { id: string; for
     const v = await db.formatoVersion.create({ data: { templateId: tpl.id, formato, content: content as object, createdById: s.sub } });
     let atualizadas = 0;
     if (b.aplicar === "todas") {
-      const r = await db.proposal.updateMany({ where: { templateId: tpl.id, formato }, data: { formatoVersionId: v.id } });
-      atualizadas = r.count;
+      // inclui as excluídas, para que fiquem certas se forem reativadas; a contagem mostra só as ativas
+      await db.proposal.updateMany({ where: { templateId: tpl.id, formato }, data: { formatoVersionId: v.id } });
+      atualizadas = await db.proposal.count({ where: { templateId: tpl.id, formato, deletedAt: null } });
     }
     return json({ ok: true, versionId: v.id, atualizadas });
   });
