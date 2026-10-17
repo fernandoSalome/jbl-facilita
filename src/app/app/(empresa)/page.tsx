@@ -73,7 +73,7 @@ export default async function Painel() {
               <ul>
                 {recent.map((p) => (
                   <li key={p.id} className="border-b border-line last:border-0">
-                    <Link href={`/app/projetos/${p.project.id}/propostas/${p.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-alt">
+                    <Link href={`/app/proposta/${p.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-alt">
                       <span><b className="text-navy">{p.ownerName}</b><span className="block text-[12.5px] text-muted">{p.project.name} · {p.name}</span></span>
                       <span className="text-right text-[12.5px] text-muted">{relTime(p.lastViewedAt)}<span className="block">{p.viewCount}× · leu {p.maxScroll}%</span></span>
                     </Link>
@@ -88,7 +88,7 @@ export default async function Painel() {
               <ul>
                 {waiting.map((p) => (
                   <li key={p.id} className="border-b border-line last:border-0">
-                    <Link href={`/app/projetos/${p.project.id}/propostas/${p.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-alt">
+                    <Link href={`/app/proposta/${p.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-alt">
                       <span><b className="text-navy">{p.ownerName}</b><span className="block text-[12.5px] text-muted">{p.project.name}</span></span>
                       <StatusBadge status={p.status} />
                     </Link>

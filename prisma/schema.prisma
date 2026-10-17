@@ -55,6 +55,23 @@ model Template {
   createdAt      DateTime   @default(now())
   deletedAt      DateTime?
   proposals      Proposal[]
+  versions       FormatoVersion[]
+}
+
+/// Conteúdo de um formato (loteamento aberto, condomínio...) dentro de um template:
+/// listas de obras e benfeitorias, padrões e textos. Cada "Salvar" do template cria
+/// uma versão nova. "Só nas próximas" deixa as propostas antigas na versão anterior.
+model FormatoVersion {
+  id          String     @id @default(cuid())
+  templateId  String
+  template    Template   @relation(fields: [templateId], references: [id])
+  formato     String
+  content     Json
+  createdById String?
+  createdAt   DateTime   @default(now())
+  proposals   Proposal[]
+
+  @@index([templateId, formato])
 }
 
 model Proposal {
@@ -63,6 +80,11 @@ model Proposal {
   project       Project         @relation(fields: [projectId], references: [id])
   templateId    String
   template      Template        @relation(fields: [templateId], references: [id])
+  /// loteamento_aberto | condominio_urbano | chacreamento_aberto | chacreamento_condominio
+  formato       String          @default("loteamento_aberto")
+  /// Versão do formato que a proposta usa (texto, listas). Ajustes da proposta ficam em overrides.
+  formatoVersionId String?
+  formatoVersion   FormatoVersion? @relation(fields: [formatoVersionId], references: [id])
   name          String
   ownerName     String
   ownerPhone    String?

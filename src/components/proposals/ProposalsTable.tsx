@@ -8,6 +8,8 @@ import { fmtDate, fmtMi, fmtNum, fmtPct, relTime } from "@/lib/format";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "./StatusBadge";
 import EditNumbersModal from "./EditNumbersModal";
+import LetterModal from "./LetterModal";
+import { FORMATOS_INICIAIS, parseFormato } from "@/lib/formatos";
 
 function readTime(s: number) {
   if (s < 60) return `${s}s`;
@@ -26,7 +28,12 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
 
   async function duplicate() {
     const r = await fetch(`/api/proposals/${p.id}/duplicate`, { method: "POST" }).then((r) => r.json());
-    router.push(`/app/projetos/${p.project.id}/propostas/${r.id}`);
+    router.push(`/app/proposta/${r.id}`);
+  }
+  async function desfecho(status: string) {
+    setOpen(false);
+    await fetch(`/api/proposals/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    router.refresh();
   }
   async function restore() {
     await fetch(`/api/proposals/${p.id}/restore`, { method: "POST" });
@@ -45,11 +52,20 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
             isAdmin && <button className={item} onClick={restore}>↺ Reativar proposta</button>
           ) : (
             <>
-              <Link className={item} href={`/app/projetos/${p.project.id}/propostas/${p.id}`}>Abrir proposta</Link>
+              <Link className={item} href={`/app/proposta/${p.id}`}>Abrir proposta</Link>
               <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar números</button>
               <button className={item} onClick={duplicate}>Duplicar</button>
               {p.status !== "rascunho" && (
                 <button className={item} onClick={() => { navigator.clipboard.writeText(`${location.origin}/p/${p.publicToken}`); setOpen(false); }}>Copiar link</button>
+              )}
+              {p.status !== "rascunho" && (
+                <>
+                  <div className="my-1 border-t border-line" />
+                  <div className="px-3 pb-0.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted">Marcar desfecho</div>
+                  <button className={item} onClick={() => desfecho("negociacao")}>Em negociação</button>
+                  <button className={item} onClick={() => desfecho("aceita")}>✓ Aceita</button>
+                  <button className={item} onClick={() => desfecho("recusada")}>✕ Recusada</button>
+                </>
               )}
               <div className="my-1 border-t border-line" />
               <button className={`${item} text-rose-700`} onClick={() => { setOpen(false); onDelete(); }}>Excluir</button>
@@ -67,6 +83,7 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
   const sp = useSearchParams();
   const showDeleted = sp.get("excluidas") === "1";
   const [editing, setEditing] = useState<ProposalRow | null>(null);
+  const [letter, setLetter] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ProposalRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState("");
@@ -121,7 +138,8 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
               <th className="px-3 py-2.5 text-right font-bold">Lotes</th>
               <th className="px-3 py-2.5 text-right font-bold">VGV à vista</th>
               <th className="px-3 py-2.5 text-right font-bold">Proprietário</th>
-              <th className="px-3 py-2.5 font-bold">Leitura</th>
+              <th className="px-3 py-2.5 font-bold">Acompanhamento</th>
+              <th className="px-3 py-2.5 font-bold">Carta de intenção</th>
               <th className="px-3 py-2.5 font-bold">Atualizada</th>
               <th className="w-10" />
             </tr>
@@ -130,35 +148,51 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
             {list.map((p) => (
               <tr
                 key={p.id}
-                onClick={() => !p.deletedAt && router.push(`/app/projetos/${p.project.id}/propostas/${p.id}`)}
+                onClick={() => !p.deletedAt && router.push(`/app/proposta/${p.id}`)}
                 className={`group border-b border-line last:border-0 ${p.deletedAt ? "bg-rose-50/40 opacity-60" : "cursor-pointer hover:bg-gold-soft/50"}`}
               >
                 <td className="px-4 py-3">
                   <div className="font-semibold text-navy group-hover:text-gold-deep">{p.name}</div>
                   <div className="text-[12.5px] text-muted">
-                    {p.ownerName}
-                    {p.options.cartaIntencao ? " · com carta de intenção" : " · sem carta"}
+                    {p.ownerName} · {FORMATOS_INICIAIS[parseFormato(p.formato)].label}
                     {p.overridesCount > 0 && <span className="ml-1.5 rounded-sm bg-[#fff6d6] px-1 text-[11px] text-amber-800 ring-1 ring-[#e0a800]">✎ {p.overridesCount}</span>}
                   </div>
                 </td>
                 {showProject && <td className="px-3 py-3 text-ink">{p.project.name}<div className="text-[12px] text-muted">{p.project.municipio} · {p.project.uf}</div></td>}
                 <td className="px-3 py-3">
                   {p.deletedAt ? <span className="text-[12px] font-semibold text-rose-700">Excluída</span> : <StatusBadge status={p.status} />}
-                  {p.letters > 0 && <div className="mt-1 text-[11.5px] font-semibold text-emerald-700">✓ {p.letters} carta(s)</div>}
                 </td>
                 <td className="tabular px-3 py-3 text-right">{fmtNum(p.lotes, 0)}</td>
                 <td className="tabular px-3 py-3 text-right">{fmtMi(p.vgvAvista)}</td>
                 <td className="tabular px-3 py-3 text-right font-semibold text-navy">{fmtPct(p.terPct, 0)}</td>
                 <td className="px-3 py-3 text-[12.5px]">
-                  {p.viewCount > 0 ? (
-                    <>
-                      <div className="font-semibold text-navy">{p.viewCount}× · {readTime(p.readSeconds)}</div>
-                      <div className="text-muted">aberta {relTime(p.lastViewedAt)} · leu {p.maxScroll}%</div>
-                    </>
-                  ) : p.status === "rascunho" ? (
+                  {p.status === "rascunho" ? (
                     <span className="text-muted">não enviada</span>
                   ) : (
-                    <span className="text-muted">ainda não aberta</span>
+                    <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5">
+                      <span className="text-muted">Aberturas</span><b className="text-navy">{p.viewCount}</b>
+                      <span className="text-muted">Leitura</span><b className="text-navy">{p.readSeconds ? readTime(p.readSeconds) : "—"}</b>
+                      <span className="text-muted">Leu até</span><b className="text-navy">{p.maxScroll ? `${p.maxScroll}%` : "—"}</b>
+                      <span className="text-muted">Última</span><b className="text-navy">{p.lastViewedAt ? relTime(p.lastViewedAt) : "ainda não"}</b>
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-[12.5px]" onClick={(e) => p.carta && e.stopPropagation()}>
+                  {!p.options.cartaIntencao ? (
+                    <span className="text-muted">Sem carta</span>
+                  ) : p.carta ? (
+                    <button
+                      onClick={() => setLetter(p.carta!.id)}
+                      className="rounded-sm bg-emerald-50 px-2 py-1 text-left font-semibold text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100"
+                      title="Ver os dados da carta"
+                    >
+                      ✓ Assinada
+                      <span className="block text-[11px] font-normal text-emerald-700">{fmtDate(p.carta.createdAt)} · ver dados</span>
+                    </button>
+                  ) : p.status === "rascunho" ? (
+                    <span className="text-muted">—</span>
+                  ) : (
+                    <span className="rounded-sm bg-alt px-2 py-1 text-muted ring-1 ring-line">Aguardando</span>
                   )}
                 </td>
                 <td className="px-3 py-3 text-[12.5px] text-muted">{fmtDate(p.updatedAt)}</td>
@@ -172,6 +206,7 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
       )}
 
       {editing && <EditNumbersModal proposal={editing} onClose={() => setEditing(null)} />}
+      <LetterModal id={letter} onClose={() => setLetter(null)} />
 
       <Modal
         open={!!deleting}

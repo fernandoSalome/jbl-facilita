@@ -10,6 +10,8 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
       data: {
         projectId: p.projectId,
         templateId: p.templateId,
+        formato: p.formato,
+        formatoVersionId: p.formatoVersionId,
         name: `${p.name} (cópia)`,
         ownerName: p.ownerName,
         ownerPhone: p.ownerPhone,

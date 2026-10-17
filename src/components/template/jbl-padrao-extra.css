@@ -59,3 +59,17 @@
 /* o logo nunca deforma quando o menu aperta */
 .jblt .nav .lockup { object-fit: contain; object-position: left center; }
 .jblt .nav .mark { flex: none; }
+
+/* ---------- edição: listas de obras e benfeitorias ---------- */
+.jblt .row-ed td:last-child { position: relative; padding-right: 40px; }
+.jblt .row-del, .jblt .pill-del { border: 0; cursor: pointer; font: 700 12px var(--body); color: #b3261e; background: #fdecec; border-radius: 50%; width: 22px; height: 22px; line-height: 22px; text-align: center; opacity: .55; transition: opacity .15s; }
+.jblt .row-del { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.jblt .row-ed:hover .row-del, .jblt .pill-ed:hover .pill-del { opacity: 1; }
+.jblt .pill-ed { display: inline-flex; align-items: center; gap: 6px; }
+.jblt .pill-del { width: 18px; height: 18px; line-height: 18px; font-size: 10px; }
+.jblt .add-btn, .jblt .add-pill { font: 700 14px var(--body); color: var(--gold-deep); background: var(--gold-soft); border: 1.5px dashed var(--gold); border-radius: 6px; padding: 10px 16px; cursor: pointer; justify-self: start; }
+.jblt .add-pill { padding: 6px 14px; border-radius: 4px; font-size: 14px; }
+.jblt .add-btn:hover, .jblt .add-pill:hover { background: #fff; }
+.jblt .qtd-ed { display: inline-flex; align-items: center; gap: 6px; }
+.jblt .qtd-btn { border: 1px solid var(--line); background: #fff; color: var(--muted); border-radius: 4px; width: 22px; height: 22px; line-height: 20px; font-size: 12px; cursor: pointer; opacity: .6; }
+.jblt .row-ed:hover .qtd-btn { opacity: 1; border-color: var(--gold); color: var(--gold-deep); }

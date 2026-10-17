@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
+import { contentForProposal } from "@/lib/formato-server";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +41,11 @@ export default async function PublicProposal({ params }: { params: { token: stri
   if (displayStatus(p) === "expirada") {
     return <Unavailable title="Proposta expirada" text="O prazo de validade desta proposta terminou. Fale com a JBL para prorrogar." />;
   }
+  const formato = await contentForProposal(p);
   return (
     <JblPadrao
       mode="public"
+      formato={formato}
       token={p.publicToken}
       project={p.project}
       ownerName={p.ownerName}

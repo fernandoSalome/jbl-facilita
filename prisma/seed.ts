@@ -5,6 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
+import { FORMATOS, FORMATOS_INICIAIS } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -31,6 +32,14 @@ async function main() {
     });
   }
 
+  // Cada formato precisa de pelo menos uma versão no template base (listas dos Words oficiais)
+  for (const f of FORMATOS) {
+    const has = await db.formatoVersion.findFirst({ where: { templateId: template.id, formato: f } });
+    if (!has) {
+      await db.formatoVersion.create({ data: { templateId: template.id, formato: f, content: FORMATOS_INICIAIS[f] as object } });
+      console.log(`Formato criado no template: ${f}`);
+    }
+  }
   if ((await db.project.count()) === 0) {
     const admin = await db.user.findUniqueOrThrow({ where: { email } });
     const project = await db.project.create({
@@ -66,6 +75,13 @@ async function main() {
       },
     });
     console.log("Loteamento de demonstração criado.");
+  }
+
+  // Propostas sem versão (criadas antes dos formatos) ficam com a versão atual do seu formato
+  const semVersao = await db.proposal.findMany({ where: { formatoVersionId: null }, select: { id: true, templateId: true, formato: true } });
+  for (const p of semVersao) {
+    const v = await db.formatoVersion.findFirst({ where: { templateId: p.templateId, formato: p.formato }, orderBy: { createdAt: "desc" } });
+    if (v) await db.proposal.update({ where: { id: p.id }, data: { formatoVersionId: v.id } });
   }
 }
 

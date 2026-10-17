@@ -21,5 +21,10 @@ describe("sanitizeHtml", () => {
     expect(cleanOverride("img.logo", { src: "https://evil.com/x.png" })).toBeUndefined();
     expect(cleanOverride("img.logo", { src: "/api/assets/abc123", zoom: 9 })).toEqual({ src: "/api/assets/abc123", x: 50, y: 50, zoom: 3 });
     expect(cleanOverride("txt.a", "html:<b onmouseover=x>ok</b>")).toBe("html:<b>ok</b>");
+    expect(sanitizeHtml('a<br class="d">b <span class="blank evil">x</span>')).toBe('a<br class="d">b <span class="blank">x</span>');
+    expect(cleanOverride("liq.x1", { kind: "calc", key: "rede" })).toEqual({ kind: "calc", key: "rede" });
+    expect(cleanOverride("liq.x1", { kind: "calc", key: "constructor" })).toBeUndefined();
+    expect(cleanOverride("lista.infra", { added: [{ id: "n1", obra: "<b>Muro</b>", desc: "", qtd: { kind: "fixa", text: "1 un." } }], removed: ["la3", "../x"] }))
+      .toEqual({ added: [{ id: "n1", obra: "bMuro/b", desc: "", qtd: { kind: "fixa", text: "1 un." } }], removed: ["la3"] });
   });
 });

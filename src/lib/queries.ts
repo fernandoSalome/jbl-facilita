@@ -13,7 +13,7 @@ export async function listProposals(where: { projectId?: string; showDeleted?: b
       project: { select: { id: true, name: true, municipio: true, uf: true } },
       template: { select: { name: true } },
       events: { where: { type: "view" }, select: { meta: true } },
-      _count: { select: { letters: true } },
+      letters: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true, protocolo: true, createdAt: true, data: true } },
     },
   });
   return rows.map((p) => {
@@ -38,7 +38,16 @@ export async function listProposals(where: { projectId?: string; showDeleted?: b
       viewCount: p.viewCount,
       readSeconds: seconds,
       maxScroll,
-      letters: p._count.letters,
+      letters: p.letters.length,
+      carta: p.letters[0]
+        ? {
+            id: p.letters[0].id,
+            protocolo: p.letters[0].protocolo,
+            createdAt: p.letters[0].createdAt.toISOString(),
+            nome: ((p.letters[0].data as { proprietario?: { nome?: string } })?.proprietario?.nome ?? "") as string,
+          }
+        : null,
+      formato: p.formato,
       overridesCount: Object.keys((p.overrides as object) ?? {}).length,
       inputs,
       options: parseOptions(p.options),

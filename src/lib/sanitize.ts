@@ -6,8 +6,22 @@
  */
 
 const TAGS = new Set(["b", "strong", "i", "em", "u", "s", "mark", "span", "br", "sup", "sub", "small", "font"]);
+const ID = /^[a-z0-9_-]{1,40}$/i;
+const QTD_KEYS = new Set(["logradouros", "rede", "ligacoes", "eletrica", "guias", "calcadas", "arvores"]);
+const short = (v: unknown, max = 300) => (typeof v === "string" ? v.replace(/[<>]/g, "").slice(0, max) : "");
+
+function cleanQtd(q: unknown) {
+  const o = q as { kind?: unknown; key?: unknown; text?: unknown; label?: unknown; unit?: unknown };
+  if (!o || typeof o !== "object") return undefined;
+  if (o.kind === "calc" && QTD_KEYS.has(o.key as string)) return { kind: "calc", key: o.key };
+  if (o.kind === "fixa") return { kind: "fixa", text: short(o.text, 60) };
+  if (o.kind === "projetar") return { kind: "projetar", label: short(o.label, 40) || undefined, unit: short(o.unit, 12) || undefined };
+  return undefined;
+}
 const STYLE_PROPS = new Set(["color", "background-color", "font-size", "font-weight", "font-style", "text-decoration", "text-decoration-line"]);
 const SAFE_VALUE = /^[#a-zA-Z0-9\s.,()%-]+$/;
+/** Classes visuais do template que podem ficar no texto formatado */
+const CLASSES = new Set(["blank", "d"]);
 
 /** Prefixo que marca um valor salvo como HTML formatado */
 export const HTML_PREFIX = "html:";
@@ -58,7 +72,7 @@ export function sanitizeHtml(input: string): string {
     const tag = m[2].toLowerCase();
     if (!TAGS.has(tag)) continue;
     if (tag === "br") {
-      out += "<br>";
+      out += attr(m[3], "class") === "d" ? '<br class="d">' : "<br>";
       continue;
     }
     const outTag = tag === "font" ? "span" : tag;
@@ -71,7 +85,8 @@ export function sanitizeHtml(input: string): string {
       const color = attr(m[3], "color");
       if (color && SAFE_VALUE.test(color)) style = [style, `color:${color}`].filter(Boolean).join(";");
     }
-    out += style ? `<${outTag} style="${style.replace(/"/g, "")}">` : `<${outTag}>`;
+    const cls = attr(m[3], "class").split(/\s+/).filter((c) => CLASSES.has(c)).join(" ");
+    out += `<${outTag}${cls ? ` class="${cls}"` : ""}${style ? ` style="${style.replace(/"/g, "")}"` : ""}>`;
   }
   return out;
 }
@@ -98,6 +113,24 @@ export function cleanOverride(key: string, v: unknown): unknown {
     if (!o || typeof o !== "object" || typeof o.src !== "string" || !(IMG_SRC.test(o.src) || o.src === "default")) return undefined;
     const n = (x: unknown, min: number, max: number, d: number) => (typeof x === "number" && isFinite(x) ? Math.min(max, Math.max(min, x)) : d);
     return { src: o.src, x: n(o.x, 0, 100, 50), y: n(o.y, 0, 100, 50), zoom: n(o.zoom, 0.3, 3, 1) };
+  }
+  if (key.startsWith("liq.")) return cleanQtd(v);
+  if (key.startsWith("lista.")) {
+    const o = v as { added?: unknown; removed?: unknown };
+    if (!o || typeof o !== "object") return undefined;
+    const removed = Array.isArray(o.removed) ? o.removed.filter((x) => typeof x === "string" && ID.test(x)).slice(0, 200) : [];
+    const added: unknown[] = [];
+    for (const it of Array.isArray(o.added) ? o.added.slice(0, 100) : []) {
+      const i = it as { id?: unknown; obra?: unknown; desc?: unknown; qtd?: unknown; texto?: unknown };
+      if (!i || typeof i.id !== "string" || !ID.test(i.id)) return undefined;
+      if (key === "lista.benfeitorias") added.push({ id: i.id, texto: short(i.texto) });
+      else {
+        const qtd = cleanQtd(i.qtd);
+        if (!qtd) return undefined;
+        added.push({ id: i.id, obra: short(i.obra), desc: short(i.desc), qtd });
+      }
+    }
+    return { added, removed };
   }
   if (key.startsWith("block.")) {
     const o = v as { bg?: unknown; hidden?: unknown };

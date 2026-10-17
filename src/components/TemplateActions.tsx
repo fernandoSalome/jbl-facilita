@@ -10,7 +10,7 @@ export default function TemplateActions({ id, canPreview, isAdmin, inUse }: { id
   const [confirm, setConfirm] = useState(false);
   return (
     <span className="flex items-center gap-3">
-      {canPreview && <Link href={`/app/templates/${id}`} className="font-semibold text-gold-deep hover:underline">Pré-visualizar</Link>}
+      {canPreview && <Link href={`/app/modelo/${id}`} className="font-semibold text-gold-deep hover:underline">Editar template</Link>}
       {isAdmin && !inUse && (
         <>
           <button onClick={() => setConfirm(true)} className="font-semibold text-rose-700 hover:underline">Arquivar</button>

@@ -15,14 +15,17 @@ import { escapeHtml, HTML_PREFIX, sanitizeHtml } from "@/lib/sanitize";
  */
 
 type Ctx = {
+  /** Valores em uso: template (base) + alterações desta proposta */
   overrides: Overrides;
+  /** Só as alterações desta proposta (o que aparece marcado como "alterado à mão") */
+  own: Overrides;
   editable: boolean;
   save: (k: string, v: unknown) => Promise<void>;
   /** Altera só na tela (sem salvar). Usado enquanto arrasta o seletor de cor. */
   preview: (k: string, v: unknown) => void;
 };
 
-const EditCtx = createContext<Ctx>({ overrides: {}, editable: false, save: async () => {}, preview: () => {} });
+const EditCtx = createContext<Ctx>({ overrides: {}, own: {}, editable: false, save: async () => {}, preview: () => {} });
 const LinkCtx = createContext<{ k: string; href: string; defaultHref: string } | null>(null);
 
 export const useEdit = () => useContext(EditCtx);
@@ -41,17 +44,20 @@ function valueToHtml(v: unknown, fallback: string) {
 
 /* ------------------------------------------------------------------ texto */
 
-export function E({ k, children, multiline }: { k: string; children: string; label?: string; multiline?: boolean }) {
-  const { overrides, editable, save } = useContext(EditCtx);
+export function E({ k, children, multiline, html: isHtml }: { k: string; children: string; label?: string; multiline?: boolean; html?: boolean }) {
+  const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
-  const changed = k in overrides;
-  const html = valueToHtml(overrides[k], children);
+  const changed = k in own;
+  // Padrão em HTML (título com dourado e quebras, parágrafo com negrito) ou texto simples
+  const defaultHtml = isHtml ? sanitizeHtml(children) : plainToHtml(children);
+  // Valor em uso: alteração da proposta, senão a do template, senão o padrão
+  const html = k in overrides ? valueToHtml(overrides[k], children) : defaultHtml;
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
-  const isMulti = multiline ?? children.length > 90;
+  const isMulti = multiline ?? (isHtml || children.length > 90);
 
   if (!editable) {
-    if (!changed && !children.includes("\n")) return <>{children}</>;
+    if (!(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
@@ -61,7 +67,7 @@ export function E({ k, children, multiline }: { k: string; children: string; lab
     if (!el) return;
     const clean = sanitizeHtml(el.innerHTML).replace(/(<br>)+$/, "").trim();
     if (norm(clean) === norm(sanitizeHtml(html))) return; // nada mudou
-    if (!clean || norm(clean) === norm(sanitizeHtml(plainToHtml(children)))) return void (changed && save(k, null));
+    if (!clean || norm(clean) === norm(defaultHtml)) return void (changed && save(k, null));
     const hasTags = /<(?!br>)[a-z]/i.test(clean);
     save(k, hasTags || clean.includes("<br>") ? HTML_PREFIX + clean : el.innerText.trim());
   }
@@ -405,9 +411,10 @@ export function Lnk({
 type ImgOv = { src: string; x: number; y: number; zoom: number };
 
 export function Img({ k, src, alt, className, style }: { k: string; src: string; alt: string; className?: string; style?: React.CSSProperties }) {
-  const { overrides, editable, save } = useContext(EditCtx);
+  const { overrides, own, editable, save } = useContext(EditCtx);
   const [open, setOpen] = useState(false);
   const o = overrides[`img.${k}`] as ImgOv | undefined;
+  const mine = `img.${k}` in own;
   const real = o && o.src !== "default" ? o.src : src;
   const st: React.CSSProperties = o
     ? { ...style, objectPosition: `${o.x}% ${o.y}%`, transform: o.zoom !== 1 ? `scale(${o.zoom})` : undefined, transformOrigin: `${o.x}% ${o.y}%` }
@@ -417,7 +424,7 @@ export function Img({ k, src, alt, className, style }: { k: string; src: string;
       <img
         src={real}
         alt={alt}
-        className={`${className ?? ""} ${editable ? "ed-img" : ""} ${editable && o ? "changed" : ""}`}
+        className={`${className ?? ""} ${editable ? "ed-img" : ""} ${editable && mine ? "changed" : ""}`}
         style={st}
         title={editable ? "Clique para trocar ou ajustar a imagem" : undefined}
         onClick={
@@ -737,11 +744,14 @@ export function ThemeRoot({ className, children }: { className: string; children
 
 export function EditProvider({
   overrides: initial,
+  base,
   editable,
   onSave,
   children,
 }: {
   overrides: Overrides;
+  /** Valores vindos do template (aparecem, mas não contam como alterados à mão) */
+  base?: Overrides;
   editable: boolean;
   onSave?: (k: string, v: unknown) => Promise<void>;
   children: React.ReactNode;
@@ -775,7 +785,7 @@ export function EditProvider({
   );
 
   return (
-    <EditCtx.Provider value={{ overrides, editable, save, preview }}>
+    <EditCtx.Provider value={{ overrides: base ? { ...base, ...overrides } : overrides, own: overrides, editable, save, preview }}>
       {children}
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-[2500] -translate-x-1/2 rounded bg-navy px-4 py-2 font-sans text-sm font-semibold text-white shadow-xl">

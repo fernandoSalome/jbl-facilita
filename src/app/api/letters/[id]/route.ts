@@ -29,6 +29,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     });
   }
 
+  if (new URL(req.url).searchParams.get("formato") === "json") {
+    const { matricula, ...resto } = d;
+    return Response.json({
+      protocolo: l.protocolo,
+      createdAt: l.createdAt,
+      proposta: l.proposal.name,
+      projeto: `${l.proposal.project.name} · ${l.proposal.project.municipio} - ${l.proposal.project.uf}`,
+      dados: resto,
+      anexo: matricula?.name ?? null,
+    });
+  }
+
   const row = (k: string, v?: string) => `<div class="f"><span>${esc(k)}</span><b>${esc(v) || "&nbsp;"}</b></div>`;
   const p = d.proprietario ?? {}, c = d.casamento ?? {}, j = d.conjuge ?? {}, i = d.imovel ?? {};
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

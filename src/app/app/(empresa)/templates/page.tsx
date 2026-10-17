@@ -19,7 +19,7 @@ export default async function Templates() {
       <PageHeader
         eyebrow="JBL Incorporadora"
         title="Templates de proposta"
-        subtitle="O modelo visual da proposta. Os números vêm do estudo; os textos podem ser ajustados em cada proposta."
+        subtitle="O modelo base das propostas, com um conteúdo para cada formato (loteamento, condomínio, chacreamento). Alterar aqui pode valer para as propostas já feitas."
         actions={<UploadTemplateButton />}
       />
       <div className="grid gap-5 p-8 md:grid-cols-2 xl:grid-cols-3">
