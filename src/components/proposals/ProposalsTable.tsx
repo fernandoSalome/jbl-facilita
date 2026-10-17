@@ -35,6 +35,17 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
     await fetch(`/api/proposals/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     router.refresh();
   }
+  async function expirar() {
+    setOpen(false);
+    if (!confirm(`Expirar a proposta "${p.name}" agora? O link deixa de mostrar a proposta até você reabrir.`)) return;
+    await fetch(`/api/proposals/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expire: true }) });
+    router.refresh();
+  }
+  async function reabrir() {
+    setOpen(false);
+    await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extendDays: 7 }) });
+    router.refresh();
+  }
   async function restore() {
     await fetch(`/api/proposals/${p.id}/restore`, { method: "POST" });
     router.refresh();
@@ -65,6 +76,12 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
                   <button className={item} onClick={() => desfecho("negociacao")}>Em negociação</button>
                   <button className={item} onClick={() => desfecho("aceita")}>✓ Aceita</button>
                   <button className={item} onClick={() => desfecho("recusada")}>✕ Recusada</button>
+                  <div className="my-1 border-t border-line" />
+                  {p.status === "expirada" ? (
+                    <button className={item} onClick={reabrir}>↻ Reabrir (+7 dias)</button>
+                  ) : (p.status === "enviada" || p.status === "aberta") && (
+                    <button className={`${item} text-amber-800`} onClick={expirar}>⏱ Expirar proposta</button>
+                  )}
                 </>
               )}
               <div className="my-1 border-t border-line" />

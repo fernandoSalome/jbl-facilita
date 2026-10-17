@@ -8,6 +8,8 @@ import { DEFAULT_OPTIONS } from "@/lib/proposals";
 import { aplicarDiff, type FormatoContent, type FormatoKey, type ObraItem, type Qtd } from "@/lib/formatos";
 import Modal from "@/components/ui/Modal";
 import JblPadrao from "./JblPadrao";
+import DestinatarioPicker from "@/components/proposals/DestinatarioPicker";
+import type { Destinatario } from "@/lib/proposals";
 
 /**
  * Editor do template base. Diferente da proposta, aqui nada salva sozinho: as
@@ -75,10 +77,11 @@ export default function TemplateEditor({
 
   // As edições feitas no template vão direto para o rascunho:
   // listas e quantidades entram nos itens; textos, imagens e cores ficam em "overrides".
+  const [dest, setDest] = useState<Destinatario>({ tipo: "familia" });
   const onSave = useCallback(async (k: string, v: unknown) => {
     update((d) => {
       if (k.startsWith("lista.")) {
-        const secao = k.slice(6) as "infra" | "complementar" | "benfeitorias";
+        const secao = k.slice(6) as "infra" | "complementar" | "benfeitorias" | "contatos";
         (d as unknown as Record<string, unknown>)[secao] = aplicarDiff(d[secao] as { id: string }[], v);
       } else if (k.startsWith("liq.")) {
         const id = k.slice(4);
@@ -178,8 +181,9 @@ export default function TemplateEditor({
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <div className="inline-flex rounded border border-line bg-white p-0.5 text-[13px] font-semibold">
             <button onClick={() => setMode("edit")} className={`rounded-sm px-3 py-1.5 ${mode === "edit" ? "bg-navy text-white" : "text-muted"}`}>Editar</button>
-            <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como a família</button>
+            <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como o cliente</button>
           </div>
+          <DestinatarioPicker compact value={dest} onChange={setDest} />
           <span className="text-[12.5px] text-muted">
             Números de exemplo. Mude textos, imagens, linhas das tabelas e benfeitorias: vale para as propostas deste formato quando você salvar.
           </span>
@@ -193,7 +197,7 @@ export default function TemplateEditor({
             project={PROJETO_EXEMPLO}
             ownerName="Família"
             inputs={inputs}
-            options={DEFAULT_OPTIONS}
+            options={{ ...DEFAULT_OPTIONS, destinatario: dest }}
             overrides={draft.overrides}
             date={HOJE}
             onSave={onSave}

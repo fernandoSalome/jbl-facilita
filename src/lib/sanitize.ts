@@ -123,7 +123,8 @@ export function cleanOverride(key: string, v: unknown): unknown {
     for (const it of Array.isArray(o.added) ? o.added.slice(0, 100) : []) {
       const i = it as { id?: unknown; obra?: unknown; desc?: unknown; qtd?: unknown; texto?: unknown };
       if (!i || typeof i.id !== "string" || !ID.test(i.id)) return undefined;
-      if (key === "lista.benfeitorias") added.push({ id: i.id, texto: short(i.texto) });
+      if (key === "lista.contatos") added.push({ id: i.id });
+      else if (key === "lista.benfeitorias") added.push({ id: i.id, texto: short(i.texto) });
       else {
         const qtd = cleanQtd(i.qtd);
         if (!qtd) return undefined;

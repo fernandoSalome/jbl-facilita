@@ -17,6 +17,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (typeof b.ownerPhone === "string") data.ownerPhone = b.ownerPhone.trim() || null;
     if (b.inputs) data.inputs = parseInputs(b.inputs);
     if (b.options) data.options = parseOptions({ ...(p.options as object), ...b.options });
+    // Expirar agora: o link passa a mostrar "proposta expirada" (reabrir = prorrogar)
+    if (b.expire === true) data.expiresAt = new Date(Date.now() - 1000);
     if (b.resetOverrides === true) data.overrides = {};
     else if (b.overrides) {
       // Uma chave com valor null volta ao valor calculado

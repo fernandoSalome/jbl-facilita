@@ -41,11 +41,13 @@ export type FormatoContent = {
   infra: ObraItem[];
   complementar: ObraItem[];
   benfeitorias: Benfeitoria[];
+  /** Linhas de "Contatos exclusivos" (nome, telefone e e-mail ficam nos textos li.<id>.*) */
+  contatos: { id: string }[];
   /** Textos e imagens alterados no template para este formato */
   overrides: Overrides;
 };
 
-export type ListaSecao = "infra" | "complementar" | "benfeitorias";
+export type ListaSecao = "infra" | "complementar" | "benfeitorias" | "contatos";
 
 /** Ajuste de uma lista feito numa proposta: o resto continua vindo do template */
 export type ListaDiff = { added?: (ObraItem | Benfeitoria)[]; removed?: string[] };
@@ -113,6 +115,7 @@ function complementarUrbana(p: string, construcao: string): ObraItem[] {
 }
 
 const BASE_OV: Overrides = {};
+const CONTATOS = [{ id: "ct1" }];
 
 export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
   loteamento_aberto: {
@@ -128,6 +131,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
       "🚶 Pista de caminhada (piso saibro)", "🏀 Quadra poliesportiva", "🎾 Quadra de beach tennis", "🐕 Pet place", "🌿 Área verde",
       "🌱 Reflorestamento (quando houver)",
     ].map((t) => bf("lab", t)),
+    contatos: CONTATOS,
     overrides: BASE_OV,
   },
   condominio_urbano: {
@@ -144,6 +148,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
       "🏋️ Academia indoor (fechada)", "💪 Academia robusta ao ar livre", "🛝 Playground", "🚶 Pista de caminhada", "🏀 Quadra poliesportiva",
       "🎾 Quadra de beach tennis", "🐕 Pet place", "🌿 Área verde", "🧘 Espaço zen", "🌄 Mirante (deck panorâmico)", "🌱 Reflorestamento (quando houver)",
     ].map((t) => bf("cub", t)),
+    contatos: CONTATOS,
     overrides: BASE_OV,
   },
   chacreamento_aberto: {
@@ -180,6 +185,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
       "🚪 Portal de acesso ao empreendimento", "📹 Sistema de segurança", "🌳 Praças equipadas e arborizadas", "🥾 Trilha", "🪂 Tirolesa",
       "🚶 Pista de caminhada", "🎾 Quadra de beach tennis", "💪 Academia robusta ao ar livre", "🛝 Playground", "🐕 Pet place",
     ].map((t) => bf("cab", t)),
+    contatos: CONTATOS,
     overrides: BASE_OV,
   },
   chacreamento_condominio: {
@@ -197,6 +203,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
       "🌳 Praças equipadas", "🥾 Trilha", "🧘 Espaço zen", "🌄 Mirante (deck panorâmico)", "🛶 Lago artificial com pista de caminhada",
       "🎾 Quadra de beach tennis", "🏀 Quadra poliesportiva", "🏋️ Academia indoor", "💪 Academia robusta ao ar livre", "🛝 Playground", "🐕 Pet place",
     ].map((t) => bf("ccb", t)),
+    contatos: CONTATOS,
     overrides: BASE_OV,
   },
 };
@@ -216,6 +223,7 @@ export function parseContent(v: unknown, formato: FormatoKey): FormatoContent {
     infra: Array.isArray(c.infra) ? c.infra : base.infra,
     complementar: Array.isArray(c.complementar) ? c.complementar : base.complementar,
     benfeitorias: Array.isArray(c.benfeitorias) ? c.benfeitorias : base.benfeitorias,
+    contatos: Array.isArray(c.contatos) ? c.contatos : base.contatos,
     overrides: (c.overrides as Overrides) ?? {},
   };
 }

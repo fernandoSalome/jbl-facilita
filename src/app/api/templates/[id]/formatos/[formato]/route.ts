@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: { params: { id: string; for
       const clean = cleanOverride(k, v);
       if (clean !== undefined && clean !== null) overrides[k] = clean;
     }
-    const lista = (secao: "infra" | "complementar" | "benfeitorias", itens: unknown[]) => {
+    const lista = (secao: "infra" | "complementar" | "benfeitorias" | "contatos", itens: unknown[]) => {
       const r = cleanOverride(`lista.${secao}`, { added: itens, removed: [] }) as { added: unknown[] } | undefined;
       if (!r) throw new Error(`Lista inválida: ${secao}`);
       return r.added;
@@ -49,6 +49,7 @@ export async function POST(req: Request, { params }: { params: { id: string; for
         infra: lista("infra", c.infra),
         complementar: lista("complementar", c.complementar),
         benfeitorias: lista("benfeitorias", c.benfeitorias),
+        contatos: lista("contatos", c.contatos),
         overrides,
       };
     } catch (e) {

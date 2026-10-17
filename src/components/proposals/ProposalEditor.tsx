@@ -6,6 +6,7 @@ import type { StudyInputs } from "@/lib/calc";
 import type { FormatoContent } from "@/lib/formatos";
 import type { Overrides, ProposalOptions } from "@/lib/proposals";
 import { fmtDate } from "@/lib/format";
+import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
 import Modal from "@/components/ui/Modal";
@@ -279,10 +280,11 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <div className="inline-flex rounded border border-line bg-white p-0.5 text-[13px] font-semibold">
             <button onClick={() => setMode("edit")} className={`rounded-sm px-3 py-1.5 ${mode === "edit" ? "bg-navy text-white" : "text-muted"}`}>Editar</button>
-            <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como a família</button>
+            <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como o cliente</button>
           </div>
+          <DestinatarioPicker compact value={data.meta.options.destinatario} onChange={(dest) => changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, destinatario: dest } } })} />
           {mode === "edit" && (
-            <span className="text-[12.5px] text-muted">
+            <span className="basis-full text-[12.5px] text-muted">
               Clique em qualquer texto para editar, numa imagem para trocar, ou passe o mouse numa seção ou tabela.
               {ownCount > 0 && (
                 <>

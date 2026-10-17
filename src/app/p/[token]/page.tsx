@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
 import { contentForProposal } from "@/lib/formato-server";
+import { pdfKeyOf } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ function Unavailable({ title, text }: { title: string; text: string }) {
   );
 }
 
-export default async function PublicProposal({ params }: { params: { token: string } }) {
+export default async function PublicProposal({ params, searchParams }: { params: { token: string }; searchParams: { print?: string; pages?: string } }) {
   const p = await load(params.token);
   if (!p || p.status === "rascunho") {
     return <Unavailable title="Proposta indisponível" text="Este link não está mais ativo. Fale com a equipe da JBL para receber uma versão atualizada." />;
@@ -42,9 +43,15 @@ export default async function PublicProposal({ params }: { params: { token: stri
     return <Unavailable title="Proposta expirada" text="O prazo de validade desta proposta terminou. Fale com a JBL para prorrogar." />;
   }
   const formato = await contentForProposal(p);
+  const printing = searchParams.print === "1";
+  // número de páginas do PDF: o da impressão em andamento, ou o do último PDF (se ainda vale)
+  const pdfPages = printing ? Number(searchParams.pages) || null : p.pdfKey === pdfKeyOf(p) ? p.pdfPages : null;
   return (
     <JblPadrao
       mode="public"
+      printing={printing}
+      pdfPages={pdfPages}
+      pdfUrl={`/api/public/${p.publicToken}/pdf`}
       formato={formato}
       token={p.publicToken}
       project={p.project}

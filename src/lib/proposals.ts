@@ -6,7 +6,11 @@ export type ProposalOptions = {
   validadeDias: number;
   corretorNome?: string;
   corretorTelefone?: string;
+  /** Para quem a proposta fala: muda saudação e textos ("a família", "o proprietário", "você") */
+  destinatario?: Destinatario;
 };
+
+export type Destinatario = { tipo: "familia" | "proprietario" | "pessoa"; nome?: string; genero?: "m" | "f" };
 
 export const DEFAULT_OPTIONS: ProposalOptions = { cartaIntencao: true, validadeDias: 15 };
 
@@ -44,5 +48,5 @@ export function parseOverrides(json: unknown): Overrides {
 
 /** Robôs que abrem o link para gerar prévia (WhatsApp, Facebook...) não contam como abertura. */
 export function isPreviewBot(ua: string | null) {
-  return !ua || /whatsapp|facebookexternalhit|telegrambot|slackbot|twitterbot|discordbot|linkedinbot|bot|crawler|spider|preview/i.test(ua);
+  return !ua || /whatsapp|facebookexternalhit|telegrambot|slackbot|twitterbot|discordbot|linkedinbot|bot|crawler|spider|preview|headless/i.test(ua);
 }

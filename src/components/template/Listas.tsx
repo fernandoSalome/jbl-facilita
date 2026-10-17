@@ -123,11 +123,11 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
   );
 }
 
-export function TabelaObras({ secao, base, r, colunas }: { secao: "infra" | "complementar"; base: ObraItem[]; r: StudyResult; colunas: 2 | 3 }) {
+export function TabelaObras({ secao, base, r, colunas, className = "tbl" }: { secao: "infra" | "complementar"; base: ObraItem[]; r: StudyResult; colunas: 2 | 3; className?: string }) {
   const l = useLista(secao, base);
   return (
     <>
-      <div className="tbl"><table>
+      <div className={className}><table>
         <thead>
           {colunas === 3 ? (
             <tr><th><E k="txt.s2th1">Obra</E></th><th><E k="txt.s2th2">O que é, em palavras simples</E></th><th className="r"><E k="txt.s2th3">Quantidade média</E></th></tr>
@@ -177,5 +177,29 @@ export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
         </button>
       )}
     </div>
+  );
+}
+
+/** Contatos exclusivos: uma linha por contato, "+" acrescenta outra (vale na proposta e no template) */
+export function ListaContatos({ base, padrao }: { base: { id: string }[]; padrao: { nome?: string; telefone?: string } }) {
+  const l = useLista("contatos", base);
+  const def = (i: number, campo: "nome" | "telefone") => (i === 0 && padrao[campo]) || "a definir";
+  return (
+    <>
+      {l.itens.map((c, i) => (
+        <span key={c.id} className={l.editable ? "ct-row ct-ed" : "ct-row"}>
+          {i > 0 && <br />}
+          Nome: <span className="blank"><E k={`li.${c.id}.nome`}>{def(i, "nome")}</E></span> · Telefone:{" "}
+          <span className="blank"><E k={`li.${c.id}.tel`}>{def(i, "telefone")}</E></span> · E-mail:{" "}
+          <span className="blank"><E k={`li.${c.id}.email`}>a definir</E></span>
+          {l.editable && <button type="button" className="pill-del ct-del" title="Remover contato" onClick={() => l.remover(c.id)}>✕</button>}
+        </span>
+      ))}
+      {l.editable && (
+        <button type="button" className="add-pill ct-add" title="Adicionar contato" onClick={() => l.adicionar({ id: novoId() } as unknown as ObraItem)}>
+          + Contato
+        </button>
+      )}
+    </>
   );
 }

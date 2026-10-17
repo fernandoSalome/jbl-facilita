@@ -99,6 +99,10 @@ model Proposal {
   publicToken   String          @unique
   publishedAt   DateTime?
   expiresAt     DateTime?
+  /// PDF gerado da proposta: arquivo, número de páginas e a "assinatura" do conteúdo que o gerou
+  pdfData       Bytes?
+  pdfPages      Int?
+  pdfKey        String?
   viewCount     Int             @default(0)
   firstViewedAt DateTime?
   lastViewedAt  DateTime?

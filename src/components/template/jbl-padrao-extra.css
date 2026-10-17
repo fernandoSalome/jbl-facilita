@@ -76,3 +76,7 @@
 
 /* o texto editável dentro de uma etiqueta não ganha outra borda */
 .jblt .pills > span span { border: 0; padding: 0; background: transparent; font: inherit; }
+
+/* ---------- contatos exclusivos ---------- */
+.jblt .ct-ed .ct-del { margin-left: 8px; vertical-align: middle; }
+.jblt .ct-add { display: block; margin-top: 12px; }

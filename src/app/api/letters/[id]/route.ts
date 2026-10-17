@@ -9,6 +9,7 @@ type LetterData = {
   casamento?: Record<string, string>;
   conjuge?: Record<string, string>;
   imovel?: Record<string, string>;
+  interesse?: Record<string, string>;
   local?: string;
   data?: string;
   matricula?: { name: string; type: string; data: string } | null;
@@ -62,10 +63,11 @@ p.decl{background:#F7F2E7;border-left:3px solid #C1943D;padding:12px 14px;font-s
 <h1>Termo de aceite para carta de intenção</h1>
 <div style="color:#697683">${esc(l.proposal.project.name)} · ${esc(l.proposal.project.municipio)} - ${esc(l.proposal.project.uf)} · Proposta “${esc(l.proposal.name)}”</div>
 <p class="decl">Por meio deste instrumento, declaramos nosso consentimento para a elaboração da Carta de Intenção, devidamente assinada, e nos comprometemos a fornecer todas as informações e documentos solicitados, a fim de possibilitar à JBL Incorporadora e Urbanismo o prosseguimento dos estudos e da análise de viabilidade técnica, jurídica, ambiental, comercial e econômica do empreendimento em questão.</p>
-<h2>Dados do proprietário</h2><div class="grid">${row("Nome completo", p.nome)}${row("CPF", p.cpf)}${row("RG", p.rg)}${row("Nacionalidade", p.nacionalidade)}${row("Profissão", p.profissao)}${row("Telefone", p.telefone)}${row("E-mail", p.email)}</div>
+<h2>Dados do proprietário</h2><div class="grid">${row("Nome completo", p.nome)}${row("CPF", p.cpf)}${row("RG", p.rg)}${row("Nacionalidade", p.nacionalidade)}${row("Profissão", p.profissao)}${row("Endereço", p.endereco)}${row("Telefone", p.telefone)}${row("E-mail", p.email)}</div>
 <h2>Informações matrimoniais</h2><div class="grid">${row("Estado civil", c.estadoCivil)}${row("Data do casamento", c.data)}${row("Regime de bens", c.regime)}${row("Matrícula", c.matricula)}${row("RCPN", c.rcpn)}${row("Município / comarca", c.municipio)}${row("Observações", c.observacoes)}</div>
 <h2>Dados do cônjuge</h2><div class="grid">${row("Nome completo", j.nome)}${row("CPF", j.cpf)}${row("RG", j.rg)}${row("Nacionalidade", j.nacionalidade)}${row("Profissão", j.profissao)}</div>
 <h2>Imóvel</h2><div class="grid">${row("Área total (ha)", i.areaHa)}${row("Zona", i.zona)}${row("Município", i.municipio)}${row("Cartório de Registro de Imóveis", i.cartorio)}${row("Matrícula(s)", i.matriculas)}${row("CAR(s)", i.car)}</div>
+${d.interesse ? `<h2>Interesse</h2><div class="grid">${row("Modalidade", d.interesse.modalidade)}${row("Prazo de vendas", d.interesse.prazo)}${row("Reunião", d.interesse.reuniao)}${row("Observações", d.interesse.observacoes)}</div>` : ""}
 <div class="grid" style="margin-top:14px">${row("Local", d.local)}${row("Data", d.data)}</div>
 <div class="sig"><div>Assinatura do proprietário</div><div>Assinatura do cônjuge</div></div>
 </body></html>`;

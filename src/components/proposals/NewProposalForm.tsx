@@ -1,5 +1,7 @@
 "use client";
 
+import DestinatarioPicker from "./DestinatarioPicker";
+import type { Destinatario } from "@/lib/proposals";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
@@ -74,6 +76,7 @@ export default function NewProposalForm({
   const [carta, setCarta] = useState(true);
   const [validade, setValidade] = useState("15");
   const [corretorNome, setCorretorNome] = useState("");
+  const [destinatario, setDestinatario] = useState<Destinatario>({ tipo: "familia" });
   const [corretorTelefone, setCorretorTelefone] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
@@ -93,7 +96,7 @@ export default function NewProposalForm({
         ownerName,
         ownerPhone,
         inputs,
-        options: { cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone },
+        options: { cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone, destinatario },
       }),
     });
     const d = await r.json();
@@ -164,6 +167,7 @@ export default function NewProposalForm({
                 <span className="block text-[12.5px] text-muted">O proprietário preenche no fim da proposta. Desligue quando puder assustar a família.</span>
               </span>
             </label>
+            <DestinatarioPicker value={destinatario} onChange={setDestinatario} />
             <div className="grid grid-cols-[120px_1fr_1fr] gap-3">
               <label><span className="label">Validade (dias)</span><input className="input text-right" value={validade} onChange={(e) => setValidade(e.target.value)} /></label>
               <label><span className="label">Corretor (opcional)</span><input className="input" value={corretorNome} onChange={(e) => setCorretorNome(e.target.value)} /></label>
@@ -185,7 +189,7 @@ export default function NewProposalForm({
           project={project}
           ownerName={ownerName || "Família"}
           inputs={inputs}
-          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone }}
+          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone, destinatario }}
           overrides={NO_OVERRIDES}
           date={TODAY}
         />}
