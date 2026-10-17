@@ -143,6 +143,22 @@ const SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56, 64];
 const SWATCHES = ["#122A45", "#C1943D", "#A2782F", "#2B3A4A", "#697683", "#2E7D4F", "#B3261E", "#FFFFFF", "#000000"];
 const HIGHLIGHTS = ["#FFE58A", "#F7F2E7", "#DFF3E6", "#E3ECF7", "#FDE2E1"];
 
+/** Botão da barra de formatação (fora do Toolbar para não ser recriado a cada render) */
+function B({ title, onClick, children, active }: { title: string; onClick: () => void; children: React.ReactNode; active?: boolean }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className={`grid h-8 min-w-8 place-items-center rounded px-1.5 text-[13px] font-semibold transition ${active ? "bg-gold text-navy" : "text-white hover:bg-white/15"}`}
+    >
+      {children}
+    </button>
+  );
+}
+const Sep = () => <span className="mx-0.5 h-5 w-px bg-white/20" />;
+
 function Toolbar({
   target,
   multi,
@@ -175,10 +191,10 @@ function Toolbar({
       const h = bar.current?.offsetHeight ?? 44;
       const w = bar.current?.offsetWidth ?? 520;
       const below = r.bottom + 10 + h < window.innerHeight;
-      setPos({
-        top: below ? r.bottom + 10 : Math.max(8, r.top - h - 10),
-        left: Math.min(Math.max(8, r.left), window.innerWidth - w - 8),
-      });
+      const top = Math.round(below ? r.bottom + 10 : Math.max(8, r.top - h - 10));
+      const left = Math.round(Math.min(Math.max(8, r.left), window.innerWidth - w - 8));
+      // só redesenha quando a posição muda (senão os botões "fogem" do clique)
+      setPos((p) => (p.top === top && p.left === left ? p : { top, left }));
       raf = requestAnimationFrame(place);
     };
     place();
@@ -238,18 +254,6 @@ function Toolbar({
     return Math.round(parseFloat(getComputedStyle(el ?? target).fontSize) || 16);
   }
 
-  const B = ({ title, onClick, children, active }: { title: string; onClick: () => void; children: React.ReactNode; active?: boolean }) => (
-    <button
-      type="button"
-      title={title}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className={`grid h-8 min-w-8 place-items-center rounded px-1.5 text-[13px] font-semibold transition ${active ? "bg-gold text-navy" : "text-white hover:bg-white/15"}`}
-    >
-      {children}
-    </button>
-  );
-  const Sep = () => <span className="mx-0.5 h-5 w-px bg-white/20" />;
 
   return createPortal(
     <div
