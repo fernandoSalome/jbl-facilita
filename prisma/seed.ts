@@ -62,7 +62,7 @@ async function main() {
         ownerName: "Família",
         inputs: {
           areaTotal: 137338.46, aproveitamento: 0.5, metragemLote: 200, incorporadorPct: 0.6, valorM2: 500, corretorPct: 0.05,
-          indice: "IGPM", ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, valorArea: 0, entradaPct: 0.06, multiplicador: 1.68, anos: 20,
+          indice: "IPCA", ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, valorArea: 0, entradaPct: 0.06, multiplicador: 1.68, anos: 20,
           entradaIncTerPct: 0.08, parcelaEntregaPct: 0.27, balaoPct: 0.05, frenteLote: 8, custoInfraM2: 145, extensaoRede: null,
           lotesEtapa1: 106.38, desagio: 0.66667, taxaAplicacao: 0.01, reajusteManual: null,
         },
