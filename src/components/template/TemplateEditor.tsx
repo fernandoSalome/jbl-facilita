@@ -137,7 +137,7 @@ export default function TemplateEditor({
                 const next = e.target.value as FormatoKey;
                 guard(() => {
                   setKey(next);
-                  router.replace(`/app/modelo/${templateId}?formato=${next}`);
+                  router.replace(`/app/modelo/${templateId}?formato=${next}`, { scroll: false }); // fica no mesmo ponto da página
                 });
               }}
               className="input w-auto py-1.5"

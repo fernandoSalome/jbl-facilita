@@ -759,7 +759,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <p><T k="s9p1">Parceiros terrenistas, intermediadores e prestadores vinculados à SPE ou SCP podem antecipar recebíveis por meio da JBL, quando disponível, ou de parceiros especializados. A operação depende de aprovação, acontece depois do TVO (Termo de Verificação de Obras, ou seja, com as obras prontas) e leva em média 30 dias.</T></p>
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s9CalcT">A conta</T></span>
-                  <span className="f"><span><V k="s9a">{fmtBRL(r.antecipacao.carteira)}</V></span><small><T k="s9as">carteira</T></small><span className="op">−</span><span><V k="s9b">{fmtPct(inputs.desagio, 3)}</V></span><small><T k="s9bs">deságio médio</T></small><span className="op">=</span><span className="res" id="v8"><V k="s9r">{fmtBRL(r.antecipacao.valor)}</V></span></span>
+                  <span className="f"><span className="idx"><V k="s9a">{fmtBRL(r.antecipacao.carteira)}</V><small><T k="s9as">carteira</T></small></span><span className="op">−</span><span className="idx"><V k="s9b">{fmtPct(inputs.desagio, 3)}</V><small><T k="s9bs">deságio médio</T></small></span><span className="op">=</span><span className="res" id="v8"><V k="s9r">{fmtBRL(r.antecipacao.valor)}</V></span></span>
                 </div>
                 <p><T k="s9p2b">Em palavras simples: bancos ou empresas especializadas compram os boletos futuros dos clientes e pagam à vista, com desconto. Antes, as obras precisam estar verificadas e a operação aprovada.</T></p>
                 <div className="review"><b><T k="s9rT">O que ainda depende de confirmação</T></b><ul>
