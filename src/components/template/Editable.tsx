@@ -61,6 +61,10 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ultimo = useRef<string>(html);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+  // Na edição o conteúdo é colocado uma vez só; depois o React não toca mais nele (o cursor não pula ao salvar)
+  useLayoutEffect(() => {
+    if (editing && ref.current && congelado.current !== null) ref.current.innerHTML = congelado.current;
+  }, [editing]);
 
   // Número que vem da planilha: sempre o calculado, sem edição (muda em "Editar dados da planilha")
   if (fixo) {
@@ -102,7 +106,6 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
     setEditing(false);
   }
 
-  const mostrado = editing && congelado.current !== null ? congelado.current : html;
 
   return (
     <>
@@ -114,7 +117,7 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
         contentEditable={editing}
         suppressContentEditableWarning
         spellCheck={editing}
-        dangerouslySetInnerHTML={{ __html: mostrado }}
+        {...(editing ? {} : { dangerouslySetInnerHTML: { __html: html } })}
         onInput={() => {
           // salva sozinho 0,8 s depois de parar de digitar
           if (timer.current) clearTimeout(timer.current);
