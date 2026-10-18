@@ -4,6 +4,8 @@ export type ProposalOptions = {
   /** Mostra o formulário de carta de intenção no fim da proposta */
   cartaIntencao: boolean;
   validadeDias: number;
+  /** Proposta sem prazo: o link não expira */
+  semValidade?: boolean;
   corretorNome?: string;
   corretorTelefone?: string;
   /** Para quem a proposta fala: muda saudação e textos ("a família", "o proprietário", "você") */

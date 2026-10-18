@@ -1,5 +1,6 @@
 "use client";
 
+import ValidadeField from "./ValidadeField";
 import DestinatarioPicker from "./DestinatarioPicker";
 import type { Destinatario } from "@/lib/proposals";
 import { useEffect, useRef, useState } from "react";
@@ -75,6 +76,7 @@ export default function NewProposalForm({
   }
   const [carta, setCarta] = useState(true);
   const [validade, setValidade] = useState("15");
+  const [semValidade, setSemValidade] = useState(false);
   const [corretorNome, setCorretorNome] = useState("");
   const [destinatario, setDestinatario] = useState<Destinatario>({ tipo: "familia" });
   const [corretorTelefone, setCorretorTelefone] = useState("");
@@ -96,7 +98,7 @@ export default function NewProposalForm({
         ownerName,
         ownerPhone,
         inputs,
-        options: { cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone, destinatario },
+        options: { cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade, corretorNome, corretorTelefone, destinatario },
       }),
     });
     const d = await r.json();
@@ -168,8 +170,8 @@ export default function NewProposalForm({
               </span>
             </label>
             <DestinatarioPicker value={destinatario} onChange={setDestinatario} />
-            <div className="grid grid-cols-[120px_1fr_1fr] gap-3">
-              <label><span className="label">Validade (dias)</span><input className="input text-right" value={validade} onChange={(e) => setValidade(e.target.value)} /></label>
+            <div className="grid grid-cols-[auto_1fr_1fr] gap-3">
+              <ValidadeField dias={validade} semValidade={semValidade} onDias={setValidade} onSemValidade={setSemValidade} />
               <label><span className="label">Corretor (opcional)</span><input className="input" value={corretorNome} onChange={(e) => setCorretorNome(e.target.value)} /></label>
               <label><span className="label">Telefone do corretor</span><input className="input" value={corretorTelefone} onChange={(e) => setCorretorTelefone(e.target.value)} /></label>
             </div>
@@ -189,7 +191,7 @@ export default function NewProposalForm({
           project={project}
           ownerName={ownerName || "Família"}
           inputs={inputs}
-          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, corretorNome, corretorTelefone, destinatario }}
+          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade, corretorNome, corretorTelefone, destinatario }}
           overrides={NO_OVERRIDES}
           date={TODAY}
         />}

@@ -17,13 +17,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return json({ ok: true });
     }
 
-    const dias = parseOptions(p.options).validadeDias;
+    const { validadeDias: dias, semValidade } = parseOptions(p.options);
     await db.proposal.update({
       where: { id: p.id },
       data: {
         status: p.status === "rascunho" ? "enviada" : p.status,
         publishedAt: p.publishedAt ?? now,
-        expiresAt: new Date(now.getTime() + dias * 864e5),
+        expiresAt: semValidade ? null : new Date(now.getTime() + dias * 864e5),
       },
     });
     await db.proposalEvent.create({ data: { proposalId: p.id, type: "publish", meta: { by: s.name } } });

@@ -1,5 +1,6 @@
 "use client";
 
+import ValidadeField from "./ValidadeField";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
@@ -33,13 +34,14 @@ export function ProposalNumbersForm({
   const [ownerPhone, setOwnerPhone] = useState(proposal.ownerPhone ?? "");
   const [carta, setCarta] = useState(proposal.options.cartaIntencao);
   const [validade, setValidade] = useState(String(proposal.options.validadeDias));
+  const [semValidade, setSemValidade] = useState(!!proposal.options.semValidade);
   const [saving, setSaving] = useState(false);
-  const options: ProposalOptions = { ...proposal.options, cartaIntencao: carta, validadeDias: Number(validade) || 15 };
+  const options: ProposalOptions = { ...proposal.options, cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade };
 
   useEffect(() => {
     onDraft?.({ inputs: study.inputs, options, ownerName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [study.inputs, carta, validade, ownerName]);
+  }, [study.inputs, carta, validade, semValidade, ownerName]);
 
   async function save() {
     setSaving(true);
@@ -59,7 +61,7 @@ export function ProposalNumbersForm({
         <label><span className="label">Nome da proposta</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label><span className="label">Proprietário</span><input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></label>
         <label><span className="label">WhatsApp</span><input className="input" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} /></label>
-        <label><span className="label">Validade (dias)</span><input className="input w-24 text-right" value={validade} onChange={(e) => setValidade(e.target.value)} /></label>
+        <ValidadeField dias={validade} semValidade={semValidade} onDias={setValidade} onSemValidade={setSemValidade} />
         <label className="flex items-end gap-2 pb-2.5 text-sm font-semibold text-navy">
           <input type="checkbox" checked={carta} onChange={(e) => setCarta(e.target.checked)} className="h-4 w-4 accent-[#A2782F]" />
           Carta de intenção

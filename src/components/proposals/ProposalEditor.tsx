@@ -1,5 +1,6 @@
 "use client";
 
+import ValidadeField from "./ValidadeField";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudyInputs } from "@/lib/calc";
@@ -51,10 +52,12 @@ function NumbersPanel({ value, onChange }: { value: Data; onChange: (d: Data) =>
         <label><span className="label">Nome da proposta</span><input className="input" value={m.name} onChange={(e) => setMeta({ name: e.target.value })} /></label>
         <label><span className="label">Proprietário</span><input className="input" value={m.ownerName} onChange={(e) => setMeta({ ownerName: e.target.value })} /></label>
         <label><span className="label">WhatsApp</span><input className="input" value={m.ownerPhone} onChange={(e) => setMeta({ ownerPhone: e.target.value })} /></label>
-        <label>
-          <span className="label">Validade (dias)</span>
-          <input className="input w-24 text-right" value={m.options.validadeDias} onChange={(e) => setMeta({ options: { ...m.options, validadeDias: Number(e.target.value.replace(/\D/g, "")) || 0 } })} />
-        </label>
+        <ValidadeField
+          dias={m.options.validadeDias}
+          semValidade={m.options.semValidade}
+          onDias={(v) => setMeta({ options: { ...m.options, validadeDias: Number(v) || 0 } })}
+          onSemValidade={(v) => setMeta({ options: { ...m.options, semValidade: v } })}
+        />
         <label className="flex items-end gap-2 pb-2.5 text-sm font-semibold text-navy">
           <input type="checkbox" checked={m.options.cartaIntencao} onChange={(e) => setMeta({ options: { ...m.options, cartaIntencao: e.target.checked } })} className="h-4 w-4 accent-[#A2782F]" />
           Carta de intenção
@@ -238,7 +241,7 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
             </div>
             <div className="text-[12px] text-muted">
               {project.name} · {formato.label} · {data.meta.options.cartaIntencao ? "com carta de intenção" : "sem carta"}
-              {p.expiresAt && ` · válida até ${fmtDate(p.expiresAt)}`}
+              {data.meta.options.semValidade ? " · não expira" : p.expiresAt && ` · válida até ${fmtDate(p.expiresAt)}`}
             </div>
           </div>
 
@@ -339,7 +342,7 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
           </>
         }
       >
-        <p className="text-sm text-muted">O link já está ativo por {data.meta.options.validadeDias} dias. Mensagem sugerida:</p>
+        <p className="text-sm text-muted">{data.meta.options.semValidade ? "O link já está ativo e não expira." : `O link já está ativo por ${data.meta.options.validadeDias} dias.`} Mensagem sugerida:</p>
         <div className="mt-3 whitespace-pre-line rounded border-l-[3px] border-gold bg-alt px-4 py-3 text-[14px]">{message}</div>
         {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar números” para abrir a conversa direto.</p>}
       </Modal>

@@ -16,7 +16,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (typeof b.ownerName === "string" && b.ownerName.trim()) data.ownerName = b.ownerName.trim();
     if (typeof b.ownerPhone === "string") data.ownerPhone = b.ownerPhone.trim() || null;
     if (b.inputs) data.inputs = parseInputs(b.inputs);
-    if (b.options) data.options = parseOptions({ ...(p.options as object), ...b.options });
+    if (b.options) {
+      const antes = parseOptions(p.options);
+      const depois = parseOptions({ ...(p.options as object), ...b.options });
+      data.options = depois;
+      // ligou/desligou "não expira" numa proposta já publicada: o prazo acompanha
+      if (p.status !== "rascunho" && !!antes.semValidade !== !!depois.semValidade) {
+        data.expiresAt = depois.semValidade ? null : new Date(Date.now() + depois.validadeDias * 864e5);
+      }
+    }
     // Expirar agora: o link passa a mostrar "proposta expirada" (reabrir = prorrogar)
     if (b.expire === true) data.expiresAt = new Date(Date.now() - 1000);
     if (b.resetOverrides === true) data.overrides = {};

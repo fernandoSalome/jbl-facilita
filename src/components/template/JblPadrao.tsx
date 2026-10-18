@@ -780,7 +780,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <div><b><T k="rg3t">Os números podem variar (desvio padrão)</T></b><p><T k="rg3" html>{"Após os estudos de viabilidade efetivamente concluídos e aprovações das etapas nos órgãos competentes, estatisticamente há a possibilidade de um desvio padrão de <strong>14,66% para mais ou para menos</strong> nos valores informados, bem como na quantidade de unidades de lotes apresentadas."}</T></p><p><T k="rg3d">Observação: o documento não apresenta a base estatística desse percentual.</T></p></div>
                 <div><b><T k="rg4t">Custos que não saem das tabelas</T></b><p><T k="rg4">Impostos, contabilidade, taxas bancárias, cobrança e distratos não estão descontados das tabelas de recebimento.</T></p></div>
                 <div><b><T k="rg5t">Acompanhamento</T></b><p><T k="rg5">Aplicativo com relatórios, fotos e vídeos a cada 15 dias, além da gestão de boletos e da carteira de recebíveis.</T></p></div>
-                <div><b><T k="rg6t">Data e validade</T></b><p><T k="rg6">{`Proposta datada de ${dataCurta}, válida por ${options.validadeDias} dias corridos, com possível prorrogação de mais 7 dias. Por isso, ela precisa de revalidação comercial antes de seguir.`}</T></p></div>
+                <div><b><T k="rg6t">Data e validade</T></b><p><T k="rg6">{options.semValidade ? `Proposta datada de ${dataCurta}. Os números podem precisar de revalidação comercial antes de seguir.` : `Proposta datada de ${dataCurta}, válida por ${options.validadeDias} dias corridos, com possível prorrogação de mais 7 dias. Por isso, ela precisa de revalidação comercial antes de seguir.`}</T></p></div>
               </div>
               <div className="content" style={{ marginTop: 28 }}>
                 <h3><T k="premH3">Premissas do projeto</T></h3>
@@ -802,12 +802,12 @@ export default function JblPadrao(props: TemplateProps) {
             <Sec k="aviso" className="step" id="aviso-legal">
               <div className="step-head"><div className="badge">12</div><div>
                 <h2><T k="s12Titulo">Aviso legal</T></h2>
-                <p><T k="s12Sub2">{`Em resumo: a proposta é confidencial, vale por ${options.validadeDias} dias, podendo ser prorrogada por mais 7 dias, e os números ainda serão confirmados pela JBL.`}</T></p>
+                <p><T k="s12Sub2">{options.semValidade ? "Em resumo: a proposta é confidencial e os números ainda serão confirmados pela JBL." : `Em resumo: a proposta é confidencial, vale por ${options.validadeDias} dias, podendo ser prorrogada por mais 7 dias, e os números ainda serão confirmados pela JBL.`}</T></p>
               </div></div>
               <div className="content faq">
                 <div>
                   <p><T k="al1">O presente instrumento foi elaborado pela JBL Incorporadora e Urbanismo e destinado exclusivamente ao destinatário. É originalmente confidencial e restrito aos envolvidos e não constitui instrumento promocional.</T></p>
-                  <p><T k="al2b2" html>{`<strong>A validade desta proposta é de ${options.validadeDias} dias corridos.</strong> O destinatário poderá partilhar com a JBL manifestações concernentes a este instrumento dentro deste prazo ou <strong>solicitar prorrogação por mais 7 dias corridos</strong>. Após esses prazos, entrará na expectação para a realização da análise de viabilidade.`}</T></p>
+                  {!options.semValidade && <p><T k="al2b2" html>{`<strong>A validade desta proposta é de ${options.validadeDias} dias corridos.</strong> O destinatário poderá partilhar com a JBL manifestações concernentes a este instrumento dentro deste prazo ou <strong>solicitar prorrogação por mais 7 dias corridos</strong>. Após esses prazos, entrará na expectação para a realização da análise de viabilidade.`}</T></p>}
                   <p><T k="al3">Este material contém informações, estimativas e projeções revisadas por terceiros ou obtidas de fontes públicas, as quais ainda não foram verificadas pela JBL. Essas informações, estimativas e projeções estão sujeitas a mudanças.</T></p>
                   <p><T k="al4">No avanço das negociações, a JBL se incumbirá de aplicar sua própria investigação e proceder às ações relacionadas ao objeto deste instrumento.</T></p>
                   <p><T k="al5b" html>{"<strong>Todas as informações devem ser mantidas de forma estritamente confidencial aos envolvidos e somente podem ser divulgadas, no todo ou em parte, com prévia e expressa anuência da JBL, e somente para pessoas que tenham trato confidencial das informações.</strong>"}</T></p>
