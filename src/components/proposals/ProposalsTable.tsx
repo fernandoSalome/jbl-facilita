@@ -64,7 +64,7 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
           ) : (
             <>
               <Link className={item} href={`/app/proposta/${p.id}`}>Abrir proposta</Link>
-              <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar números</button>
+              <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar dados da planilha</button>
               <button className={item} onClick={duplicate}>Duplicar</button>
               {p.status !== "rascunho" && (
                 <button className={item} onClick={() => { navigator.clipboard.writeText(`${location.origin}/p/${p.publicToken}`); setOpen(false); }}>Copiar link</button>

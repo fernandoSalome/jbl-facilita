@@ -258,7 +258,7 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
               <button onClick={redo} disabled={pos >= hist.length} title="Refazer (Ctrl+Y)" className="border-l border-line px-3 py-2 text-[13px] font-semibold text-navy hover:bg-alt disabled:opacity-35">↷ Refazer</button>
             </div>
             <button className={numbersOpen ? "btn-navy" : "btn-ghost"} onClick={() => setNumbersOpen((v) => !v)}>
-              {numbersOpen ? "Fechar números" : "Editar números"}
+              {numbersOpen ? "Fechar dados da planilha" : "Editar dados da planilha"}
             </button>
             {published && (
               <>
@@ -278,7 +278,7 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
       {numbersOpen && (
         <div className="sticky top-[66px] z-30 mx-6 mt-4 max-h-[56vh] overflow-auto rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white p-5 shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <div className="eyebrow">Números da planilha</div>
+            <div className="eyebrow">Dados da planilha</div>
             <span className="text-[12.5px] text-muted">Salva sozinho. A proposta logo abaixo muda enquanto você digita.</span>
           </div>
           <NumbersPanel key={numbersKey} value={data} onChange={changeData} />
@@ -350,7 +350,7 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
       >
         <p className="text-sm text-muted">{data.meta.options.semValidade ? "O link já está ativo e não expira." : `O link já está ativo por ${data.meta.options.validadeDias} dias.`} Mensagem sugerida:</p>
         <div className="mt-3 whitespace-pre-line rounded border-l-[3px] border-gold bg-alt px-4 py-3 text-[14px]">{message}</div>
-        {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar números” para abrir a conversa direto.</p>}
+        {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar dados da planilha” para abrir a conversa direto.</p>}
       </Modal>
     </div>
   );

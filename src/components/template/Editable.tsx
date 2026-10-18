@@ -55,11 +55,17 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
   const isMulti = multiline ?? (isHtml || children.length > 90);
+  // Enquanto edita, o texto na tela fica parado (o salvamento automático não mexe no cursor)
+  const congelado = useRef<string | null>(null);
+  const inicio = useRef<unknown>(undefined);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ultimo = useRef<string>(html);
+  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
-  // Número que vem da planilha: sempre o calculado, sem edição (muda em "Editar números")
+  // Número que vem da planilha: sempre o calculado, sem edição (muda em "Editar dados da planilha")
   if (fixo) {
     const conteudo = isHtml ? <span dangerouslySetInnerHTML={{ __html: defaultHtml }} /> : <>{children}</>;
-    return editable ? <span className="fixo" title="Vem da planilha. Para mudar, use “Editar números”.">{conteudo}</span> : conteudo;
+    return editable ? <span className="fixo" title="Vem da planilha. Para mudar, use “Editar dados da planilha”.">{conteudo}</span> : conteudo;
   }
 
   if (!editable) {
@@ -67,37 +73,60 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
-  function commit() {
+  /** Grava o que está escrito agora (sem sair da edição) */
+  function gravar() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
     const el = ref.current;
-    setEditing(false);
     if (!el) return;
     const clean = sanitizeHtml(el.innerHTML).replace(/(<br>)+$/, "").trim();
-    if (norm(clean) === norm(sanitizeHtml(html))) return; // nada mudou
-    if (!clean || norm(clean) === norm(defaultHtml)) return void (changed && save(k, null));
+    if (norm(clean) === norm(sanitizeHtml(ultimo.current))) return; // nada mudou desde a última gravação
+    ultimo.current = clean;
+    if (!clean || norm(clean) === norm(defaultHtml)) return void ((k in own || changed) && save(k, null));
     const hasTags = /<(?!br>)[a-z]/i.test(clean);
     save(k, hasTags || clean.includes("<br>") ? HTML_PREFIX + clean : el.innerText.trim());
   }
 
-  function cancel() {
-    if (ref.current) ref.current.innerHTML = html;
+  function commit() {
+    gravar();
+    congelado.current = null;
     setEditing(false);
   }
+
+  function cancel() {
+    if (timer.current) clearTimeout(timer.current);
+    // Esc desfaz também o que já tinha sido salvo sozinho durante a edição
+    if (norm(sanitizeHtml(ultimo.current)) !== norm(sanitizeHtml(congelado.current ?? html))) save(k, inicio.current === undefined ? null : inicio.current);
+    if (ref.current) ref.current.innerHTML = congelado.current ?? html;
+    congelado.current = null;
+    setEditing(false);
+  }
+
+  const mostrado = editing && congelado.current !== null ? congelado.current : html;
 
   return (
     <>
       <span
-        key={`${k}:${html}`}
+        key={editing ? `${k}:editando` : `${k}:${html}`}
         ref={ref}
         className={`ed ${changed ? "changed" : ""} ${editing ? "editing" : ""}`}
         title={editing ? undefined : changed ? "Alterado à mão. Clique para editar" : "Clique para editar"}
         contentEditable={editing}
         suppressContentEditableWarning
         spellCheck={editing}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: mostrado }}
+        onInput={() => {
+          // salva sozinho 0,8 s depois de parar de digitar
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(gravar, 800);
+        }}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           if (editing) return;
+          congelado.current = html;
+          ultimo.current = html;
+          inicio.current = own[k];
           setEditing(true);
           requestAnimationFrame(() => {
             const el = ref.current;
@@ -320,9 +349,9 @@ function Toolbar({
         onMouseDown={(e) => e.preventDefault()}
         onClick={onCommit}
         className="h-8 rounded bg-gold px-3 text-[12.5px] font-bold text-navy hover:brightness-110"
-        title={multi ? "Salvar (Ctrl+Enter)" : "Salvar (Enter)"}
+        title="O texto salva sozinho enquanto você digita. Clique para terminar a edição."
       >
-        ✓ Salvar
+        ✓ Pronto
       </button>
     </div>,
     document.body,
