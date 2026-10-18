@@ -27,6 +27,7 @@ function projectNav(id: string): NavItem[] {
     { label: "Tarefas", icon: "check", soon: true },
     { label: "CRM", icon: "users", soon: true },
     { label: "WhatsApp", icon: "chat", soon: true },
+    { href: `${base}/configuracoes`, label: "Configurações", icon: "cog" },
   ];
 }
 
