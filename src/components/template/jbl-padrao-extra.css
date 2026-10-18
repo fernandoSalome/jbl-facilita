@@ -89,7 +89,8 @@
 .jblt .intent .fecho { color: var(--ink); font-size: 16px; line-height: 1.6; max-width: none; }
 
 /* números sempre retos (alinhados na linha), sem algarismos que sobem e descem */
-.jblt, .jblt * { font-variant-numeric: lining-nums; }
+.jblt, .jblt *, .jblt text { font-variant-numeric: lining-nums !important; font-feature-settings: "lnum" 1; }
+.jblt .num, .jblt .num * { font-variant-numeric: lining-nums tabular-nums !important; font-feature-settings: "lnum" 1, "tnum" 1; }
 
 /* "O grupo" sem o logo: o texto ocupa a largura toda */
 .jblt .grupo.grupo-solo { grid-template-columns: 1fr; }
@@ -111,3 +112,6 @@
 .jblt .intent-grid > form { margin-top: 0; }
 .jblt .intent-grid > * { align-self: start; }
 @media (max-width: 900px) { .jblt .intent-head { grid-template-columns: 1fr; } }
+
+/* número da planilha dentro de um texto editável: fica travado e ligado à planilha */
+.jblt.editing .num-var { background: color-mix(in srgb, var(--gold) 14%, transparent); border-radius: 3px; padding: 0 2px; cursor: not-allowed; }

@@ -37,6 +37,20 @@ function plainToHtml(t: string) {
 /** Espaço comum no lugar do espaço especial (o "R$ " dos valores usa  ) */
 const norm = (s: string) => s.replace(/&nbsp;| /g, " ").trim();
 
+/** Troca {{nome}} pelo número da planilha. Na tela vira um bloco travado (não dá para apagar nem mudar só o número). */
+function preencher(modelo: string, vars: Record<string, string>) {
+  return modelo.replace(/\{\{(\w+)\}\}/g, (_, n: string) =>
+    n in vars ? `<span class="num-var" contenteditable="false" data-var="${n}">${escapeHtml(vars[n])}</span>` : "",
+  );
+}
+
+/** Lê o texto editado de volta, com os números como {{nome}} (assim continuam ligados à planilha) */
+function lerModelo(el: HTMLElement) {
+  const c = el.cloneNode(true) as HTMLElement;
+  c.querySelectorAll<HTMLElement>("[data-var]").forEach((x) => x.replaceWith(document.createTextNode(`{{${x.dataset.var}}}`)));
+  return c;
+}
+
 function valueToHtml(v: unknown, fallback: string) {
   if (typeof v !== "string") return plainToHtml(fallback);
   return v.startsWith(HTML_PREFIX) ? sanitizeHtml(v.slice(HTML_PREFIX.length)) : plainToHtml(v);
@@ -44,14 +58,18 @@ function valueToHtml(v: unknown, fallback: string) {
 
 /* ------------------------------------------------------------------ texto */
 
-export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; children: string; label?: string; multiline?: boolean; html?: boolean; fixo?: boolean }) {
+export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: string; children: string; label?: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string> }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
   const changed = k in own;
   // Padrão em HTML (título com dourado e quebras, parágrafo com negrito) ou texto simples
+  // (com `vars`, os números aparecem como {{nome}} e são preenchidos na hora de mostrar)
   const defaultHtml = isHtml ? sanitizeHtml(children) : plainToHtml(children);
   // Valor em uso: alteração da proposta, senão a do template, senão o padrão
-  const html = k in overrides ? valueToHtml(overrides[k], children) : defaultHtml;
+  // texto com números editado antes dos blocos travados existirem: ignora (teria número velho, congelado)
+  const antigo = !!vars && typeof overrides[k] === "string" && !(overrides[k] as string).includes("{{") && children.includes("{{");
+  const modelo = k in overrides && !antigo ? valueToHtml(overrides[k], children) : defaultHtml;
+  const html = vars ? preencher(modelo, vars) : modelo;
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
   const isMulti = multiline ?? (isHtml || children.length > 90);
@@ -59,7 +77,8 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
   const congelado = useRef<string | null>(null);
   const inicio = useRef<unknown>(undefined);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const ultimo = useRef<string>(html);
+  const ultimo = useRef<string>(modelo);
+  const modeloInicio = useRef<string>(modelo);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
   // Na edição o conteúdo é colocado uma vez só; depois o React não toca mais nele (o cursor não pula ao salvar)
   useLayoutEffect(() => {
@@ -73,7 +92,7 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
   }
 
   if (!editable) {
-    if (!(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;
+    if (!vars && !(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
@@ -81,14 +100,14 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
   function gravar() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
-    const el = ref.current;
-    if (!el) return;
+    if (!ref.current) return;
+    const el = vars ? lerModelo(ref.current) : ref.current;
     const clean = sanitizeHtml(el.innerHTML).replace(/(<br>)+$/, "").trim();
     if (norm(clean) === norm(sanitizeHtml(ultimo.current))) return; // nada mudou desde a última gravação
     ultimo.current = clean;
     if (!clean || norm(clean) === norm(defaultHtml)) return void ((k in own || changed) && save(k, null));
     const hasTags = /<(?!br>)[a-z]/i.test(clean);
-    save(k, hasTags || clean.includes("<br>") ? HTML_PREFIX + clean : el.innerText.trim());
+    save(k, hasTags || clean.includes("<br>") ? HTML_PREFIX + clean : (vars ? el.textContent ?? "" : el.innerText).trim());
   }
 
   function commit() {
@@ -100,7 +119,7 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
   function cancel() {
     if (timer.current) clearTimeout(timer.current);
     // Esc desfaz também o que já tinha sido salvo sozinho durante a edição
-    if (norm(sanitizeHtml(ultimo.current)) !== norm(sanitizeHtml(congelado.current ?? html))) save(k, inicio.current === undefined ? null : inicio.current);
+    if (norm(sanitizeHtml(ultimo.current)) !== norm(sanitizeHtml(modeloInicio.current))) save(k, inicio.current === undefined ? null : inicio.current);
     if (ref.current) ref.current.innerHTML = congelado.current ?? html;
     congelado.current = null;
     setEditing(false);
@@ -128,7 +147,8 @@ export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; c
           e.stopPropagation();
           if (editing) return;
           congelado.current = html;
-          ultimo.current = html;
+          ultimo.current = modelo;
+          modeloInicio.current = modelo;
           inicio.current = own[k];
           setEditing(true);
           requestAnimationFrame(() => {

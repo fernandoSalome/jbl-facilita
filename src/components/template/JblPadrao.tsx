@@ -41,19 +41,15 @@ export type TemplateProps = {
 };
 
 /** Texto do template. Chave "txt.<k>". */
-function T({ k, children, multiline, html, fixo }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean }) {
-  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo ?? FIXOS.has(k)}>{children}</E>;
+function T({ k, children, multiline, html, fixo, vars }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string> }) {
+  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo} vars={vars}>{children}</E>;
 }
 /** Valor calculado pela planilha. Chave "v.<k>". Não é editável na proposta. */
 function V({ k, children }: { k: string; children: string }) {
   return <E k={`v.${k}`} fixo>{children}</E>;
 }
 
-/** Textos montados com números da planilha: ficam travados para não congelar um valor errado */
-const FIXOS = new Set([
-  "capaChip2", "fotoLegenda", "statUtilD", "statLoteD", "s1d1", "s1k2", "s1d2", "s1d3", "s1Lote", "s3Extenso2",
-  "v2t", "v5t", "v5n1", "v5n2", "v5n3", "v5p2", "v5k1", "v5d4", "v5tip", "e1k2", "vs2k2", "s8n1", "s9p3", "s9l1", "s9l2", "vdTip2",
-]);
+
 
 const Chevron = () => (
   <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -248,6 +244,18 @@ export default function JblPadrao(props: TemplateProps) {
     <p className="lead fecho" style={{ marginTop: 28 }}><T k="fimFecho2">Com os nossos melhores cumprimentos e estima, colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários.</T></p>
   );
 
+  const nv: Record<string, string> = {
+    gleba, ter, terN: String(terN), ha: fmtNum(ha, 4), haUtil: fmtNum(r.areaUtil / 10000, 4), campos: String(campos),
+    aprov: pctTxt(inputs.aproveitamento), frente: fmtNum(inputs.frenteLote, 0), fundo: fmtNum(r.fundoLote, 0), lote: fmtNum(inputs.metragemLote, 0),
+    lotesMin: String(r.lotesInteiros), lotesMax: String(r.lotesInteiros + 1), lotes2, extenso: ext(r.custoInfra),
+    entrada: pctTxt(inputs.entradaPct), n: String(n), anos, reaj, indice, ipca: fmtPct(inputs.ipca), jurosMes: fmtPct(inputs.jurosMes), jurosAnoEq,
+    jurosAnoTxt: inputs.jurosAno ? ` + juros de ${fmtPct(inputs.jurosAno)} ao ano` : "",
+    valorM2: fmtBRL(inputs.valorM2), mult: fmtNum(inputs.multiplicador, 2), saldo: fmtBRL(r.valorLote - r.entrada),
+    saldo0: fmtBRL0(r.valorLote - r.entrada), saldoPrazo0: fmtBRL0(r.saldoPrazo), taxa: fmtPct(inputs.taxaAplicacao),
+    m1: String(r.vendas.mes1), m2: String(r.vendas.mes2), m3: String(r.vendas.mes3), total: String(r.vendas.total),
+    area: fmtNum(inputs.areaTotal), municipio: project.municipio, uf: project.uf,
+  };
+
   const navLinks: [string, string, string][] = [
     ["#participacao", "nav1", "Sua participação"],
     ["#recebimentos", "nav2", "Recebimentos"],
@@ -299,7 +307,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <h1><T k="h1" html>{`Sua terra pode dar<br class="d"> origem a um novo<br class="d"> bairro. <em>E a uma nova<br class="d"> receita.</em>`}</T></h1>
                 </div>
                 <div className="hero-right">
-                  <span className="chip"><T k="capaChip2" html>{`Proposta de participação do proprietário: <b class="chip-pct">${ter}</b>`}</T></span>
+                  <span className="chip"><T k="capaChip2" html vars={nv}>{`Proposta de participação do proprietário: <b class="chip-pct">{{ter}}</b>`}</T></span>
                   <p><T k="capaP1">Você participa com a gleba. A JBL propõe financiar e executar a infraestrutura, conduzir o projeto e comercializar os lotes.</T></p>
                   <p><D k="capaP2">{d.pick(
                     "Veja abaixo quanto está projetado para o proprietário, como o recebimento funciona e quais são as condições da parceria.",
@@ -308,9 +316,6 @@ export default function JblPadrao(props: TemplateProps) {
                   )}</D></p>
                   <div className="cover-ctas">
                     <Lnk k="capaBtn" href="#participacao" className="cover-cta ghost"><T k="capaBtn">Ver minha participação ↓</T></Lnk>
-                    {options.cartaIntencao && (
-                      <Lnk k="capaCarta" href="#intencao" className="cover-cta"><T k="capaCarta">Preencher carta de intenção</T></Lnk>
-                    )}
                   </div>
                 </div>
               </div>
@@ -318,14 +323,14 @@ export default function JblPadrao(props: TemplateProps) {
               <figure className="photo hero-photo">
                 <Img k="fotoCapa" src={project.aerialImage || "/demo/foto-exemplo.svg"} alt={`Vista aérea da gleba ${gleba}, contornada em vermelho`} />
                 <div className="photo-bar">
-                  <b><T k="fotoLegenda">{`Gleba ${gleba} · ${fmtNum(ha, 4)} hectares`}</T></b>
+                  <b><T k="fotoLegenda" vars={nv}>{"Gleba {{gleba}} · {{ha}} hectares"}</T></b>
                   <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
                 </div>
               </figure>
               <div className="hero-stats">
                 <div><b><V k="statArea">{`${fmtNum(inputs.areaTotal)} m²`}</V></b><span><T k="statAreaD">área total indicada</T></span></div>
-                <div><b><V k="statUtil">{`${fmtNum(r.areaUtil)} m²`}</V></b><span><T k="statUtilD">{`área aproveitável estimada (${pctTxt(inputs.aproveitamento)} da área total)`}</T></span></div>
-                <div><b><V k="statLote">{`${fmtNum(inputs.metragemLote, 0)} m²`}</V></b><span><T k="statLoteD">{`lotes de ${fmtNum(inputs.frenteLote, 0)} × ${fmtNum(r.fundoLote, 0)} metros`}</T></span></div>
+                <div><b><V k="statUtil">{`${fmtNum(r.areaUtil)} m²`}</V></b><span><T k="statUtilD" vars={nv}>{"área aproveitável estimada ({{aprov}} da área total)"}</T></span></div>
+                <div><b><V k="statLote">{`${fmtNum(inputs.metragemLote, 0)} m²`}</V></b><span><T k="statLoteD" vars={nv}>{"lotes de {{frente}} × {{fundo}} metros"}</T></span></div>
                 <div><b><V k="statMatricula">{project.matricula ?? "a definir"}</V></b><span><T k="statMatriculaD">matrícula do imóvel</T></span></div>
               </div>
               <div className="quote">
@@ -453,9 +458,9 @@ export default function JblPadrao(props: TemplateProps) {
               </div></div>
               <div className="content">
                 <div className="tiles">
-                  <div className="tile"><div className="k"><T k="s1k1">Terreno inteiro</T></div><div className="v num"><V k="s1v1">{`${fmtNum(inputs.areaTotal)} m²`}</V></div><div className="d"><T k="s1d1">{`${fmtNum(ha, 4)} hectares. Mais ou menos ${campos} campos de futebol.`}</T></div></div>
-                  <div className="tile"><div className="k"><T k="s1k2">{`Vira lotes (${pctTxt(inputs.aproveitamento)})`}</T></div><div className="v num"><V k="s1v2">{`${fmtNum(r.areaUtil)} m²`}</V></div><div className="d"><T k="s1d2">{`${fmtNum(r.areaUtil / 10000, 4)} hectares aproveitáveis.`}</T></div></div>
-                  <div className="tile hl"><div className="k"><T k="s1k3">Número de lotes</T></div><div className="v num"><V k="s1v3b">{lotes2}</V></div><div className="d"><T k="s1d3">{`Estimativa do estudo. Na prática, cerca de ${r.lotesInteiros} a ${r.lotesInteiros + 1} lotes.`}</T></div></div>
+                  <div className="tile"><div className="k"><T k="s1k1">Terreno inteiro</T></div><div className="v num"><V k="s1v1">{`${fmtNum(inputs.areaTotal)} m²`}</V></div><div className="d"><T k="s1d1" vars={nv}>{"{{ha}} hectares. Mais ou menos {{campos}} campos de futebol."}</T></div></div>
+                  <div className="tile"><div className="k"><T k="s1k2" vars={nv}>{"Vira lotes ({{aprov}})"}</T></div><div className="v num"><V k="s1v2">{`${fmtNum(r.areaUtil)} m²`}</V></div><div className="d"><T k="s1d2" vars={nv}>{"{{haUtil}} hectares aproveitáveis."}</T></div></div>
+                  <div className="tile hl"><div className="k"><T k="s1k3">Número de lotes</T></div><div className="v num"><V k="s1v3b">{lotes2}</V></div><div className="d"><T k="s1d3" vars={nv}>{"Estimativa do estudo. Na prática, cerca de {{lotesMin}} a {{lotesMax}} lotes."}</T></div></div>
                 </div>
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s1CalcT">De onde vem o número de lotes</T></span>
@@ -474,7 +479,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <text x="54" y="10" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(inputs.frenteLote, 0)} m</text>
                     <text x="84" y="80" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(r.fundoLote, 0)} m</text>
                   </svg>
-                  <p><T k="s1Lote" html>{`<strong>Cada lote tem ${fmtNum(inputs.metragemLote, 0)} m²</strong>: ${fmtNum(inputs.frenteLote, 0)} metros de frente por ${fmtNum(r.fundoLote, 0)} metros de fundo, conforme a lei de parcelamento do solo do município. É o tamanho de um terreno comum para construir uma casa.`}</T></p>
+                  <p><T k="s1Lote" html vars={nv}>{`<strong>Cada lote tem {{lote}} m²</strong>: {{frente}} metros de frente por {{fundo}} metros de fundo, conforme a lei de parcelamento do solo do município. É o tamanho de um terreno comum para construir uma casa.`}</T></p>
                 </div>
               </div>
             </Sec>
@@ -511,7 +516,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <span className="n">=</span><span className="t"><T k="s3CalcT">A conta</T></span>
                   <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span></span>
                 </div>
-                <p className="note note-lg"><T k="s3Extenso2" html>{`<span class="extenso">${ext(r.custoInfra)}</span>. Orçamento preliminar.`}</T></p>
+                <p className="note note-lg"><T k="s3Extenso2" html vars={nv}>{`<span class="extenso">{{extenso}}</span>. Orçamento preliminar.`}</T></p>
                 <div className="tiles two">
                   <div className="tile gold"><div className="k"><T k="s3k1">Quem paga as obras</T></div><div className="v"><T k="s3v1">A JBL</T></div><div className="d"><T k="s3d1">A JBL financia e executa toda a infraestrutura.</T></div></div>
                   <div className="tile hl"><div className="k"><D k="s3k2">{`Quanto ${d.quem} paga`}</D></div><div className="v num" style={{ color: "var(--good)" }}><T k="s3v2">R$ 0</T></div><div className="d"><T k="s3d2b">Em nenhuma hipótese será solicitado aos proprietários dinheiro para essas obras.</T></div></div>
@@ -572,7 +577,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <span className="f"><span><V k="v1a">{`${fmtNum(inputs.metragemLote, 0)} m²`}</V></span><span className="op">×</span><span><V k="v1b">{`${fmtBRL(inputs.valorM2)} por m`}</V><sup className="sq">2</sup><sup className="fn">1</sup></span><span className="op">=</span><span className="res" id="v1" data-id="v1"><V k="v1r">{fmtBRL(r.valorLote)}</V></span></span>
                   </div>
                   <div className="calc num">
-                    <span className="n">2</span><span className="t"><T k="v2t">{`Entrada paga pelo comprador (${pctTxt(inputs.entradaPct)})`}</T></span>
+                    <span className="n">2</span><span className="t"><T k="v2t" vars={nv}>{"Entrada paga pelo comprador ({{entrada}})"}</T></span>
                     <span className="f"><span className="carry" data-from="v1">{fmtBRL(r.valorLote)}</span><span className="op">−</span><span className="idx"><V k="v2b">{fmtBRL(r.entrada)}</V><small><T k="v2bs2">corretagem + marketing</T></small></span><span className="op">=</span><span className="res" id="v2" data-id="v2"><V k="v2r">{fmtBRL(r.valorLote - r.entrada)}</V></span></span>
                   </div>
                   <div className="calc num">
@@ -584,7 +589,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <span className="f"><span className="carry" data-from="v3">{fmtBRL(r.saldoPrazo)}</span><span className="op">×</span><span><V k="v4b2">{`${lotes2} lotes`}</V></span><span className="op">=</span><span className="res" id="v4" data-id="v4"><V k="v4r">{fmtBRL(r.vgvPrazoSemReajuste)}</V></span></span>
                   </div>
                   <div className="calc num">
-                    <span className="n">5</span><span className="t"><T k="v5t">{`VGV global projetado (${n} meses, com reajuste anual²)`}</T></span>
+                    <span className="n">5</span><span className="t"><T k="v5t" vars={nv}>{"VGV global projetado ({{n}} meses, com reajuste anual²)"}</T></span>
                     <span className="f"><span className="carry" data-from="v4">{fmtBRL(r.vgvPrazoSemReajuste)}</span><span className="op">+</span><span><V k="v5b">{`reajuste de ${reaj} ao ano por ${anos} anos`}</V></span><span className="op">=</span><span className="brk" aria-hidden="true" /><span className="res" id="v6" data-id="v6"><V k="v5r">{fmtBRL(r.principal.carteiraEmp)}</V></span><span className="v6-ext"><V k="v5ext">{ext(r.principal.carteiraEmp)}</V></span></span>
                   </div>
                   <div className="calc num">
@@ -593,19 +598,19 @@ export default function JblPadrao(props: TemplateProps) {
                   </div>
                 </div>
                 <div className="note">
-                  <p><T k="v5n1">{`¹ ${fmtBRL(inputs.valorM2)}/m²: preço de mercado estimado a partir de corretores da região e pesquisas.`}</T></p>
-                  <p><T k="v5n2">{`² Reajuste anual de ${reaj}: ${indice} de ${fmtPct(inputs.ipca)} ao ano${inputs.jurosAno ? ` + juros de ${fmtPct(inputs.jurosAno)} ao ano` : ""} + juros de ${fmtPct(inputs.jurosMes)} ao mês (${jurosAnoEq} ao ano). As parcelas sobem ${reaj} a cada 12 meses, por até ${n} meses, com financiamento próprio e entrada facilitada.`}</T></p>
-                  <p><T k="v5n3">{`* Índice multiplicador a prazo de ${fmtNum(inputs.multiplicador, 2)} aplicado sobre o saldo de ${fmtBRL(r.valorLote - r.entrada)} (após a entrada de ${pctTxt(inputs.entradaPct)}).`}</T></p>
+                  <p><T k="v5n1" vars={nv}>{`¹ {{valorM2}}/m²: preço de mercado estimado a partir de corretores da região e pesquisas.`}</T></p>
+                  <p><T k="v5n2" vars={nv}>{`² Reajuste anual de {{reaj}}: {{indice}} de {{ipca}} ao ano{{jurosAnoTxt}} + juros de {{jurosMes}} ao mês ({{jurosAnoEq}} ao ano). As parcelas sobem {{reaj}} a cada 12 meses, por até {{n}} meses, com financiamento próprio e entrada facilitada.`}</T></p>
+                  <p><T k="v5n3" vars={nv}>{"* Índice multiplicador a prazo de {{mult}} aplicado sobre o saldo de {{saldo}} (após a entrada de {{entrada}})."}</T></p>
                 </div>
                 <h3><T k="v5h3">As condições da projeção</T></h3>
-                <p><T k="v5p2">{`Os clientes podem comprar com financiamento próprio da JBL em até ${n} meses no boleto, com entrada facilitada. Os resultados dependem das condições contratuais de ${indice}, juros e preço a prazo.`}</T></p>
+                <p><T k="v5p2" vars={nv}>{"Os clientes podem comprar com financiamento próprio da JBL em até {{n}} meses no boleto, com entrada facilitada. Os resultados dependem das condições contratuais de {{indice}}, juros e preço a prazo."}</T></p>
                 <div className="tiles four tiles-rates">
-                  <div className="tile"><div className="k"><T k="v5k1">{`${indice} anual`}</T></div><div className="v num v-sm"><V k="v5t1">{fmtPct(inputs.ipca)}</V></div><div className="d"><T k="v5d1">Índice de reajuste ao ano</T></div></div>
+                  <div className="tile"><div className="k"><T k="v5k1" vars={nv}>{"{{indice}} anual"}</T></div><div className="v num v-sm"><V k="v5t1">{fmtPct(inputs.ipca)}</V></div><div className="d"><T k="v5d1">Índice de reajuste ao ano</T></div></div>
                   <div className="tile"><div className="k"><T k="v5k2">Juros mensais</T></div><div className="v num v-sm"><V k="v5t2">{fmtPct(inputs.jurosMes)}</V></div><div className="d"><T k="v5d2">Taxa mensal indicada</T></div></div>
                   <div className="tile"><div className="k"><T k="v5k3">Total anual</T></div><div className="v num v-sm"><V k="v5t3">{reaj}</V></div><div className="d"><T k="v5d3">Total anual indicado</T></div></div>
-                  <div className="tile gold"><div className="k"><T k="v5k4">VGV global</T></div><div className="v num" style={{ whiteSpace: "nowrap" }}><V k="v5t4">{mi(r.principal.carteiraEmp)}</V></div><div className="d"><T k="v5d4">{`Em ${n} meses`}</T></div></div>
+                  <div className="tile gold"><div className="k"><T k="v5k4">VGV global</T></div><div className="v num" style={{ whiteSpace: "nowrap" }}><V k="v5t4">{mi(r.principal.carteiraEmp)}</V></div><div className="d"><T k="v5d4" vars={nv}>{"Em {{n}} meses"}</T></div></div>
                 </div>
-                <p className="tip"><T k="v5tip">{`Por que parcelado dá mais? Porque cada parcela é corrigida pela inflação e tem juros. Quem compra em ${anos} anos paga bem mais do que quem paga à vista.`}</T></p>
+                <p className="tip"><T k="v5tip" vars={nv}>{"Por que parcelado dá mais? Porque cada parcela é corrigida pela inflação e tem juros. Quem compra em {{anos}} anos paga bem mais do que quem paga à vista."}</T></p>
               </div>
             </Sec>
 
@@ -618,7 +623,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <p className="tip gold tip-full"><T k="e1t2" html>{'Identificada a possibilidade de lançamento da primeira etapa para <span class="blank">a definir</span> lotes de <span class="blank">a definir</span> m², utilizando <span class="blank">a definir</span>% da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura.'}</T></p>
                 <div className="tiles two" style={{ marginTop: 22 }}>
                   <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{r.etapa1 ? fmtBRL(r.etapa1.avista) : "a definir"}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
-                  <div className="tile hl"><div className="k"><T k="e1k2">{`VGV parcial em ${n} meses`}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
+                  <div className="tile hl"><div className="k"><T k="e1k2" vars={nv}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
                 </div>
               </div>
             </Sec>
@@ -667,7 +672,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>
                   <span className="vs-or" aria-hidden="true">ou</span>
-                  <div className="s-streets" style={{ flex: 50 }}><span className="vs-k"><T k="vs2k2" html>{`Se todos os lotes forem vendidos <b>a prazo</b> (${n} meses)`}</T></span><span className="vs-v num"><V k="vs2v">{fmtBRL(r.principal.carteiraTer)}</V></span></div>
+                  <div className="s-streets" style={{ flex: 50 }}><span className="vs-k"><T k="vs2k2" html vars={nv}>{"Se todos os lotes forem vendidos <b>a prazo</b> ({{n}} meses)"}</T></span><span className="vs-v num"><V k="vs2v">{fmtBRL(r.principal.carteiraTer)}</V></span></div>
                   <span className="vs-or vs-or2" aria-hidden="true">ou</span>
                   <div className="s-lotes" style={{ flex: 50 }}><span className="vs-k"><D k="vs3k" html>{`Se ${d.quem} preferir receber <b>em lotes</b>`}</D></span><span className="vs-v num"><V k="vs3v">{`≈ ${fmtNum(r.lotes * r.terrenistaPct)} lotes`}</V></span></div>
                 </div>
@@ -732,7 +737,7 @@ export default function JblPadrao(props: TemplateProps) {
                   </tbody>
                 </table></div>
                 <div className="note">
-                  <p><T k="s8n1">{`¹ Considerando 100% das unidades vendidas. ² Participação do terrenista de ${terN}%. Parcela do comprador = ${fmtBRL0(r.saldoPrazo)} ÷ número de meses (saldo de ${fmtBRL0(r.valorLote - r.entrada)} × ${fmtNum(inputs.multiplicador, 2)}). As parcelas sobem ${reaj} a cada 12 meses; o total final é a soma de todas as parcelas recebidas.`}</T></p>
+                  <p><T k="s8n1" vars={nv}>{`¹ Considerando 100% das unidades vendidas. ² Participação do terrenista de {{terN}}%. Parcela do comprador = {{saldoPrazo0}} ÷ número de meses (saldo de {{saldo0}} × {{mult}}). As parcelas sobem {{reaj}} a cada 12 meses; o total final é a soma de todas as parcelas recebidas.`}</T></p>
                   <p><T k="s8n2">Venda à vista: sem desconto de comissão. As parcelas dos clientes consideram desconto por pagamento em dia.</T></p>
                 </div>
                 <div className="cards">
@@ -759,12 +764,12 @@ export default function JblPadrao(props: TemplateProps) {
                   {["Saldo da carteira no momento da antecipação", "Parcelas que já tiverem sido recebidas", "Qualidade dos contratos e inadimplência", "Taxas cobradas na época", "Disponibilidade de compradores para a carteira"].map((x, i) => <li key={i}><T k={`s9r${i}`}>{x}</T></li>)}
                 </ul></div>
                 <h3><D k="s9h3">{`E se ${d.quem} aplicar esse dinheiro no banco?`}</D></h3>
-                <p><T k="s9p3">{`A JBL fez uma simulação: aplicar o valor recebido num banco tradicional a ${fmtPct(inputs.taxaAplicacao)} ao mês, comparando com a carteira de ${anos} anos. A JBL oferece assessoria para essa aplicação, sem custo.`}</T></p>
+                <p><T k="s9p3" vars={nv}>{`A JBL fez uma simulação: aplicar o valor recebido num banco tradicional a {{taxa}} ao mês, comparando com a carteira de {{anos}} anos. A JBL oferece assessoria para essa aplicação, sem custo.`}</T></p>
                 <div className="tbl tbl-pay tbl-bank"><table>
                   <thead><tr><th><T k="s9th1">Indicador da simulação</T></th><th className="r"><T k="s9th2">Valor informado</T></th></tr></thead>
                   <tbody>
-                    <tr><td data-label="Indicador da simulação"><T k="s9l1">{`Aplicação a ${fmtPct(inputs.taxaAplicacao)}: juros no primeiro mês`}</T></td><td data-label="Valor informado" className="r"><V k="s9v1">{fmtBRL(r.antecipacao.jurosMes1)}</V></td></tr>
-                    <tr><td data-label="Indicador da simulação"><T k="s9l2">{`Aplicação a ${fmtPct(inputs.taxaAplicacao)} composto: última parcela base (${anos} anos)`}</T></td><td data-label="Valor informado" className="r"><V k="s9v2">{fmtBRL(r.antecipacao.ultimaBase)}</V></td></tr>
+                    <tr><td data-label="Indicador da simulação"><T k="s9l1" vars={nv}>{"Aplicação a {{taxa}}: juros no primeiro mês"}</T></td><td data-label="Valor informado" className="r"><V k="s9v1">{fmtBRL(r.antecipacao.jurosMes1)}</V></td></tr>
+                    <tr><td data-label="Indicador da simulação"><T k="s9l2" vars={nv}>{"Aplicação a {{taxa}} composto: última parcela base ({{anos}} anos)"}</T></td><td data-label="Valor informado" className="r"><V k="s9v2">{fmtBRL(r.antecipacao.ultimaBase)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l3">Multiplicador de rentabilidade final</T></td><td data-label="Valor informado" className="r"><V k="s9v3">{`${fmtNum(r.antecipacao.multiplicador, 4)} vezes`}</V></td></tr>
                     <tr className="you"><td data-label="Indicador da simulação"><strong><T k="s9l4">Rentabilidade final</T></strong></td><td data-label="Valor informado" className="r"><span className="rb-wrap"><strong className="rb-val"><V k="s9v4">{fmtBRL(r.antecipacao.rentabilidade)}</V></strong><span className="rb-ext"><V k="s9v4ext">{ext(r.antecipacao.rentabilidade)}</V></span></span></td></tr>
                   </tbody>
@@ -786,7 +791,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <div className="tile gold"><div className="k"><T k="vd2k">2º mês · 35%</T></div><div className="v num"><V k="vd2">{`${r.vendas.mes2} lotes`}</V></div><div className="d"><T k="vd2d">Aproximadamente 35% do total</T></div></div>
                   <div className="tile gold"><div className="k"><T k="vd3k">3º mês · 20%</T></div><div className="v num"><V k="vd3">{`${r.vendas.mes3} lotes`}</V></div><div className="d"><T k="vd3d">Aproximadamente 20% do total</T></div></div>
                 </div>
-                <p className="tip num"><T k="vdTip2" html>{`${r.vendas.mes1} + ${r.vendas.mes2} + ${r.vendas.mes3} = <strong>${r.vendas.total} lotes</strong>. O total estimado de ${lotes2} foi arredondado para ${r.vendas.total} lotes; os percentuais são aproximados e o número definitivo depende do projeto aprovado. Sem considerar a caução de 20% de lotes pelo município, quando houver.`}</T></p>
+                <p className="tip num"><T k="vdTip2" html vars={nv}>{`{{m1}} + {{m2}} + {{m3}} = <strong>{{total}} lotes</strong>. O total estimado de {{lotes2}} foi arredondado para {{total}} lotes; os percentuais são aproximados e o número definitivo depende do projeto aprovado. Sem considerar a caução de 20% de lotes pelo município, quando houver.`}</T></p>
               </div>
             </Sec>
 
