@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PasswordInput from "@/components/ui/PasswordInput";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { fmtDate } from "@/lib/format";
@@ -45,7 +46,7 @@ function UserForm({ user, onDone }: { user?: U; onDone: () => void }) {
       </label>
       <label>
         <span className="label">{user ? "Nova senha (deixe vazio para manter)" : "Senha"}</span>
-        <input className="input" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 8 caracteres" />
+        <PasswordInput className="input" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 8 caracteres" />
       </label>
       {err && <p className="text-sm font-semibold text-rose-700">{err}</p>}
       <div className="flex justify-end gap-2">
