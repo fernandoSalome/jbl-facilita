@@ -151,12 +151,26 @@ export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: str
           modeloInicio.current = modelo;
           inicio.current = own[k];
           setEditing(true);
+          // o cursor cai onde a pessoa clicou (dá para clicar numa palavra e já escrever)
+          const { clientX: x, clientY: y } = e;
           requestAnimationFrame(() => {
             const el = ref.current;
             if (!el) return;
             el.focus();
-            const r = document.createRange();
-            r.selectNodeContents(el);
+            const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
+            let r: Range | null = document.caretRangeFromPoint?.(x, y) ?? null;
+            if (!r && doc.caretPositionFromPoint) {
+              const pos = doc.caretPositionFromPoint(x, y);
+              if (pos) {
+                r = document.createRange();
+                r.setStart(pos.offsetNode, pos.offset);
+              }
+            }
+            if (!r || !el.contains(r.startContainer)) {
+              r = document.createRange();
+              r.selectNodeContents(el);
+              r.collapse(false);
+            }
             const s = window.getSelection();
             s?.removeAllRanges();
             s?.addRange(r);
