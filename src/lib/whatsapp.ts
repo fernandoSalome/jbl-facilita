@@ -8,8 +8,9 @@ const INST = () => encodeURIComponent(process.env.EVOLUTION_INSTANCE ?? "");
 async function call<T = unknown>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(`${URL_()}${path}`, {
     method: body === undefined ? "GET" : "POST",
-    headers: { apikey: process.env.EVOLUTION_KEY ?? "", "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: { apikey: process.env.EVOLUTION_KEY ?? "", "Content-Type": "application/json; charset=utf-8" },
+    // texto sempre em UTF-8 (acentos e emojis)
+    body: body === undefined ? undefined : Buffer.from(JSON.stringify(body), "utf8"),
   });
   const txt = await r.text();
   if (!r.ok) throw new Error(`Evolution ${path}: ${r.status} ${txt.slice(0, 300)}`);
