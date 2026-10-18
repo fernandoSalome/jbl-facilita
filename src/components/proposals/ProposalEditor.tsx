@@ -205,7 +205,13 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
 
   /* ---------- envio ---------- */
   const publicUrl = `${origin}/p/${p.publicToken}`;
-  const message = `Olá, ${data.meta.ownerName}! Aqui é o Marcelo Aguilar, da JBL Incorporadora. Preparamos a proposta de parceria para a gleba ${project.name}. Vocês podem ver todos os números neste link:\n\n${publicUrl}\n\nFico à disposição para conversarmos.`;
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const message =
+    `${saudacao}, estimo que estejam todos bem!\n\n` +
+    `${data.meta.ownerName}, seguem nossas Propostas Técnicas e Comerciais de parceria (${formato.label.toLowerCase()}) para a gleba ${project.name}, para vossa análise e apreciação.\n\n` +
+    `Colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários em uma próxima reunião, para que possamos avançar com as tratativas.\n\n` +
+    publicUrl;
   const waLink = `https://wa.me/${data.meta.ownerPhone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(message)}`;
 
   async function publish() {
