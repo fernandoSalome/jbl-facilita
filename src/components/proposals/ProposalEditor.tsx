@@ -209,7 +209,12 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const message =
     `${saudacao}, estimo que estejam todos bem!\n\n` +
-    `${data.meta.ownerName}, seguem nossas Propostas Técnicas e Comerciais de parceria (${formato.label.toLowerCase()}) para a gleba ${project.name}, para vossa análise e apreciação.\n\n` +
+    `${data.meta.ownerName}, segue nossa Proposta Técnica e Comercial de parceria (${formato.label.toLowerCase()}) para a gleba ${project.name}, para vossa análise e apreciação.\n\n` +
+    (data.meta.options.semValidade
+      ? ""
+      : `A proposta é válida por ${data.meta.options.validadeDias} dias, até ${fmtDate(
+          p.expiresAt && p.rawStatus !== "rascunho" ? p.expiresAt : new Date(Date.now() + data.meta.options.validadeDias * 864e5).toISOString(),
+        )}.\n\n`) +
     `Colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários em uma próxima reunião, para que possamos avançar com as tratativas.\n\n` +
     publicUrl;
   const waLink = `https://wa.me/${data.meta.ownerPhone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(message)}`;

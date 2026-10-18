@@ -83,6 +83,49 @@ export default function NewProposalForm({
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // ---- rascunho salvo sozinho neste navegador: fechou a página sem querer, volta de onde parou ----
+  const chave = `jbl:nova-proposta:${projectId}`;
+  const carregado = useRef(false);
+  const [recuperado, setRecuperado] = useState<string | null>(null);
+  const [salvoEm, setSalvoEm] = useState<Date | null>(null);
+  useEffect(() => {
+    try {
+      const r = JSON.parse(localStorage.getItem(chave) ?? "null");
+      if (r && (r.name || r.ownerName || r.ownerPhone || r.mexeu)) {
+        if (r.templateId && formatos[r.templateId]) setTemplateId(r.templateId);
+        if (r.formatoKey) setFormatoKey(r.formatoKey);
+        if (r.inputs) { setInputs(r.inputs); setStudyKey((n) => n + 1); }
+        setName(r.name ?? ""); setOwnerName(r.ownerName ?? ""); setOwnerPhone(r.ownerPhone ?? "");
+        setCarta(r.carta ?? true); setValidade(r.validade ?? "15"); setSemValidade(!!r.semValidade);
+        setCorretorNome(r.corretorNome ?? ""); setCorretorTelefone(r.corretorTelefone ?? "");
+        if (r.destinatario) setDestinatario(r.destinatario);
+        setRecuperado(r.savedAt ?? "");
+      }
+    } catch {}
+    carregado.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const rascunho = { templateId, formatoKey, inputs, name, ownerName, ownerPhone, carta, validade, semValidade, corretorNome, corretorTelefone, destinatario };
+  const rascunhoJson = JSON.stringify(rascunho);
+  const inicial = useRef(rascunhoJson);
+  useEffect(() => {
+    if (!carregado.current) return;
+    const t = setTimeout(() => {
+      try {
+        const mexeu = rascunhoJson !== inicial.current;
+        if (!mexeu && !recuperado) return;
+        localStorage.setItem(chave, JSON.stringify({ ...rascunho, mexeu: true, savedAt: new Date().toISOString() }));
+        setSalvoEm(new Date());
+      } catch {}
+    }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rascunhoJson]);
+  function descartarRascunho() {
+    try { localStorage.removeItem(chave); } catch {}
+    window.location.reload();
+  }
+
   async function create() {
     setErr("");
     if (!name.trim() || !ownerName.trim()) return setErr("Preencha o nome da proposta e o nome do proprietário.");
@@ -106,11 +149,18 @@ export default function NewProposalForm({
       setSaving(false);
       return setErr(d.error ?? "Erro ao criar a proposta.");
     }
+    try { localStorage.removeItem(chave); } catch {}
     router.push(`/app/proposta/${d.id}`);
   }
 
   return (
     <div className="grid gap-6">
+      {recuperado !== null && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-gold-line border-l-[3px] border-l-gold bg-gold-soft px-4 py-3 text-sm text-navy">
+          <span>📝 <b>Rascunho recuperado.</b> Continuamos de onde você parou{recuperado ? ` (${new Date(recuperado).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })})` : ""}.</span>
+          <button type="button" className="ml-auto font-semibold text-gold-deep underline" onClick={descartarRascunho}>Começar do zero</button>
+        </div>
+      )}
       <Step n={1} title="Formato do empreendimento" hint="Define as obras, as benfeitorias e os padrões do lote. Tudo pode ser ajustado depois, na proposta.">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {opcoes.map((f) => (
@@ -198,7 +248,11 @@ export default function NewProposalForm({
       </section>
 
       <div className="sticky bottom-0 -mx-8 flex items-center justify-end gap-3 border-t border-line bg-white/95 px-8 py-4 backdrop-blur">
-        {err && <p className="mr-auto text-sm font-semibold text-rose-700">{err}</p>}
+        {err ? (
+          <p className="mr-auto text-sm font-semibold text-rose-700">{err}</p>
+        ) : (
+          salvoEm && <span className="mr-auto text-[12.5px] text-muted">✓ Rascunho salvo automaticamente às {salvoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+        )}
         <button className="btn-ghost" onClick={() => router.back()}>Cancelar</button>
         <button className="btn-gold px-6" onClick={create} disabled={saving}>{saving ? "Criando…" : "Criar proposta →"}</button>
       </div>
