@@ -96,3 +96,18 @@
 
 /* benfeitorias: as etiquetas crescem para preencher cada linha, sem sobrar espaço */
 .jblt .pills > span, .jblt .pills > .add-pill { flex: 1 1 auto; justify-content: center; text-align: center; }
+
+/* ---------- carta de intenção: topo em duas colunas e blocos alinhados ---------- */
+.jblt .intent-head { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 56px; align-items: start; }
+.jblt .intent-h2 { font-size: clamp(32px, 4.6vw, 46px); line-height: 1.08; margin-top: 10px; }
+.jblt .intent-h2 em { font-style: normal; color: var(--gold); }
+.jblt .intent-lead { color: var(--muted); font-size: 15.5px; line-height: 1.6; margin-top: 16px; max-width: 52ch; }
+.jblt .intent-aside { padding-top: 4px; }
+.jblt .intent-aside h4 { font-family: var(--body); font-size: 17px; font-weight: 700; color: var(--navy); margin: 0 0 10px; }
+.jblt .intent-aside p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin: 0; }
+.jblt .intent-aside .intent-aside-sm { font-size: 13px; margin-top: 12px; }
+.jblt .intent-sep { border: 0; border-top: 1px solid var(--line); margin: 32px 0 0; }
+/* formulário e carta começam na mesma altura */
+.jblt .intent-grid > form { margin-top: 0; }
+.jblt .intent-grid > * { align-self: start; }
+@media (max-width: 900px) { .jblt .intent-head { grid-template-columns: 1fr; } }

@@ -873,9 +873,19 @@ export default function JblPadrao(props: TemplateProps) {
           {options.cartaIntencao && (
             <Sec k="intent" className="intent" id="intencao">
               <div className="wrap">
-                <div className="eyebrow"><T k="intentEyebrow2">Vamos avançar na análise</T></div>
-                <h2 style={{ fontSize: "clamp(28px,4.5vw,40px)", marginTop: 6 }}><T k="intentTitulo2">Carta de intenção. Comece por aqui.</T></h2>
-                <p className="muted" style={{ marginTop: 8, maxWidth: "64ch" }}><T k="intentTexto2" html>{'Preencha os campos e a carta ao lado se monta sozinha. Ao enviar, você registra o interesse em continuar os estudos e a elaboração da carta de intenção. Isso <strong>não</strong> transfere o imóvel, não substitui a assinatura de contrato e não garante os valores projetados. Campos com <span class="req">*</span> são obrigatórios.'}</T></p>
+                <div className="intent-head">
+                  <div>
+                    <div className="eyebrow"><T k="intentEyebrow3">13 / Vamos avançar na análise</T></div>
+                    <h2 className="intent-h2"><T k="intentTitulo3" html>{"Carta de intenção.<br><em>Comece por aqui.</em>"}</T></h2>
+                    <p className="intent-lead"><T k="intentTexto3">Preencha os dados do proprietário e da área para registrar o interesse no prosseguimento dos estudos e na elaboração da carta de intenção.</T></p>
+                  </div>
+                  <aside className="intent-aside">
+                    <h4><T k="intentAsideT">O que este envio representa</T></h4>
+                    <p><T k="intentAside1">Uma manifestação de interesse com base no termo de aceite do documento original. O envio não transfere a propriedade, não substitui assinatura contratual e não garante os valores projetados.</T></p>
+                    <p className="intent-aside-sm"><T k="intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</T></p>
+                  </aside>
+                </div>
+                <hr className="intent-sep" />
                 <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} />
                 {fecho}
               </div>
