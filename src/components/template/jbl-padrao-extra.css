@@ -115,3 +115,6 @@
 
 /* número da planilha dentro de um texto editável: fica travado e ligado à planilha */
 .jblt.editing .num-var { background: color-mix(in srgb, var(--gold) 14%, transparent); border-radius: 3px; padding: 0 2px; cursor: not-allowed; }
+/* os blocos de número e os números travados herdam o estilo de onde estão (ex.: faixa de números da capa) */
+.jblt .num-var, .jblt .fixo, .jblt .hero-stats .num-var, .jblt .hero-stats .fixo { display: inline !important; font: inherit !important; color: inherit !important; letter-spacing: inherit !important; text-transform: inherit !important; margin: 0 !important; }
+.jblt.editing .num-var { padding: 0 2px !important; }
