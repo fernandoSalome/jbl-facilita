@@ -44,7 +44,7 @@ function valueToHtml(v: unknown, fallback: string) {
 
 /* ------------------------------------------------------------------ texto */
 
-export function E({ k, children, multiline, html: isHtml }: { k: string; children: string; label?: string; multiline?: boolean; html?: boolean }) {
+export function E({ k, children, multiline, html: isHtml, fixo }: { k: string; children: string; label?: string; multiline?: boolean; html?: boolean; fixo?: boolean }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
   const changed = k in own;
@@ -55,6 +55,12 @@ export function E({ k, children, multiline, html: isHtml }: { k: string; childre
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
   const isMulti = multiline ?? (isHtml || children.length > 90);
+
+  // Número que vem da planilha: sempre o calculado, sem edição (muda em "Editar números")
+  if (fixo) {
+    const conteudo = isHtml ? <span dangerouslySetInnerHTML={{ __html: defaultHtml }} /> : <>{children}</>;
+    return editable ? <span className="fixo" title="Vem da planilha. Para mudar, use “Editar números”.">{conteudo}</span> : conteudo;
+  }
 
   if (!editable) {
     if (!(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;

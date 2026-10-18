@@ -41,13 +41,19 @@ export type TemplateProps = {
 };
 
 /** Texto do template. Chave "txt.<k>". */
-function T({ k, children, multiline, html }: { k: string; children: string; multiline?: boolean; html?: boolean }) {
-  return <E k={`txt.${k}`} multiline={multiline} html={html}>{children}</E>;
+function T({ k, children, multiline, html, fixo }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean }) {
+  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo ?? FIXOS.has(k)}>{children}</E>;
 }
-/** Valor calculado. Chave "v.<k>". */
+/** Valor calculado pela planilha. Chave "v.<k>". Não é editável na proposta. */
 function V({ k, children }: { k: string; children: string }) {
-  return <E k={`v.${k}`}>{children}</E>;
+  return <E k={`v.${k}`} fixo>{children}</E>;
 }
+
+/** Textos montados com números da planilha: ficam travados para não congelar um valor errado */
+const FIXOS = new Set([
+  "capaChip2", "fotoLegenda", "statUtilD", "statLoteD", "s1d1", "s1k2", "s1d2", "s1d3", "s1Lote", "s3Extenso2",
+  "v2t", "v5t", "v5n1", "v5n2", "v5n3", "v5p2", "v5k1", "v5d4", "v5tip", "e1k2", "vs2k2", "s8n1", "s9p3", "s9l1", "s9l2", "vdTip2",
+]);
 
 const Chevron = () => (
   <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -236,6 +242,11 @@ export default function JblPadrao(props: TemplateProps) {
     }
   }
   const go = (e: React.MouseEvent) => editing && e.preventDefault();
+
+  // fecho da proposta: embaixo da carta de intenção (ou no fim, quando a proposta não tem carta)
+  const fecho = (
+    <p className="lead fecho" style={{ marginTop: 28 }}><T k="fimFecho2">Com os nossos melhores cumprimentos e estima, colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários.</T></p>
+  );
 
   const navLinks: [string, string, string][] = [
     ["#participacao", "nav1", "Sua participação"],
@@ -696,15 +707,15 @@ export default function JblPadrao(props: TemplateProps) {
                       <td data-label="Parcela do comprador">Não se aplica</td>
                       <td data-label="Proprietário por mês">Não se aplica</td>
                       <td data-label="Proprietário">Não se aplica</td>
-                      <td data-label="Total Proprietário"><E k="t.avista">{fmtBRL(r.vgvAvistaTer)}</E></td>
+                      <td data-label="Total Proprietário"><E fixo k="t.avista">{fmtBRL(r.vgvAvistaTer)}</E></td>
                     </tr>
                     {r.cenarios.map((c) => (
                       <tr key={c.meses} className={c.meses === n ? "you" : ""}>
-                        <td data-label="Prazo de venda"><E k={`t.${c.meses}.prazo`}>{`${fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos · ${c.meses} parcelas`}</E></td>
-                        <td data-label="Parcela do comprador"><E k={`t.${c.meses}.parcela`}>{fmtBRL(c.parcela)}</E></td>
-                        <td data-label="Proprietário por mês"><E k={`t.${c.meses}.mensal`}>{fmtBRL(c.mensalTer)}</E></td>
-                        <td data-label="Proprietário"><E k={`t.${c.meses}.final`}>{fmtBRL(c.mensalTerFinal)}</E></td>
-                        <td data-label="Total Proprietário"><E k={`t.${c.meses}.total`}>{fmtBRL(c.carteiraTer)}</E></td>
+                        <td data-label="Prazo de venda"><E fixo k={`t.${c.meses}.prazo`}>{`${fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos · ${c.meses} parcelas`}</E></td>
+                        <td data-label="Parcela do comprador"><E fixo k={`t.${c.meses}.parcela`}>{fmtBRL(c.parcela)}</E></td>
+                        <td data-label="Proprietário por mês"><E fixo k={`t.${c.meses}.mensal`}>{fmtBRL(c.mensalTer)}</E></td>
+                        <td data-label="Proprietário"><E fixo k={`t.${c.meses}.final`}>{fmtBRL(c.mensalTerFinal)}</E></td>
+                        <td data-label="Total Proprietário"><E fixo k={`t.${c.meses}.total`}>{fmtBRL(c.carteiraTer)}</E></td>
                       </tr>
                     ))}
                   </tbody>
@@ -829,7 +840,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <b><T k="brT2">Contatos exclusivos</T></b><br />
                 <ListaContatos base={formato.contatos} padrao={{ nome: options.corretorNome, telefone: options.corretorTelefone }} />
               </div>
-              <p className="lead" style={{ marginTop: 20 }}><T k="fimFecho2">Com os nossos melhores cumprimentos e estima, colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários.</T></p>
+              {!options.cartaIntencao && fecho}
               <div className="dl-foot">
                 <Lnk k="pdfBottom" href="#pdf" className="dl dl-gold js-pdf" onDefault={abrirPdf}>
                   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19h16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -855,6 +866,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <h2 style={{ fontSize: "clamp(28px,4.5vw,40px)", marginTop: 6 }}><T k="intentTitulo2">Carta de intenção. Comece por aqui.</T></h2>
                 <p className="muted" style={{ marginTop: 8, maxWidth: "64ch" }}><T k="intentTexto2" html>{'Preencha os campos e a carta ao lado se monta sozinha. Ao enviar, você registra o interesse em continuar os estudos e a elaboração da carta de intenção. Isso <strong>não</strong> transfere o imóvel, não substitui a assinatura de contrato e não garante os valores projetados. Campos com <span class="req">*</span> são obrigatórios.'}</T></p>
                 <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} />
+                {fecho}
               </div>
             </Sec>
           )}

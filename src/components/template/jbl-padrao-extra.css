@@ -80,3 +80,10 @@
 /* ---------- contatos exclusivos ---------- */
 .jblt .ct-ed .ct-del { margin-left: 8px; vertical-align: middle; }
 .jblt .ct-add { display: block; margin-top: 12px; }
+
+/* número da planilha na edição: não abre para editar */
+.jblt.editing .fixo { cursor: not-allowed; }
+.jblt.editing .fixo:hover { outline: 1px dashed color-mix(in srgb, var(--muted) 55%, transparent); outline-offset: 2px; }
+
+/* fecho da proposta embaixo do formulário da carta de intenção */
+.jblt .intent .fecho { color: var(--ink); font-size: 16px; line-height: 1.6; max-width: none; }
