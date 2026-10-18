@@ -629,7 +629,7 @@ export default function JblPadrao(props: TemplateProps) {
                       <circle r="70" fill="none" stroke="var(--sky-strong)" strokeWidth="56" strokeDasharray={`${pie[1]} ${circ.toFixed(2)}`} strokeDashoffset={`-${pie[0]}`} />
                       <circle r="70" fill="none" stroke="var(--line)" strokeWidth="56" strokeDasharray={`${pie[2]} ${circ.toFixed(2)}`} strokeDashoffset={`-${(Number(pie[0]) + Number(pie[1])).toFixed(2)}`} />
                     </g>
-                    <text x="100" y="96" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="28" fill="var(--navy)">100%</text>
+                    <text x="100" y="96" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="23" fill="var(--navy)">100%</text>
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>
                   <div className="shares">
