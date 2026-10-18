@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <!-- Imagem de exemplo da gleba: aparece enquanto o loteamento não tem foto aérea -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9DB57A"/>
+      <stop offset="1" stop-color="#7E9A5E"/>
+    </linearGradient>
+    <pattern id="sulco" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+      <path d="M0 13h26" stroke="#ffffff" stroke-opacity=".10" stroke-width="5"/>
+    </pattern>
+    <pattern id="sulco2" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
+      <path d="M0 11h22" stroke="#4E6B3A" stroke-opacity=".16" stroke-width="4"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g)"/>
+  <!-- talhões -->
+  <path d="M0 0h560l-80 380L0 430z" fill="#B7C98E"/><path d="M0 0h560l-80 380L0 430z" fill="url(#sulco)"/>
+  <path d="M560 0h560l40 320-680 60z" fill="#8FAE69"/><path d="M560 0h560l40 320-680 60z" fill="url(#sulco2)"/>
+  <path d="M1120 0h480v470l-440-150z" fill="#C9C48F"/><path d="M1120 0h480v470l-440-150z" fill="url(#sulco)"/>
+  <path d="M0 430l480-50 80 520H0z" fill="#7C9A5A"/><path d="M0 430l480-50 80 520H0z" fill="url(#sulco2)"/>
+  <path d="M1600 470v430H960l-60-560 260-20z" fill="#A9BE7F"/><path d="M1600 470v430H960l-60-560 260-20z" fill="url(#sulco)"/>
+  <!-- mata -->
+  <g fill="#4F6E3B" opacity=".9">
+    <circle cx="1460" cy="760" r="60"/><circle cx="1530" cy="700" r="70"/><circle cx="1390" cy="830" r="55"/><circle cx="1560" cy="840" r="65"/>
+    <circle cx="90" cy="120" r="46"/><circle cx="150" cy="80" r="52"/><circle cx="60" cy="60" r="40"/>
+  </g>
+  <!-- estrada de terra -->
+  <path d="M-20 640C300 600 520 560 760 610s520 40 880-30" fill="none" stroke="#D8C9A4" stroke-width="26" stroke-linecap="round"/>
+  <!-- gleba demarcada -->
+  <path d="M520 230l520-40 120 330-560 90z" fill="#ffffff" fill-opacity=".10" stroke="#D2302A" stroke-width="7" stroke-linejoin="round" stroke-dasharray="2 0"/>
+  <!-- etiqueta -->
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" text-anchor="middle">
+    <rect x="590" y="352" width="500" height="96" rx="10" fill="#122A45" fill-opacity=".82"/>
+    <text x="840" y="394" font-size="30" font-weight="700" fill="#ffffff">Foto aérea da gleba</text>
+    <text x="840" y="430" font-size="21" fill="#E8D9B5">Imagem de exemplo · clique para trocar</text>
+  </g>
+</svg>

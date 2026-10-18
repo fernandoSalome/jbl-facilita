@@ -314,15 +314,14 @@ export default function JblPadrao(props: TemplateProps) {
                   </div>
                 </div>
               </div>
-              {project.aerialImage && (
-                <figure className="photo hero-photo">
-                  <Img k="fotoCapa" src={project.aerialImage} alt={`Vista aérea da gleba ${gleba}, contornada em vermelho`} />
-                  <div className="photo-bar">
-                    <b><T k="fotoLegenda">{`Gleba ${gleba} · ${fmtNum(ha, 4)} hectares`}</T></b>
-                    <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
-                  </div>
-                </figure>
-              )}
+              {/* sem foto no loteamento: imagem de exemplo, para a seção nunca sumir (troca clicando nela) */}
+              <figure className="photo hero-photo">
+                <Img k="fotoCapa" src={project.aerialImage || "/demo/foto-exemplo.svg"} alt={`Vista aérea da gleba ${gleba}, contornada em vermelho`} />
+                <div className="photo-bar">
+                  <b><T k="fotoLegenda">{`Gleba ${gleba} · ${fmtNum(ha, 4)} hectares`}</T></b>
+                  <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
+                </div>
+              </figure>
               <div className="hero-stats">
                 <div><b><V k="statArea">{`${fmtNum(inputs.areaTotal)} m²`}</V></b><span><T k="statAreaD">área total indicada</T></span></div>
                 <div><b><V k="statUtil">{`${fmtNum(r.areaUtil)} m²`}</V></b><span><T k="statUtilD">{`área aproveitável estimada (${pctTxt(inputs.aproveitamento)} da área total)`}</T></span></div>
