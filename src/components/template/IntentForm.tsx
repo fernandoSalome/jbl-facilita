@@ -118,7 +118,6 @@ export default function IntentForm({ token, disabled, project, areaHa }: { token
     i_municipio: `${project.municipio}/${project.uf}`,
     i_matriculas: project.matricula ?? "",
   }));
-  const [ok, setOk] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
@@ -146,7 +145,7 @@ export default function IntentForm({ token, disabled, project, areaHa }: { token
 
   async function enviar() {
     if (disabled) return setErr("Pré-visualização: o formulário só envia na página pública da proposta.");
-    const falta = [!g("p_nome") && "nome completo", !g("p_cpf") && "CPF", !ok && "a confirmação de autorização"].filter(Boolean);
+    const falta = [!g("p_nome") && "nome completo", !g("p_cpf") && "CPF"].filter(Boolean);
     if (falta.length) return setErr(`Falta preencher: ${falta.join(", ")}.`);
     if (file && file.size > 6 * 1024 * 1024) return setErr("O arquivo da matrícula deve ter até 6 MB.");
     setErr("");
@@ -222,7 +221,6 @@ export default function IntentForm({ token, disabled, project, areaHa }: { token
         </fieldset>
 
         <div className="declara"><E k="form.declaracao2" html>{"<strong>Declaração.</strong> Declaro que desejo dar continuidade aos estudos de viabilidade técnica, jurídica, ambiental, comercial e econômica da gleba informada e à elaboração da carta de intenção com a JBL Incorporadora e Urbanismo."}</E></div>
-        <label className="opt"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} /><E k="form.confirmo">Confirmo que tenho autorização para fornecer os dados informados e estou ciente de que eles serão registrados para análise, e de que esta é uma manifestação de interesse, não um contrato nem uma transferência do imóvel.</E></label>
         {err && <p className="err">{err}</p>}
 
         {protocolo ? (

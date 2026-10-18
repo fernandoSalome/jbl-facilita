@@ -388,8 +388,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <h2><T k="aTitulo">O grupo</T></h2>
                 <p><T k="aSub">Uma empresa feita para transformar terrenos em bairros planejados.</T></p>
               </div></div>
-              <div className="content grupo">
-                <figure className="brand-card light"><Img k="logoGrupo" src="/brand/logo-vertical.webp" alt="Logotipo Grupo JBL Incorporadora, Urbanismo e Empreendimentos" /></figure>
+              <div className="content grupo grupo-solo">
                 <div className="grupo-text">
                   <p><T k="a1">O grupo JBL Incorporadora e Urbanismo fundamenta sua atuação na experiência de seu corpo diretivo e colaboradores diretos com amplo conhecimento de mercado, um time com know-how em empreendimentos com o propósito de transformar cidades e vidas das pessoas.</T></p>
                   <p><T k="a2">Nosso propósito vai além do desenvolvimento de projetos. Temos plena consciência e convicção de que o nosso negócio gira em torno de pessoas, sejam elas clientes, colaboradores ou parceiros. Por isso, investimos constantemente na gestão de recursos humanos, em treinamento, acompanhamento e supervisão de todas as operações de nossas equipes, que atuam direta ou indiretamente com todos os envolvidos e têm papel fundamental na disseminação de nossos valores e preceitos de qualidade, transparência e idoneidade.</T></p>
@@ -640,6 +639,19 @@ export default function JblPadrao(props: TemplateProps) {
                       <circle r="70" fill="none" stroke="var(--sky-strong)" strokeWidth="56" strokeDasharray={`${pie[1]} ${circ.toFixed(2)}`} strokeDashoffset={`-${pie[0]}`} />
                       <circle r="70" fill="none" stroke="var(--line)" strokeWidth="56" strokeDasharray={`${pie[2]} ${circ.toFixed(2)}`} strokeDashoffset={`-${(Number(pie[0]) + Number(pie[1])).toFixed(2)}`} />
                     </g>
+                    {[
+                      [r.terrenistaPct, 0, "var(--navy)"],
+                      [Math.max(r.jblPct, 0), r.terrenistaPct, "#fff"],
+                      [r.infraPct, r.terrenistaPct + Math.max(r.jblPct, 0), "var(--navy)"],
+                    ].map(([frac, ini, cor], i) => {
+                      if ((frac as number) < 0.04) return null;
+                      const a = ((ini as number) + (frac as number) / 2) * 2 * Math.PI;
+                      return (
+                        <text key={i} x={(100 + 70 * Math.sin(a)).toFixed(1)} y={(100 - 70 * Math.cos(a) + 5).toFixed(1)} textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontWeight="700" fontSize="14" fill={cor as string}>
+                          {pctTxt(frac as number)}
+                        </text>
+                      );
+                    })}
                     <text x="100" y="96" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="23" fill="var(--navy)">100%</text>
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>

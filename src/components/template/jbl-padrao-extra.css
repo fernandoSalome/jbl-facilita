@@ -87,3 +87,12 @@
 
 /* fecho da proposta embaixo do formulário da carta de intenção */
 .jblt .intent .fecho { color: var(--ink); font-size: 16px; line-height: 1.6; max-width: none; }
+
+/* números sempre retos (alinhados na linha), sem algarismos que sobem e descem */
+.jblt, .jblt * { font-variant-numeric: lining-nums; }
+
+/* "O grupo" sem o logo: o texto ocupa a largura toda */
+.jblt .grupo.grupo-solo { grid-template-columns: 1fr; }
+
+/* benfeitorias: as etiquetas crescem para preencher cada linha, sem sobrar espaço */
+.jblt .pills > span, .jblt .pills > .add-pill { flex: 1 1 auto; justify-content: center; text-align: center; }
