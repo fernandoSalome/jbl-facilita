@@ -4,7 +4,6 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "node:crypto";
 import { FORMATOS, FORMATOS_INICIAIS } from "../src/lib/formatos";
 
 const db = new PrismaClient();
@@ -40,42 +39,7 @@ async function main() {
       console.log(`Formato criado no template: ${f}`);
     }
   }
-  if ((await db.project.count()) === 0) {
-    const admin = await db.user.findUniqueOrThrow({ where: { email } });
-    const project = await db.project.create({
-      data: {
-        name: "São Judas Tadeu II",
-        municipio: "Martinópolis",
-        uf: "SP",
-        matricula: "14.656",
-        areaTotal: 137338.46,
-        aerialImage: "/demo/sao-judas-tadeu-ii.jpg",
-        fase: "proposta",
-      },
-    });
-    // Mesmas premissas do site da proposta e da planilha atual (proprietário 40%, IGPM 4,50%)
-    await db.proposal.create({
-      data: {
-        projectId: project.id,
-        templateId: template.id,
-        name: "Parceria 40% · 20 anos",
-        ownerName: "Família",
-        inputs: {
-          areaTotal: 137338.46, aproveitamento: 0.5, metragemLote: 200, incorporadorPct: 0.6, valorM2: 500, corretorPct: 0.05,
-          indice: "IPCA", ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, valorArea: 0, entradaPct: 0.06, multiplicador: 1.68, anos: 20,
-          entradaIncTerPct: 0.08, parcelaEntregaPct: 0.27, balaoPct: 0.05, frenteLote: 8, custoInfraM2: 145, extensaoRede: null,
-          lotesEtapa1: 106.38, desagio: 0.66667, taxaAplicacao: 0.01, reajusteManual: null,
-        },
-        options: { cartaIntencao: true, validadeDias: 15 },
-        status: "enviada",
-        publicToken: randomBytes(9).toString("base64url"),
-        publishedAt: new Date(),
-        expiresAt: new Date(Date.now() + 15 * 864e5),
-        createdById: admin.id,
-      },
-    });
-    console.log("Loteamento de demonstração criado.");
-  }
+  // Sem loteamento de demonstração: os loteamentos são cadastrados no portal
 
   // Propostas sem versão (criadas antes dos formatos) ficam com a versão atual do seu formato
   const semVersao = await db.proposal.findMany({ where: { formatoVersionId: null }, select: { id: true, templateId: true, formato: true } });
