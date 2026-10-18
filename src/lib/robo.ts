@@ -11,7 +11,8 @@ import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo,
  * Mensagens de qualquer outro grupo ou conversa são ignoradas e não ficam guardadas.
  */
 
-const GRUPO_CONTROLE = /jbl\s*ia/i;
+/** Nome do grupo de comandos: "JBL IA Monitoring", "AI"... (WA_GRUPO_CONTROLE troca a regra) */
+const GRUPO_CONTROLE = new RegExp(process.env.WA_GRUPO_CONTROLE || String.raw`jbl\s*ia|^\s*(ai|ia)\s*$`, "i");
 const ROBO = "🤖";
 const CONTEXTO_MIN = 30;
 const MAX_ARQUIVO = 20 * 1024 * 1024;
