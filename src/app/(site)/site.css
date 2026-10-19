@@ -836,6 +836,440 @@
 }
 
 /* ==========================================================
+   PÁGINAS INTERNAS
+   ========================================================== */
+
+/* Cabeçalho sólido (páginas sem banner) */
+.site .s-header--solido {
+  position: relative;
+  background: var(--s-dark);
+  border-bottom: 0;
+}
+.site .s-header--solido .s-header__cta {
+  border-radius: 0;
+  font-weight: 400;
+  box-shadow: none;
+}
+
+/* Banner com título */
+.site .s-banner {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 350px 20px 100px;
+  overflow: hidden;
+  background: var(--s-dark);
+}
+.site .s-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(24, 25, 28, 0.62);
+}
+.site .s-banner h1 {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-size: 50px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.site .s-sec--cinza {
+  background: #f5f5f5;
+}
+
+/* Quem Somos (página) */
+.site .s-sobre__grid {
+  display: flex;
+  align-items: stretch;
+}
+.site .s-sobre__texto {
+  width: 50%;
+  padding-right: 50px;
+}
+.site .s-sobre__texto h3 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--s-gold-theme);
+}
+.site .s-sobre__texto p {
+  margin-bottom: 1.4em;
+}
+.site .s-sobre__foto {
+  position: relative;
+  width: 50%;
+  min-height: 500px;
+  overflow: hidden;
+}
+
+/* Empresas do Grupo */
+.site .s-empresas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.site .s-empresa {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid rgba(197, 160, 89, 0.25);
+  border-left: 5px solid #c5a059;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .site .s-empresa:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(197, 160, 89, 0.15);
+  }
+}
+.site .s-empresa__topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.site .s-empresa__icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 10px;
+  background: rgba(197, 160, 89, 0.12);
+  color: #c5a059;
+}
+.site .s-empresa__icone svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+.site .s-empresa__icone svg.is-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.site .s-empresa h3 {
+  font-family: var(--s-font-body), "Open Sans", sans-serif;
+  font-size: 1.05em;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #000;
+}
+.site .s-empresa p {
+  font-size: 0.9em;
+  line-height: 1.6;
+  color: #4a5568;
+  hyphens: auto;
+}
+
+/* Atuação (detalhe) */
+.site .s-single {
+  padding: 60px 20px 70px;
+  background: #f5f5f5;
+}
+.site .s-single__box {
+  max-width: 950px;
+  margin: 0 auto;
+}
+.site .s-single__foto img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.site .s-single__card {
+  position: relative;
+  max-width: 710px;
+  margin: -80px auto 0;
+  padding: 50px 100px 70px;
+  background: #fff;
+  border-radius: 3px;
+}
+.site .s-single__card h1 {
+  margin-bottom: 20px;
+  font-size: 30px;
+  line-height: 1.3;
+}
+.site .s-single__card p + p {
+  margin-top: 1em;
+}
+.site .s-single .s-postnav {
+  max-width: 710px;
+  margin: 30px auto 0;
+}
+
+.site .s-postnav {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.site .s-postnav a {
+  color: var(--s-gold-theme);
+  transition: color 0.2s;
+}
+.site .s-postnav a:hover {
+  color: var(--s-dark);
+}
+
+/* Publicações e notícia */
+.site .s-blog {
+  padding: 60px 20px;
+  background: #f5f5f5;
+}
+.site .s-blog__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.site .s-blog__main {
+  min-width: 0;
+}
+.site .s-blog__item {
+  padding-bottom: 28px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid #e3e3e3;
+}
+.site .s-blog__foto {
+  display: block;
+  overflow: hidden;
+}
+.site .s-blog__foto img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.site .s-blog__item h2 {
+  margin: 22px 0 4px;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.site .s-blog__item h2 a {
+  color: var(--s-dark);
+}
+.site .s-blog__titulo {
+  margin: 28px 0 4px;
+  font-size: 30px;
+  line-height: 1.3;
+}
+.site .s-blog__meta {
+  margin: 14px 0 24px;
+  color: var(--s-gold-theme);
+  font-size: 14px;
+}
+.site .s-blog__item .s-blog__meta {
+  margin: 0 0 20px;
+}
+.site .s-blog__meta a {
+  color: var(--s-gold-theme);
+}
+.site .s-blog__item p {
+  text-align: justify;
+}
+.site .s-blog__mais {
+  display: inline-block;
+  margin-top: 18px;
+  color: var(--s-gold-theme);
+  font-size: 14px;
+}
+.site .s-blog__main hr {
+  margin: 40px 0 30px;
+  border: 0;
+  border-top: 1px solid #e3e3e3;
+}
+.site .s-blog__aviso {
+  margin-bottom: 30px;
+  font-size: 22px;
+}
+.site .s-sidebar {
+  padding-left: 60px;
+  border-left: 1px solid #e3e3e3;
+}
+.site .s-sidebar h3 {
+  margin: 40px 0 24px;
+  font-size: 20px;
+}
+.site .s-busca {
+  display: flex;
+  gap: 10px;
+}
+.site .s-busca input {
+  flex: 1;
+  min-width: 0;
+  height: 45px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+.site .s-busca button {
+  width: 54px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--s-gold-theme);
+  color: var(--s-dark);
+  border: 0;
+  cursor: pointer;
+}
+.site .s-busca svg {
+  width: 20px;
+  height: 20px;
+}
+.site .s-sidebar__lista li {
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.site .s-sidebar__lista a {
+  color: var(--s-dark);
+}
+.site .s-sidebar__lista--links a {
+  color: var(--s-gold-theme);
+}
+
+/* Contato */
+.site .s-contato {
+  display: flex;
+  gap: 60px;
+}
+.site .s-contato__dados,
+.site .s-contato__form {
+  width: 50%;
+}
+.site .s-contato__dados {
+  padding: 20px;
+}
+.site .s-contato__dados h2 {
+  font-size: 40px;
+  line-height: 1.3;
+}
+.site .s-contato__linha {
+  width: 70px;
+  height: 4px;
+  margin: 15px 0 30px;
+  background: var(--s-gold-theme);
+}
+.site .s-contato__dados h4 {
+  margin: 24px 0 7px;
+  font-size: 22px;
+  line-height: 1.2;
+}
+.site .s-contato__dados h4 a {
+  color: var(--s-dark);
+}
+.site .s-contato__dados p {
+  font-size: 14px;
+}
+.site .s-contato__form {
+  padding: 50px;
+  background: var(--s-gold-light);
+}
+.site .s-form {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.site .s-form input,
+.site .s-form textarea {
+  width: 100%;
+  padding: 12px;
+  background: #fafafa;
+  border: 1px solid #fafafa;
+  color: #333;
+  font-size: 14px;
+}
+.site .s-form input:focus,
+.site .s-form textarea:focus {
+  outline: 2px solid var(--s-gold-theme);
+}
+.site .s-form .s-form__isca {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.site .s-form button {
+  align-self: flex-start;
+  margin-top: 16px;
+  padding: 13px 40px;
+  background: var(--s-gold-theme);
+  color: var(--s-dark);
+  border: 0;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.site .s-form button:hover {
+  background: #fff;
+}
+.site .s-form__ok {
+  font-size: 14px;
+  color: var(--s-dark);
+}
+.site .s-mapa {
+  padding: 0 0 100px;
+  background: #fff;
+}
+.site .s-mapa iframe {
+  display: block;
+  width: 100%;
+  height: 400px;
+  border: 0;
+  background: #eef0f2;
+}
+
+/* Termos e Privacidade */
+.site .s-legal {
+  padding: 60px 20px;
+  background: #f5f5f5;
+}
+.site .s-legal__card {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 50px 100px;
+  background: #fff;
+}
+.site .s-legal__card h2 {
+  margin: 30px 0 16px;
+  font-size: 40px;
+  line-height: 1.3;
+}
+.site .s-legal__card h3 {
+  margin: 26px 0 12px;
+  font-size: 24px;
+}
+.site .s-legal__card p,
+.site .s-legal__card ol,
+.site .s-legal__card ul {
+  margin-bottom: 1.4em;
+}
+.site .s-legal__card ol {
+  padding-left: 1.4em;
+  list-style: decimal;
+}
+.site .s-legal__card ul {
+  padding-left: 1.4em;
+  list-style: disc;
+}
+.site .s-legal__card a {
+  color: var(--s-gold-theme);
+}
+
+/* ==========================================================
    TABLET
    ========================================================== */
 @media (max-width: 1024px) {
@@ -874,6 +1308,36 @@
   }
   .site .s-galeria__item {
     height: 440px;
+  }
+  .site .s-banner {
+    padding: 200px 20px 50px;
+  }
+  .site .s-sobre__grid,
+  .site .s-contato {
+    flex-wrap: wrap;
+    gap: 50px;
+  }
+  .site .s-sobre__texto,
+  .site .s-sobre__foto,
+  .site .s-contato__dados,
+  .site .s-contato__form {
+    width: 100%;
+    padding-right: 0;
+  }
+  .site .s-empresas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .site .s-blog__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .site .s-sidebar {
+    padding: 30px 0 0;
+    border-left: 0;
+    border-top: 1px solid #e3e3e3;
+  }
+  .site .s-single__card,
+  .site .s-legal__card {
+    padding: 40px;
   }
   .site .s-footer__grid {
     padding: 70px 20px;
@@ -946,6 +1410,42 @@
   .site .s-galeria__item {
     width: 100%;
   }
+
+  .site .s-banner {
+    padding: 300px 20px 50px;
+  }
+  .site .s-banner h1 {
+    font-size: 30px;
+  }
+  .site .s-sobre__foto {
+    min-height: 300px;
+  }
+  .site .s-empresas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .site .s-contato__dados {
+    padding: 0;
+  }
+  .site .s-contato__dados h2,
+  .site .s-legal__card h2 {
+    font-size: 28px;
+  }
+  .site .s-contato__form {
+    padding: 25px;
+  }
+  .site .s-single {
+    padding: 0 0 50px;
+  }
+  .site .s-single__card {
+    margin-top: 0;
+    padding: 30px 20px;
+  }
+  .site .s-single .s-postnav {
+    padding: 0 20px;
+  }
+  .site .s-legal__card {
+    padding: 30px 20px;
+  }
   .site .s-footer__grid {
     grid-template-columns: minmax(0, 1fr);
     padding: 10px 0;
@@ -960,7 +1460,16 @@
   .site .s-cookie {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px 16px 76px;
+    gap: 10px;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .site .s-cookie strong {
+    font-size: 14px;
+  }
+  .site .s-cookie button {
+    padding: 8px 16px;
   }
 }
 

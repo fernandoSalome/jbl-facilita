@@ -87,3 +87,30 @@ export const WhatsappSquare = () => (
     />
   </svg>
 );
+
+/** Ícones dos cartões de Empresas do Grupo. */
+export const EmpresaIcon = ({ name }: { name: "mapa" | "predio" | "alerta" | "seta" | "pessoas" | "recibo" }) =>
+  name === "recibo" ? (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="is-outline">
+      <path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v2" />
+      <path d="M13 3v5h5" />
+      <path d="M7 8h2M7 12h3M7 16h2" />
+      <circle cx="17" cy="17" r="5" />
+      <path d="M18.5 14.5h-2.25a1.25 1.25 0 0 0 0 2.5h1.5a1.25 1.25 0 0 1 0 2.5H15.5" />
+      <path d="M17 13.5v7" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={EMPRESA_PATHS[name]} />
+    </svg>
+  );
+
+const EMPRESA_PATHS = {
+  mapa: "M15 3l-6 3-6-3v15l6 3 6-3 6 3V6l-6-3zm-6 2.25l4 2v11.5l-4-2V5.25zM5 5.25l2 1v11.5l-2-1V5.25zm14 13.5l-2-1V6.25l2 1v11.5z",
+  predio:
+    "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3h3v2h-3V6zm-5 0h3v2H7V6zm0 4h3v2H7v-2zm5 0h3v2h-3v-2zm-5 4h3v2H7v-2zm5 0h3v2h-3v-2zm-5 4h10v1H7v-1z",
+  alerta: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",
+  seta: "M12 2L5 9h3v6h8V9h3l-7-7zm0 18c-1.1 0-2-.9-2-2h4c0 1.1-.9 2-2 2z",
+  pessoas:
+    "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
+};

@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { CONTATO_URL, MENU } from "./content";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { MENU } from "./content";
+
+// Páginas com banner fotográfico no topo: o cabeçalho fica transparente por cima dele.
+const COM_BANNER = ["/", "/quem-somos", "/atuacao", "/empresas-do-grupo", "/contato"];
 
 export function SiteHeader() {
+  const pathname = usePathname() || "/";
   const [aberto, setAberto] = useState(false);
+  useEffect(() => setAberto(false), [pathname]);
+
+  const ativo = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const transparente = COM_BANNER.includes(pathname);
+
   return (
-    <header className="s-header">
+    <header className={`s-header${transparente ? "" : " s-header--solido"}`}>
       <div className="s-header__bar">
-        <a href="/" className="s-header__logo" aria-label="JBL Incorporadora">
+        <Link href="/" className="s-header__logo" aria-label="JBL Incorporadora">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/site/img/logo-240.webp"
@@ -18,17 +29,17 @@ export function SiteHeader() {
             alt="JBL INCORPORADORA"
             fetchPriority="high"
           />
-        </a>
+        </Link>
         <nav className="s-header__nav" aria-label="Menu principal">
-          {MENU.map((m, i) => (
-            <a key={m.label} href={m.href} className={i === 0 ? "is-current" : undefined}>
+          {MENU.map((m) => (
+            <Link key={m.href} href={m.href} className={ativo(m.href) ? "is-current" : undefined}>
               {m.label}
-            </a>
+            </Link>
           ))}
         </nav>
-        <a href={CONTATO_URL} className="s-header__cta">
+        <Link href="/contato" className="s-header__cta">
           Contato
-        </a>
+        </Link>
         <button
           type="button"
           className="s-header__toggle"
@@ -50,10 +61,11 @@ export function SiteHeader() {
       {aberto && (
         <nav className="s-header__mobile" aria-label="Menu">
           {MENU.map((m) => (
-            <a key={m.label} href={m.href}>
+            <Link key={m.href} href={m.href}>
               {m.label}
-            </a>
+            </Link>
           ))}
+          <Link href="/contato">Contato</Link>
         </nav>
       )}
     </header>

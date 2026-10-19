@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { WP } from "./content";
 
 const KEY = "viewed_cookie_policy";
 
@@ -23,8 +23,8 @@ export function CookieBar() {
         <strong>Nós utilizamos cookies</strong>
         <p>
           Eles são usados para aprimorar a sua experiência. Ao clicar em &quot;Aceitar&quot; ou continuar na página,
-          você concorda com nosso <a href={`${WP}/termos-de-uso`}>Termos de Uso</a> e{" "}
-          <a href={`${WP}/politica-de-privacidade`}>Política de Privacidade</a>.
+          você concorda com nosso <Link href="/termos-de-uso">Termos de Uso</Link> e{" "}
+          <Link href="/politica-de-privacidade">Política de Privacidade</Link>.
         </p>
       </div>
       <button
