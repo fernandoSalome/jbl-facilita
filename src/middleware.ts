@@ -8,11 +8,11 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/app") && !session) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
-  if ((pathname === "/login" || pathname === "/") && session) {
+  if (pathname === "/login" && session) {
     return NextResponse.redirect(new URL("/app", req.url));
   }
-  if (pathname === "/") return NextResponse.redirect(new URL("/login", req.url));
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/login", "/app/:path*"] };
+// "/" é o site institucional público (src/app/(site)).
+export const config = { matcher: ["/login", "/app/:path*"] };
