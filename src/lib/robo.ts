@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { entenderTexto, lerDocumento, projetoPorTexto, TIPOS } from "./ia";
+import { responderProposta } from "./robo-propostas";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -122,6 +123,8 @@ export async function tratarMensagem(m: Recebida) {
       });
       return;
     }
+    case "pergunta_proposta":
+      return responder(await responderProposta(m.texto, projetoId ?? contextoValido));
     case "status":
     case "listar": {
       if (!alvo) return responder(`De qual loteamento? Tenho pastas para:\n${listaProjetos(projetos)}`);
@@ -137,7 +140,7 @@ export async function tratarMensagem(m: Recebida) {
     }
     case "ajuda":
       return responder(
-        `Sou o assistente da JBL. Aqui você pode:\n• Mandar um documento (PDF ou foto): eu guardo na pasta do loteamento.\n• Pedir: _manda a matrícula do São Judas_\n• Perguntar: _como está o São Judas?_\n\nLoteamentos:\n${listaProjetos(projetos)}`,
+        `Sou o assistente da JBL. Aqui você pode:\n• Mandar um documento (PDF ou foto): eu guardo na pasta do loteamento.\n• Pedir: _manda a matrícula do São Judas_\n• Perguntar: _como está o São Judas?_\n• Perguntar das propostas: _qual o valor do lote na proposta do São Judas?_\n\nLoteamentos:\n${listaProjetos(projetos)}`,
       );
     default:
       return;

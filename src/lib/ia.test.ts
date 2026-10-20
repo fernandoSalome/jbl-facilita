@@ -25,4 +25,10 @@ describe("robô: entender mensagens", () => {
     expect(await entenderTexto("como está o São Judas?", P)).toMatchObject({ acao: "status", projetoId: "sj" });
     expect((await entenderTexto("bom dia", P)).acao).toBe("nada");
   });
+  it("entende perguntas sobre as propostas", async () => {
+    expect(await entenderTexto("qual o valor do lote no São Judas?", P)).toMatchObject({ acao: "pergunta_proposta", projetoId: "sj" });
+    expect(await entenderTexto("quanto o terrenista recebe por mês em Lagos", P)).toMatchObject({ acao: "pergunta_proposta", projetoId: "lg" });
+    expect((await entenderTexto("a proposta do São Judas já foi aberta?", P)).acao).toBe("pergunta_proposta");
+    expect((await entenderTexto("me manda a matrícula de Lagos", P)).acao).toBe("pedido_documento");
+  });
 });

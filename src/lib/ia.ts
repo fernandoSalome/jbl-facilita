@@ -113,7 +113,10 @@ Responda só um JSON:
   }
 }
 
-export type Intencao = { acao: "aviso_envio" | "pedido_documento" | "status" | "listar" | "ajuda" | "nada"; tipo?: string | null; projetoId?: string | null };
+/** Palavras de números da proposta: com uma pergunta, viram consulta às propostas */
+const NUMEROS = /\b(valor|preco|lotes?|parcelas?|vgv|carteira|terrenista|percentual|porcentagem|participacao|divisao|entrada|aproveitamento|metragem|area|m2|reajuste|ipca|igpm|incc|juros|antecipacao|desagio|comissao|corretor|infraestrutura|visualiz\w*|abriu|abriram|validade|vence|expira)\b/;
+
+export type Intencao = { acao: "aviso_envio" | "pedido_documento" | "pergunta_proposta" | "status" | "listar" | "ajuda" | "nada"; tipo?: string | null; projetoId?: string | null };
 
 /** Entende o que a pessoa escreveu no grupo de comandos. */
 export async function entenderTexto(texto: string, projetos: Projeto[]): Promise<Intencao> {
@@ -123,6 +126,7 @@ export async function entenderTexto(texto: string, projetos: Projeto[]): Promise
   let acao: Intencao["acao"] = "nada";
   if (/\b(estou|to|tou|vou|vamos)\b.*\b(enviando|mandando|mandar|enviar|subir)\b|\bsegue(m)?\b|\bmandei\b|\benviei\b/.test(n)) acao = "aviso_envio";
   else if (/\b(manda|mande|envia|envie|enviar|mandar|passa|passe|preciso|quero|traz|traga|cade|me ve|me da)\b/.test(n) && (tipo || /documento|arquivo/.test(n))) acao = "pedido_documento";
+  else if (/\bpropostas?\b/.test(n) || (/\?|\b(qual|quais|quanto|quantos|quantas)\b/.test(n) && NUMEROS.test(n))) acao = "pergunta_proposta";
   else if (/como esta|status|andamento|atualiza|novidade/.test(n)) acao = "status";
   else if (/quais documentos|o que (tem|temos)|lista(r)? (os )?documentos|pasta/.test(n)) acao = "listar";
   else if (/^(ajuda|help|menu|\/ajuda|oi robo|robo)\b/.test(n)) acao = "ajuda";
@@ -137,7 +141,7 @@ export async function entenderTexto(texto: string, projetos: Projeto[]): Promise
         text: `Mensagem num grupo de WhatsApp onde a equipe da JBL conversa com o robô que guarda documentos dos loteamentos: "${texto}"
 Loteamentos:
 ${lista}
-Responda só um JSON: {"acao": "aviso_envio" (vai mandar um documento) | "pedido_documento" (quer receber um documento) | "status" (quer saber como está um loteamento) | "listar" (quer ver o que tem na pasta) | "ajuda" | "nada" (conversa que não é com o robô),
+Responda só um JSON: {"acao": "aviso_envio" (vai mandar um documento) | "pedido_documento" (quer receber um documento) | "pergunta_proposta" (pergunta algo das propostas: valores, lotes, divisão, carteira, terrenista, status, link) | "status" (quer saber como está um loteamento) | "listar" (quer ver o que tem na pasta) | "ajuda" | "nada" (conversa que não é com o robô),
 "tipo": um de ${Object.keys(TIPOS).join("|")} ou null, "projetoId": id ou null}`,
       }],
       200,
@@ -146,5 +150,29 @@ Responda só um JSON: {"acao": "aviso_envio" (vai mandar um documento) | "pedido
     return j?.acao ? { ...j, tipo: j.tipo && TIPOS[j.tipo] ? j.tipo : tipo, projetoId: j.projetoId ?? projeto } : regra;
   } catch {
     return regra;
+  }
+}
+
+/** Responde uma pergunta usando só os dados fornecidos (fichas das propostas). null = sem IA ou falhou. */
+export async function responderComDados(pergunta: string, dados: string): Promise<string | null> {
+  if (!temIA()) return null;
+  try {
+    const t = await claude(
+      [{
+        type: "text",
+        text: `Você é o assistente da JBL Incorporadora num grupo de WhatsApp da equipe. Responda à pergunta usando SÓ as fichas das propostas abaixo (números já calculados pela planilha oficial). Se a pergunta não disser qual proposta e houver mais de uma possível, responda para as mais prováveis ou pergunte qual. Se a informação não estiver nas fichas, diga que não tem esse dado na proposta. Não invente números.
+Formato WhatsApp: curto e direto, *negrito* com um asterisco, sem títulos com #, sem tabelas. Valores em reais no padrão brasileiro. Inclua o link da proposta só se pedirem ou se ajudar.
+
+Pergunta: "${pergunta}"
+
+FICHAS:
+${dados}`,
+      }],
+      700,
+    );
+    return t.trim() || null;
+  } catch (e) {
+    console.error("responderComDados", e);
+    return null;
   }
 }
