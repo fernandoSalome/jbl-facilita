@@ -10,8 +10,11 @@ import type { Destinatario } from "./proposals";
  */
 export function tratamento(d?: Destinatario) {
   const tipo: "familia" | "pessoa" = !d?.tipo || d.tipo === "familia" ? "familia" : "pessoa";
-  const fem = d?.genero === "f";
-  const nome = (d?.nome ?? "").trim();
+  // "Sra. Bruna Stein" escrito no nome (propostas antigas): o Sr./Sra. vem da escolha, não do nome
+  const bruto = (d?.nome ?? "").trim();
+  const prefixo = bruto.match(/^(sr|sra|srta|senhor|senhora)\.?\s+/i);
+  const nome = prefixo ? bruto.slice(prefixo[0].length).trim() : bruto;
+  const fem = d?.genero === "f" || (!d?.genero && !!prefixo && /^(sra|srta|senhora)/i.test(prefixo[1]));
   const pick = <T,>(familia: T, pessoa: T, _antigo?: T) => (tipo === "familia" ? familia : pessoa);
 
   if (tipo === "familia") {

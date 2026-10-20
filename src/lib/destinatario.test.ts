@@ -24,6 +24,11 @@ describe("tratamento da proposta", () => {
     expect(f.saudacao).toBe("Prezada Sra. Maria,");
     expect(`Carta ${f.ao} ${f.rotulo}`).toBe("Carta à Sra. Maria");
   });
+  it("Sr./Sra. escrito no nome não se repete", () => {
+    expect(tratamento({ tipo: "pessoa", nome: "Sra. Bruna Stein", genero: "f" }).saudacao).toBe("Prezada Sra. Bruna Stein,");
+    expect(tratamento({ tipo: "pessoa", nome: "Sra Bruna Stein" }).saudacao).toBe("Prezada Sra. Bruna Stein,");
+    expect(tratamento({ tipo: "pessoa", nome: "sr. João" }).saudacao).toBe("Prezado Sr. João,");
+  });
   it("propostas antigas com 'proprietário' viram pessoa sem nome", () => {
     const d = tratamento({ tipo: "proprietario", genero: "f" });
     expect(d.tipo).toBe("pessoa");

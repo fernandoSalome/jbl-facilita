@@ -16,12 +16,13 @@ const SCALE = +(((PAGE.w - 2 * MARGIN.side) * 3.7795) / W).toFixed(4);
 const SLIDE_H = Math.floor(((PAGE.h - MARGIN.top - MARGIN.bottom) * 3.7795) / SCALE) - 6;
 
 const CSS = `
+  @import url("https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=block");
   @font-face{font-family:"PdfSerif";src:url(/fonts/gelasio-latin-400-normal.woff2) format("woff2");font-weight:400}
   @font-face{font-family:"PdfSerif";src:url(/fonts/gelasio-latin-700-normal.woff2) format("woff2");font-weight:700}
   @font-face{font-family:"PdfSerif";src:url(/fonts/gelasio-latin-400-italic.woff2) format("woff2");font-style:italic}
   @font-face{font-family:"PdfSans";src:url(/fonts/arimo-latin-400-normal.woff2) format("woff2");font-weight:400}
   @font-face{font-family:"PdfSans";src:url(/fonts/arimo-latin-700-normal.woff2) format("woff2");font-weight:700}
-  .jblt{--display:"PdfSerif",Georgia,serif;--body:"PdfSans","Helvetica Neue",Arial,sans-serif}
+  .jblt{--display:"PdfSerif",Georgia,"Noto Color Emoji",serif;--body:"PdfSans","Helvetica Neue",Arial,"Noto Color Emoji",sans-serif}
   .jblt #intencao,.jblt .nav,.jblt .burger,.jblt .mnav,.jblt .cover-ctas,.jblt .tabs,.jblt .dl,.jblt .dl-foot,.jblt .progress{display:none!important}
   .jblt .calc,.jblt .tile,.jblt .card,.jblt .share,.jblt .faq>div,.jblt .s6,.jblt .tbl tr,.jblt .lot,.jblt .review,.jblt .tip,.jblt .note,.jblt .photo,.jblt .brand-card,.jblt .gantt-wrap,.jblt .pie-row,.jblt .next>div,.jblt .bar,.jblt .df-grid,.jblt .letter p,.jblt .step-head,.jblt h3{break-inside:avoid;page-break-inside:avoid}
   .jblt .step-head,.jblt h2,.jblt h3,.jblt .part{break-after:avoid;page-break-after:avoid}
@@ -67,15 +68,21 @@ export function contarPaginas(pdf: Buffer) {
 
 async function imprimir(origin: string, token: string, rodape: string, paginas?: number) {
   const { chromium } = await import("playwright-core");
+  // Na Vercel não há Chromium instalado: usa a versão compactada para funções sem servidor.
+  // As funções da Vercel rodam no Amazon Linux 2023; a variável faz o pacote extrair as bibliotecas certas (libnss3...).
+  if (process.env.VERCEL) process.env.AWS_LAMBDA_JS_RUNTIME ??= "nodejs20.x";
+  const vercel = process.env.VERCEL ? (await import("@sparticuz/chromium")).default : null;
   const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || undefined,
-    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    executablePath: vercel ? await vercel.executablePath() : process.env.CHROMIUM_PATH || undefined,
+    args: vercel ? vercel.args : ["--no-sandbox", "--disable-dev-shm-usage"],
   });
   try {
     const page = await browser.newPage({ viewport: { width: W, height: 900 } });
     await page.goto(`${origin}/p/${token}?print=1${paginas ? `&pages=${paginas}` : ""}`, { waitUntil: "networkidle", timeout: 60000 });
     await page.emulateMedia({ media: "screen" });
     await page.addStyleTag({ content: CSS });
+    // a fonte de emoji só baixa quando usada: carrega antes de medir e imprimir
+    await page.evaluate(() => document.fonts.load('16px "Noto Color Emoji"', "🌳🏊").catch(() => null));
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(600);
     await page.evaluate(montarSlides, { H: SLIDE_H });

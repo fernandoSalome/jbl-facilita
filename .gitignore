@@ -9,3 +9,9 @@ next-env.d.ts
 
 # Planilhas e documentos com dados reais de clientes: nunca versionar
 referencias/
+
+# Cópias do banco (dados de clientes e senhas): nunca versionar
+backup-*.sql
+*.dump
+.vercel
+.env*
