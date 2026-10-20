@@ -70,6 +70,30 @@ function lerModelo(el: HTMLElement) {
   return c;
 }
 
+/** Seleciona do caractere `ini` ao `fim` (contando o texto visível do elemento) */
+function selecionarTrecho(el: HTMLElement, ini: number, fim: number) {
+  const r = document.createRange();
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let pos = 0;
+  let achouIni = false;
+  while (w.nextNode()) {
+    const t = w.currentNode as Text;
+    const n = t.data.length;
+    if (!achouIni && ini <= pos + n) {
+      r.setStart(t, ini - pos);
+      achouIni = true;
+    }
+    if (achouIni && fim <= pos + n) {
+      r.setEnd(t, fim - pos);
+      const s = window.getSelection();
+      s?.removeAllRanges();
+      s?.addRange(r);
+      return;
+    }
+    pos += n;
+  }
+}
+
 /** A alteração atinge um número da planilha dentro do texto? */
 function tocaNumero(el: HTMLElement, r: AbstractRange) {
   const alvo = document.createRange();
@@ -109,8 +133,11 @@ export function E({
   html?: boolean;
   fixo?: boolean;
   vars?: Record<string, string>;
-  /** Ajuste no texto salvo antes de mostrar (ex.: tirar o emoji antigo do começo) */
-  limpar?: (html: string) => string;
+  /**
+   * Ajuste no texto salvo (de versões antigas) antes de mostrar: tirar o emoji do começo,
+   * trocar "a definir" pelo número da planilha... Recebe o texto e se ele é HTML.
+   */
+  limpar?: (texto: string, html: boolean) => string;
 }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
@@ -118,11 +145,17 @@ export function E({
   // Padrão em HTML (título com dourado e quebras, parágrafo com negrito) ou texto simples
   // (com `vars`, os números aparecem como {{nome}} e são preenchidos na hora de mostrar)
   const defaultHtml = isHtml ? sanitizeHtml(children) : plainToHtml(children);
+  const bruto = overrides[k];
+  const ov =
+    limpar && typeof bruto === "string"
+      ? bruto.startsWith(HTML_PREFIX)
+        ? HTML_PREFIX + limpar(bruto.slice(HTML_PREFIX.length), true)
+        : limpar(bruto, false)
+      : bruto;
   // Valor em uso: alteração da proposta, senão a do template, senão o padrão
   // texto com números editado antes dos blocos travados existirem: ignora (teria número velho, congelado)
-  const antigo = !!vars && typeof overrides[k] === "string" && !(overrides[k] as string).includes("{{") && children.includes("{{");
-  const salvo = k in overrides && !antigo ? valueToHtml(overrides[k], children) : defaultHtml;
-  const modelo = limpar ? limpar(salvo) : salvo;
+  const antigo = !!vars && typeof ov === "string" && !ov.includes("{{") && children.includes("{{");
+  const modelo = k in overrides && !antigo ? valueToHtml(ov, children) : defaultHtml;
   const html = vars ? preencher(modelo, vars) : modelo;
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
@@ -229,6 +262,17 @@ export function E({
             }
             return;
           }
+          // trecho já selecionado arrastando o mouse antes de abrir: continua selecionado na edição
+          const s0 = window.getSelection();
+          let trecho: [number, number] | null = null;
+          if (s0 && s0.rangeCount && !s0.isCollapsed && e.currentTarget.contains(s0.anchorNode)) {
+            const r0 = s0.getRangeAt(0);
+            const antes = document.createRange();
+            antes.selectNodeContents(e.currentTarget);
+            antes.setEnd(r0.startContainer, r0.startOffset);
+            const ini = antes.toString().length;
+            trecho = [ini, ini + r0.toString().length];
+          }
           congelado.current = html;
           ultimo.current = modelo;
           modeloInicio.current = modelo;
@@ -240,6 +284,7 @@ export function E({
             const el = ref.current;
             if (!el) return;
             el.focus();
+            if (trecho) return selecionarTrecho(el, trecho[0], trecho[1]);
             const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
             let r: Range | null = document.caretRangeFromPoint?.(x, y) ?? null;
             if (!r && doc.caretPositionFromPoint) {
@@ -264,9 +309,11 @@ export function E({
             e.preventDefault();
             cancel();
           }
-          if (e.key === "Enter" && (!isMulti || e.ctrlKey || e.metaKey)) {
+          if (e.key === "Enter") {
             e.preventDefault();
-            commit();
+            // Enter quebra a linha em qualquer texto; Ctrl/Cmd+Enter termina (ou clicar fora)
+            if (e.ctrlKey || e.metaKey) commit();
+            else document.execCommand("insertLineBreak");
           }
         }}
         onPaste={(e) => {

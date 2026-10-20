@@ -56,7 +56,7 @@ export function ficha(p: PropostaDb): string {
     `Recebimento mensal do terrenista: ${fmtBRL(pr.mensalTer)} no 1º ano, ${fmtBRL(pr.mensalTerFinal)} no último · parcela do lote ${fmtBRL(pr.parcela)} → ${fmtBRL(pr.parcelaFinal)}`,
     `Outros prazos (carteira do terrenista): ${r.cenarios.map((c) => `${c.anos} anos ${fmtBRL(c.carteiraTer)}`).join("; ")}`,
     `Antecipação da carteira do terrenista (deságio ${fmtPct(i.desagio)}): ${fmtBRL(r.antecipacao.valor)}`,
-    `Custo de infraestrutura: ${fmtBRL(r.custoInfra)} (${fmtBRL(i.custoInfraM2)}/m²)${r.etapa1 ? ` · 1ª etapa ${r.etapa1.lotes} lotes` : ""}`,
+    `Custo de infraestrutura: ${fmtBRL(r.custoInfra)} (${fmtBRL(i.custoInfraM2)}/m²)${r.etapa1 ? ` · 1ª etapa ${fmtNum(r.etapa1.lotes, 0)} lotes` : ""}`,
     `Vendas previstas: ${r.vendas.mes1} / ${r.vendas.mes2} / ${r.vendas.mes3} lotes nos 3 primeiros meses`,
     `Link: ${ORIGEM()}/p/${p.publicToken}`,
   ];

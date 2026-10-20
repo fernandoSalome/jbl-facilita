@@ -36,8 +36,9 @@ export function fmtDateTime(d: Date | string | null | undefined) {
   return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+/** "20 de outubro de 2026", no fuso de São Paulo (o servidor roda em UTC) */
 export function fmtLongDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(d).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" });
 }
 
 export function relTime(d: Date | string | null | undefined) {

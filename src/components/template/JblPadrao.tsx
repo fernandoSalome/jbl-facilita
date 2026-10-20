@@ -43,12 +43,12 @@ export type TemplateProps = {
 };
 
 /** Texto do template. Chave "txt.<k>". */
-function T({ k, children, multiline, html, fixo, vars }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string> }) {
-  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo} vars={vars}>{children}</E>;
+function T({ k, children, multiline, html, fixo, vars, limpar }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string }) {
+  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo} vars={vars} limpar={limpar}>{children}</E>;
 }
 /** Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@<tipo>") */
-function DT({ tipo, k, children, html, multiline, vars }: { tipo: string; k: string; children: string; html?: boolean; multiline?: boolean; vars?: Record<string, string> }) {
-  return <T k={`${k}@${tipo}`} html={html} multiline={multiline} vars={vars}>{children}</T>;
+function DT({ tipo, k, children, html, multiline, vars, limpar }: { tipo: string; k: string; children: string; html?: boolean; multiline?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string }) {
+  return <T k={`${k}@${tipo}`} html={html} multiline={multiline} vars={vars} limpar={limpar}>{children}</T>;
 }
 
 /** Valor calculado pela planilha. Chave "v.<k>". Não é editável na proposta. */
@@ -122,16 +122,40 @@ export function LoteDesenho({ frente, fundo, area }: { frente: number; fundo: nu
       <rect x={r1(x)} y={r1(y)} width={r1(w)} height={r1(h)} rx={r1(Math.min(4, w / 4, h / 4))} fill="#EFDDB3" stroke="var(--gold-deep)" strokeWidth="3" />
       {h >= 44 ? (
         <>
-          <text x={r1(cx)} y={r1(cy + 3)} textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="16" fill="var(--navy)">{area}</text>
+          <text x={r1(cx)} y={r1(cy + 3)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize="16" fill="var(--navy)">{area}</text>
           <text x={r1(cx)} y={r1(cy + 19)} textAnchor="middle" fontFamily={sans} fontSize="12" fill="var(--muted)">m²</text>
         </>
       ) : (
-        <text x={r1(cx)} y={r1(cy + 5)} textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="14" fill="var(--navy)">{area} m²</text>
+        <text x={r1(cx)} y={r1(cy + 5)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize="14" fill="var(--navy)">{area} m²</text>
       )}
       <text x={r1(cx)} y={r1(y - 4)} textAnchor="middle" fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(frente, 0)} m</text>
       <text x={r1(x + w + 6)} y={r1(cy + 3)} fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(fundo, 0)} m</text>
     </svg>
   );
+}
+
+/* ---- ajustes em textos salvos por versões antigas do template (ver `limpar` em Editable) ---- */
+
+/** "(50% da área total)" na linha de baixo */
+function quebraAprov(t: string, html: boolean) {
+  return t.replace(/(<br[^>]*>|\n)?\s*\(\s*\{\{aprov\}\}/, (m, br) => (br ? m : `${html ? "<br>" : "\n"}({{aprov}}`));
+}
+
+/** O texto "tecnicos2" tinha título + nomes + data: fica só a parte dos nomes */
+function soNomesTecnicos(t: string, html: boolean) {
+  if (!html) return t.replace(/^\s*Profissionais chefes designados para o projeto\s*/i, "").replace(/\n?\s*São Paulo,[^\n]*$/i, "").trim();
+  return t
+    .replace(/^\s*(?:<span[^>]*>)?\s*Profissionais chefes designados para o projeto\s*(?:<\/span>)?\s*(?:<br[^>]*>\s*)*/i, "")
+    .replace(/(?:<br[^>]*>\s*)*<strong[^>]*>(?:(?!<\/strong>)[\s\S])*<\/strong>\s*$/i, "")
+    .replace(/(?:<br[^>]*>\s*)+$/i, "");
+}
+
+/** Primeira etapa: os "a definir" das versões antigas viram os números da planilha */
+function etapaComNumeros(t: string, html: boolean) {
+  if (!html) return t;
+  const ordem = ["e1Lotes", "e1Lote", "e1Pct"];
+  let i = 0;
+  return t.replace(/<span[^>]*>\s*a definir\s*<\/span>/g, (m) => (i < ordem.length ? `<strong>{{${ordem[i++]}}}</strong>` : m));
 }
 
 /** Setas douradas entre as contas do VGV (mesma lógica do site) */
@@ -244,7 +268,7 @@ export default function JblPadrao(props: TemplateProps) {
   const jurosAnoEq = fmtPct(inputs.jurosMes * 12);
   const indice = inputs.indice || "IPCA";
   const data = fmtLongDate(props.date);
-  const dataCurta = new Date(props.date).toLocaleDateString("pt-BR");
+  const dataCurta = new Date(props.date).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const mi = (v: number) => `R$ ${fmtNum(v / 1e6, 1)} mi`;
   const pctTxt = (v: number) => fmtPct(v, 0);
   const ext = (v: number) => `(${extensoReais(v)})`;
@@ -277,6 +301,14 @@ export default function JblPadrao(props: TemplateProps) {
   }
   const go = (e: React.MouseEvent) => editing && e.preventDefault();
 
+  // contatos exclusivos: junto da carta de intenção quando ela existe (senão, nos próximos passos)
+  const contatos = (
+    <div className="brokers">
+      <b><T k="brT2">Contatos exclusivos</T></b><br />
+      <ListaContatos base={formato.contatos} padrao={{ nome: options.corretorNome, telefone: options.corretorTelefone }} />
+    </div>
+  );
+
   // fecho da proposta: embaixo da carta de intenção (ou no fim, quando a proposta não tem carta)
   const fecho = (
     <p className="lead fecho" style={{ marginTop: 28 }}><T k="fimFecho2">Com os nossos melhores cumprimentos e estima, colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários.</T></p>
@@ -292,7 +324,15 @@ export default function JblPadrao(props: TemplateProps) {
     saldo0: fmtBRL0(r.valorLote - r.entrada), saldoPrazo0: fmtBRL0(r.saldoPrazo), taxa: fmtPct(inputs.taxaAplicacao),
     m1: String(r.vendas.mes1), m2: String(r.vendas.mes2), m3: String(r.vendas.mes3), total: String(r.vendas.total),
     area: fmtNum(inputs.areaTotal), municipio: project.municipio, uf: project.uf, modelo: formato.modelo, lei: formato.lei,
+    data,
+    e1Lotes: r.etapa1 ? String(Math.floor(r.etapa1.lotes)) : "", e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 0) : "", e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : "",
   };
+
+  // Primeira etapa só aparece quando a planilha tem a opção ligada; sem ela, as seções seguintes sobem um número
+  const etapa = !!r.etapa1;
+  const passo = (x: number) => (etapa || x < 6 ? x : x - 1);
+  const renumera = (t: string) => t.replace(/passo 11\b/g, `passo ${passo(11)}`).replace(/^((?:\s|<[^>]+>)*)13(\s*\/)/, `$1${passo(13)}$2`);
+  const semEtapa = (t: string) => (etapa ? t : t.replace(/\s*(?:<strong>)?\(incluindo a primeira etapa\)(?:<\/strong>)?/i, ""));
 
   const navLinks: [string, string, string][] = [
     ["#participacao", "nav1", "Sua participação"],
@@ -367,7 +407,7 @@ export default function JblPadrao(props: TemplateProps) {
               </figure>
               <div className="hero-stats">
                 <div><b><V k="statArea">{`${fmtNum(inputs.areaTotal)} m²`}</V></b><span><T k="statAreaD">área total indicada</T></span></div>
-                <div><b><V k="statUtil">{`${fmtNum(r.areaUtil)} m²`}</V></b><span><T k="statUtilD" vars={nv}>{"área aproveitável estimada ({{aprov}} da área total)"}</T></span></div>
+                <div><b><V k="statUtil">{`${fmtNum(r.areaUtil)} m²`}</V></b><span><T k="statUtilD" vars={nv} limpar={quebraAprov}>{"área aproveitável estimada\n({{aprov}} da área total)"}</T></span></div>
                 <div><b><V k="statLote">{`${fmtNum(inputs.metragemLote, 0)} m²`}</V></b><span><T k="statLoteD" vars={nv}>{"lotes de {{frente}} × {{fundo}} metros"}</T></span></div>
                 <div><b><V k="statMatricula">{project.matricula ?? "a definir"}</V></b><span><T k="statMatriculaD">matrícula do imóvel</T></span></div>
               </div>
@@ -377,7 +417,10 @@ export default function JblPadrao(props: TemplateProps) {
                   <small><T k="fraseAutor">Marcelo Aguilar · Diretor de Expansão</T></small>
                 </blockquote>
                 <div className="tech">
-                  <T k="tecnicos2" html>{`<span class="tech-lbl">Profissionais chefes designados para o projeto</span>Eng.º Felipe Stampini Oliveira Lopes · CREA 248492/D<br>Arquiteto Fábio Barros Belizário · CAU A117931-4<br><strong class="tech-date">São Paulo, ${data}</strong>`}</T>
+                  <span className="tech-lbl"><T k="tecnicosLbl">Profissionais chefes designados para o projeto</T></span>
+                  {/* "tecnicos2" guardava título + nomes + data num texto só: das versões antigas fica só a parte dos nomes */}
+                  <span className="tech-nomes"><T k="tecnicos2" html limpar={soNomesTecnicos}>{"Eng.º Felipe Stampini Oliveira Lopes · CREA 248492/D<br>Arquiteto Fábio Barros Belizário · CAU A117931-4"}</T></span>
+                  <strong className="tech-date"><T k="tecnicosData" vars={nv}>{"São Paulo, {{data}}"}</T></strong>
                 </div>
               </div>
             </div>
@@ -419,7 +462,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <div className="tile"><h3><T k="ideia2t">🏗️ A JBL</T></h3><p><T k="ideia2">Cuida dos estudos, aprovações, infraestrutura, marketing, vendas e da carteira de recebíveis (os boletos dos compradores).</T></p></div>
                 <div className="tile"><h3><T k="ideia3t">🤝 Os parceiros</T></h3><p><DT tipo={d.tipo} k="ideia3">{`Dividem o resultado. ${d.Quem} escolhe receber em dinheiro, em lotes ou das duas formas.`}</DT></p></div>
               </div>
-              <p className="note" style={{ marginTop: 12 }}><T k="ideiaNota">Não há aporte de capital do proprietário para a infraestrutura prevista. Impostos e outros custos são tratados à parte (veja o passo 11).</T></p>
+              <p className="note" style={{ marginTop: 12 }}><T k="ideiaNota" limpar={renumera}>{renumera("Não há aporte de capital do proprietário para a infraestrutura prevista. Impostos e outros custos são tratados à parte (veja o passo 11).")}</T></p>
             </Sec>
 
             {/* PARTE: JBL */}
@@ -549,7 +592,7 @@ export default function JblPadrao(props: TemplateProps) {
               <div className="content">
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s3CalcT">A conta</T></span>
-                  <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span></span>
+                  <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big pulsa"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span></span>
                 </div>
                 <p className="note note-lg"><T k="s3Extenso2" html vars={nv}>{`<span class="extenso">{{extenso}}</span>. Orçamento preliminar.`}</T></p>
                 <div className="tiles two">
@@ -649,26 +692,26 @@ export default function JblPadrao(props: TemplateProps) {
               </div>
             </Sec>
 
-            {/* 6 */}
-            <Sec k="etapa1" className="step" id="etapa1">
+            {/* 6: só com primeira etapa */}
+            {r.etapa1 && <Sec k="etapa1" className="step" id="etapa1">
               <div className="step-head"><div className="badge">6</div><div>
                 <h2><T k="e1Titulo">A primeira etapa</T></h2>
               </div></div>
               <div className="content">
-                <p className="tip gold tip-full"><T k="e1t2" html>{'Identificada a possibilidade de lançamento da primeira etapa para <span class="blank">a definir</span> lotes de <span class="blank">a definir</span> m², utilizando <span class="blank">a definir</span>% da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura.'}</T></p>
+                <p className="tip gold tip-full"><T k="e1t2" html vars={nv} limpar={etapaComNumeros}>{"Identificada a possibilidade de lançamento da primeira etapa para <strong>{{e1Lotes}}</strong> lotes de <strong>{{e1Lote}}</strong> m², utilizando <strong>{{e1Pct}}</strong>% da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura."}</T></p>
                 <div className="tiles two" style={{ marginTop: 22 }}>
-                  <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{r.etapa1 ? fmtBRL(r.etapa1.avista) : "a definir"}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
-                  <div className="tile hl"><div className="k"><T k="e1k2" vars={nv}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
+                  <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{fmtBRL(r.etapa1.avista)}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
+                  <div className="tile hl"><div className="k"><T k="e1k2" vars={nv}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{fmtBRL(r.etapa1.prazo)}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
                 </div>
               </div>
-            </Sec>
+            </Sec>}
 
             {/* 7 */}
             <Sec k="participacao" className="step" id="participacao">
-              <div className="step-head"><div className="badge">7</div><div>
+              <div className="step-head"><div className="badge">{passo(7)}</div><div>
                 <h2><T k="s7Titulo2">Como o dinheiro é dividido na parceria</T></h2>
                 <p className="note note-head"><T k="s7Nota">Considerando os elementos, premissas e estudos apresentados, o Grupo JBL, após análise técnica e de viabilidade do empreendimento, apresenta sua proposta de participação na parceria.</T></p>
-                <p><T k="s7Sub2" html>{"Imagine que todo o dinheiro das vendas <strong>(incluindo a primeira etapa)</strong> é uma pizza. Ela é cortada em 3 partes:"}</T></p>
+                <p><T k="s7Sub2" html limpar={semEtapa}>{semEtapa("Imagine que todo o dinheiro das vendas <strong>(incluindo a primeira etapa)</strong> é uma pizza. Ela é cortada em 3 partes:")}</T></p>
               </div></div>
               <div className="content">
                 <div className="pie-row">
@@ -691,7 +734,7 @@ export default function JblPadrao(props: TemplateProps) {
                         </text>
                       );
                     })}
-                    <text x="100" y="96" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="23" fill="var(--navy)">100%</text>
+                    <text x="100" y="96" textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize="23" fill="var(--navy)">100%</text>
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>
                   <div className="shares">
@@ -703,7 +746,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
                 </div>
-                <h3 className="vgv-title"><span><DT tipo={d.tipo} k="vtParte">{d.pick("Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter}</em><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></h3>
+                <h3 className="vgv-title"><span><DT tipo={d.tipo} k="vtParte">{d.pick("Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter}</em>{etapa && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>
                   <span className="vs-or" aria-hidden="true">ou</span>
@@ -716,7 +759,7 @@ export default function JblPadrao(props: TemplateProps) {
 
             {/* 8 */}
             <Sec k="recebimentos" className="step" id="recebimentos">
-              <div className="step-head"><div className="badge">8</div><div>
+              <div className="step-head"><div className="badge">{passo(8)}</div><div>
                 <h2><DT tipo={d.tipo} k="s8Titulo">{`Quanto ${d.quem} recebe por mês`}</DT></h2>
                 <p><DT tipo={d.tipo} k="s8Sub2" html>{`Os clientes pagam o lote em parcelas, e ${d.pick("a parte da família", `a parte ${d.da}`, "a sua parte")} cai todo mês numa conta compartilhada com a JBL. Escolha um prazo para ver <strong>(considerando 100% dos lotes vendidos)</strong>:`}</DT></p>
               </div></div>
@@ -730,7 +773,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <div className="tile"><div className="k"><T k="simK1">Parcela do cliente</T></div><div className="v num">{fmtBRL(sim.parcela)}</div><div className="d"><T k="simD1">por mês, por lote, pagando em dia</T></div></div>
                   <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK2">{d.pick("Família no 1º ano", `${d.rotulo} no 1º ano`, "Você no 1º ano")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTer)}</div><div className="d"><T k="simD2">por mês, nos primeiros 12 meses</T></div></div>
                   <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK3">{d.pick("Família última parcela", `${d.rotulo} última parcela`, "Sua última parcela")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTerFinal)}</div><div className="d"><T k="simD3b">por mês, no último ano</T></div></div>
-                  <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK4">{d.pick("Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
+                  <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK4">{d.pick("Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num pulsa">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
                 </div>
                 <div className="bars" aria-label="Total recebido em cada prazo">
                   {r.cenarios.map((c, i) => (
@@ -784,7 +827,7 @@ export default function JblPadrao(props: TemplateProps) {
 
             {/* 9 */}
             <Sec k="antecipacao" className="step" id="antecipacao">
-              <div className="step-head"><div className="badge">9</div><div>
+              <div className="step-head"><div className="badge">{passo(9)}</div><div>
                 <h2><DT tipo={d.tipo} k="s9Titulo">{`E se ${d.quem} quiser o dinheiro antes?`}</DT></h2>
                 <p><T k="s9Sub2">É possível vender as parcelas futuras, trazendo esses valores para o presente. Isso se chama antecipação de recebíveis.</T></p>
               </div></div>
@@ -816,7 +859,7 @@ export default function JblPadrao(props: TemplateProps) {
 
             {/* 10 */}
             <Sec k="vendas" className="step" id="vendas">
-              <div className="step-head"><div className="badge">10</div><div>
+              <div className="step-head"><div className="badge">{passo(10)}</div><div>
                 <h2><T k="s10Titulo2">Previsão de Vendas Mensal</T></h2>
                 <p><T k="s10Sub">Distribuição mensal estimada, em números inteiros para planejamento:</T></p>
               </div></div>
@@ -832,7 +875,7 @@ export default function JblPadrao(props: TemplateProps) {
 
             {/* 11 */}
             <Sec k="regras" className="step" id="regras">
-              <div className="step-head"><div className="badge">11</div><div>
+              <div className="step-head"><div className="badge">{passo(11)}</div><div>
                 <h2><T k="s11Titulo">Regras, responsabilidades e garantias</T></h2>
                 <p><T k="s11Sub">Os combinados da parceria, explicados um a um.</T></p>
               </div></div>
@@ -862,7 +905,7 @@ export default function JblPadrao(props: TemplateProps) {
 
             {/* 12 */}
             <Sec k="aviso" className="step" id="aviso-legal">
-              <div className="step-head"><div className="badge">12</div><div>
+              <div className="step-head"><div className="badge">{passo(12)}</div><div>
                 <h2><T k="s12Titulo">Aviso legal</T></h2>
                 <p><T k="s12Sub2">{options.semValidade ? "Em resumo: a proposta é confidencial e os números ainda serão confirmados pela JBL." : `Em resumo: a proposta é confidencial, vale por ${options.validadeDias} dias, podendo ser prorrogada por mais 7 dias, e os números ainda serão confirmados pela JBL.`}</T></p>
               </div></div>
@@ -887,10 +930,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <div><b><T k="nx2t">2. Estudar</T></b><T k="nx2b" html>{"Após a assinatura da carta de intenção entre as partes, a JBL fará o estudo de viabilidade completo da área, <em>in loco</em>."}</T></div>
                 <div><b><T k="nx3t">3. Formalizar</T></b><T k="nx3">Se tudo der certo, criamos a empresa da parceria e começamos o projeto.</T></div>
               </div>
-              <div className="brokers">
-                <b><T k="brT2">Contatos exclusivos</T></b><br />
-                <ListaContatos base={formato.contatos} padrao={{ nome: options.corretorNome, telefone: options.corretorTelefone }} />
-              </div>
+              {!options.cartaIntencao && contatos}
               {!options.cartaIntencao && fecho}
               <div className="dl-foot">
                 <Lnk k="pdfBottom" href="#pdf" className="dl dl-gold js-pdf" onDefault={abrirPdf}>
@@ -915,7 +955,7 @@ export default function JblPadrao(props: TemplateProps) {
               <div className="wrap">
                 <div className="intent-head">
                   <div>
-                    <div className="eyebrow"><T k="intentEyebrow3">13 / Vamos avançar na análise</T></div>
+                    <div className="eyebrow"><T k="intentEyebrow3" limpar={renumera}>{renumera("13 / Vamos avançar na análise")}</T></div>
                     <h2 className="intent-h2"><T k="intentTitulo3" html>{"Carta de intenção.<br><em>Comece por aqui.</em>"}</T></h2>
                     <p className="intent-lead"><T k="intentTexto3">Preencha os dados do proprietário e da área para registrar o interesse no prosseguimento dos estudos e na elaboração da carta de intenção.</T></p>
                   </div>
@@ -926,7 +966,7 @@ export default function JblPadrao(props: TemplateProps) {
                   </aside>
                 </div>
                 <hr className="intent-sep" />
-                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} />
+                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} contatos={contatos} />
                 {fecho}
               </div>
             </Sec>

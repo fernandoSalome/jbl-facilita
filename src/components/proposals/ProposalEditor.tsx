@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudyInputs } from "@/lib/calc";
 import type { FormatoContent } from "@/lib/formatos";
-import type { Overrides, ProposalOptions } from "@/lib/proposals";
+import { dataDaProposta, type Overrides, type ProposalOptions } from "@/lib/proposals";
+import DataField from "./DataField";
 import { fmtDate } from "@/lib/format";
 import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
@@ -63,6 +64,7 @@ function NumbersPanel({ value, onChange }: { value: Data; onChange: (d: Data) =>
           Carta de intenção
         </label>
       </div>
+      <DataField value={m.options.data} onChange={(v) => setMeta({ options: { ...m.options, data: v } })} />
       <StudyEditor state={study} />
     </div>
   );
@@ -331,7 +333,7 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
             inputs={data.inputs}
             options={data.meta.options}
             overrides={overrides}
-            date={p.publishedAt ?? p.createdAt}
+            date={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toISOString()}
             onSave={saveOverride}
           />
         </div>

@@ -10,7 +10,25 @@ export type ProposalOptions = {
   corretorTelefone?: string;
   /** Para quem a proposta fala: muda saudação e textos ("a família", "o proprietário", "você") */
   destinatario?: Destinatario;
+  /** Data escrita na proposta. Sem isto (propostas antigas): a do envio, ou a da criação */
+  data?: DataProposta;
 };
+
+/**
+ * auto    = o dia em que a pessoa abre a proposta
+ * criacao = fixa no dia em que a proposta foi criada
+ * fixa    = um dia escolhido (dia = "AAAA-MM-DD")
+ */
+export type DataProposta = { modo: "auto" | "criacao" | "fixa"; dia?: string };
+
+/** Data que aparece na proposta (assinatura dos profissionais, carta, validade...) */
+export function dataDaProposta(p: { createdAt: Date | string; publishedAt?: Date | string | null; options: ProposalOptions }, agora = new Date()): Date {
+  const d = p.options.data;
+  if (d?.modo === "auto") return agora;
+  if (d?.modo === "fixa" && d.dia && /^\d{4}-\d{2}-\d{2}$/.test(d.dia)) return new Date(`${d.dia}T12:00:00-03:00`);
+  if (d?.modo === "criacao") return new Date(p.createdAt);
+  return new Date(p.publishedAt ?? p.createdAt);
+}
 
 export type Destinatario = { tipo: "familia" | "proprietario" | "pessoa"; nome?: string; genero?: "m" | "f" };
 
@@ -37,7 +55,13 @@ export function displayStatus(p: { status: string; expiresAt: Date | null }) {
 }
 
 export function parseInputs(json: unknown): StudyInputs {
-  return { ...DEFAULT_INPUTS, ...((json as Partial<StudyInputs>) ?? {}) };
+  const i: StudyInputs = { ...DEFAULT_INPUTS, ...((json as Partial<StudyInputs>) ?? {}) };
+  // Antes da opção de desmembramento, a primeira etapa era só o número de lotes:
+  // vira a área equivalente (lotes × lote ÷ aproveitamento), com os mesmos números
+  if (i.lotesEtapa1 && !i.primeiraEtapa && !i.areaEtapa1 && i.aproveitamento > 0) {
+    return { ...i, primeiraEtapa: true, areaEtapa1: (i.lotesEtapa1 * i.metragemLote) / i.aproveitamento, loteEtapa1: i.metragemLote, lotesEtapa1: null };
+  }
+  return i;
 }
 
 export function parseOptions(json: unknown): ProposalOptions {

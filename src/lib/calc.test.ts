@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseInputs } from "./proposals";
 import { calcular } from "./calc";
 
 // Valores copiados da planilha PLANILHA_ORÇAM_TERRENISTA_OFICIAL.xlsx (aba "Dados do Parcelamento de Solo")
@@ -143,6 +144,18 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
   it("primeira etapa e antecipação", () => {
     expect(r.etapa1!.avista).toBeCloseTo(10638000, 2);
     expect(r.etapa1!.prazo).toBeCloseTo(64440631.07, 0);
+
+    // a mesma etapa pela opção de desmembramento: área × aproveitamento ÷ lote
+    const d = calcular({ ...r.inputs, lotesEtapa1: null, primeiraEtapa: true, areaEtapa1: (106.38 * 200) / 0.5, loteEtapa1: 200 });
+    expect(d.etapa1!.lotes).toBeCloseTo(106.38, 6);
+    expect(d.etapa1!.avista).toBeCloseTo(10638000, 2);
+    expect(d.etapa1!.prazo).toBeCloseTo(64440631.07, 0);
+    // desligada: não existe primeira etapa
+    expect(calcular({ ...r.inputs, lotesEtapa1: null, primeiraEtapa: false, areaEtapa1: 40000 }).etapa1).toBe(null);
+    // proposta antiga (só lotes) abre com a opção ligada e os mesmos números
+    const antiga = parseInputs({ ...r.inputs });
+    expect(antiga.primeiraEtapa).toBe(true);
+    expect(calcular(antiga).etapa1!.prazo).toBeCloseTo(64440631.07, 0);
     expect(r.antecipacao.valor).toBeCloseTo(27731053.87, 0);
     expect(r.antecipacao.jurosMes1).toBeCloseTo(277310.54, 0);
     expect(r.antecipacao.multiplicador).toBeCloseTo(10.8926, 4);

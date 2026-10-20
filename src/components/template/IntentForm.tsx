@@ -112,7 +112,20 @@ function readFile(file: File): Promise<{ name: string; type: string; data: strin
   });
 }
 
-export default function IntentForm({ token, disabled, project, areaHa }: { token: string; disabled: boolean; project: Projeto; areaHa: number }) {
+export default function IntentForm({
+  token,
+  disabled,
+  project,
+  areaHa,
+  contatos,
+}: {
+  token: string;
+  disabled: boolean;
+  project: Projeto;
+  areaHa: number;
+  /** Contatos exclusivos: embaixo do formulário no computador, embaixo da carta no celular */
+  contatos?: React.ReactNode;
+}) {
   const [v, setV] = useState<Campos>(() => ({
     i_area: fmtNum(areaHa, 4),
     i_municipio: `${project.municipio}/${project.uf}`,
@@ -248,6 +261,7 @@ export default function IntentForm({ token, disabled, project, areaHa }: { token
           <div key={i} className="sig"><strong>{n}</strong>{s && <><br /><small>{s}</small></>}</div>
         ))}
       </div>
+      {contatos && <div className="intent-contatos">{contatos}</div>}
     </div>
   );
 }

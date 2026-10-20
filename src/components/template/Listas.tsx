@@ -270,7 +270,7 @@ export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
             ) : (
               emoji && <span className="bf-emoji">{emoji} </span>
             )}
-            <E k={`li.${b.id}.texto`} limpar={semEmojiHtml}>{separarEmoji(b.texto).texto}</E>
+            <E k={`li.${b.id}.texto`} limpar={(t, h) => (h ? semEmojiHtml(t) : separarEmoji(t).texto)}>{separarEmoji(b.texto).texto}</E>
             {l.editable && <button type="button" className="pill-del" title="Remover" onClick={() => l.remover(b.id)}>✕</button>}
           </span>
         );

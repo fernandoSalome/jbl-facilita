@@ -53,8 +53,14 @@ export type StudyInputs = {
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
   extensaoRede: number | null;
-  /** Lotes da primeira etapa. Vazio = sem primeira etapa definida */
+  /** Lotes da primeira etapa (legado: antes da opção de desmembramento). Vazio = sem primeira etapa */
   lotesEtapa1: number | null;
+  /** Tem primeira etapa (desmembramento): mostra a seção "A primeira etapa" na proposta */
+  primeiraEtapa: boolean;
+  /** Primeira etapa: tamanho da área desmembrada (m²) */
+  areaEtapa1: number | null;
+  /** Primeira etapa: metragem do lote (m²). Vazio = a mesma do estudo */
+  loteEtapa1: number | null;
   /** Deságio médio na antecipação de recebíveis (0–1) */
   desagio: number;
   /** Taxa mensal da aplicação financeira simulada (0–1) */
@@ -88,6 +94,9 @@ export const DEFAULT_INPUTS: StudyInputs = {
   custoInfraM2: 145,
   extensaoRede: null,
   lotesEtapa1: null,
+  primeiraEtapa: false,
+  areaEtapa1: null,
+  loteEtapa1: null,
   desagio: 0.66667,
   taxaAplicacao: 0.01,
   reajusteManual: null,
@@ -166,8 +175,11 @@ export type StudyResult = {
   vendas: { mes1: number; mes2: number; mes3: number; total: number };
   /** Quantidades médias de infraestrutura, a partir da extensão da rede principal */
   infra: { rede: number; ligacoes: number; logradouros: number; eletrica: number; guias: number; calcadas: number; arvores: number };
-  /** Primeira etapa: proporção dos lotes sobre o VGV */
-  etapa1: { lotes: number; pct: number; avista: number; prazo: number } | null;
+  /**
+   * Primeira etapa (desmembramento): lotes = área da etapa × aproveitamento ÷ lote da etapa;
+   * pct = parte da área aproveitável total; VGVs na mesma proporção do VGV do estudo.
+   */
+  etapa1: { lotes: number; lote: number; areaUtil: number; pct: number; avista: number; prazo: number } | null;
   /** Antecipação de recebíveis da carteira do terrenista no prazo escolhido */
   antecipacao: { carteira: number; valor: number; jurosMes1: number; multiplicador: number; rentabilidade: number; ultimaBase: number };
   /** Plano de Venda 02 (linhas 29–40 da planilha) */
@@ -249,10 +261,17 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
 
   // Proporção pela área (ou pela extensão da rede, quando informada)
   const escala = i.extensaoRede ? i.extensaoRede / BASE.rede : i.areaTotal / BASE.area;
-  const etapa1 =
-    i.lotesEtapa1 && lotes > 0
-      ? { lotes: i.lotesEtapa1, pct: i.lotesEtapa1 / lotes, avista: i.lotesEtapa1 * valorLote, prazo: principal.carteiraEmp * (i.lotesEtapa1 / lotes) }
-      : null;
+  let etapa1: StudyResult["etapa1"] = null;
+  if (i.primeiraEtapa && i.areaEtapa1 && i.areaEtapa1 > 0 && areaUtil > 0) {
+    const lote = i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
+    const areaUtilE = Math.min(i.areaEtapa1, i.areaTotal) * i.aproveitamento;
+    const pct = areaUtilE / areaUtil;
+    etapa1 = { lotes: lote > 0 ? areaUtilE / lote : 0, lote, areaUtil: areaUtilE, pct, avista: vgvAvista * pct, prazo: principal.carteiraEmp * pct };
+  } else if (i.lotesEtapa1 && lotes > 0) {
+    // propostas antigas: só o número de lotes da etapa, com o lote do estudo
+    const pct = i.lotesEtapa1 / lotes;
+    etapa1 = { lotes: i.lotesEtapa1, lote: i.metragemLote, areaUtil: areaUtil * pct, pct, avista: i.lotesEtapa1 * valorLote, prazo: principal.carteiraEmp * pct };
+  }
 
   const valorAntecipado = principal.carteiraTer * (1 - i.desagio);
   const multAplicacao = Math.pow(1 + i.taxaAplicacao, nParcelas);

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
+import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
 import { contentForProposal } from "@/lib/formato-server";
 import { pdfKeyOf } from "@/lib/pdf";
@@ -59,7 +59,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
       inputs={parseInputs(p.inputs)}
       options={parseOptions(p.options)}
       overrides={parseOverrides(p.overrides)}
-      date={(p.publishedAt ?? p.createdAt).toISOString()}
+      date={dataDaProposta({ ...p, options: parseOptions(p.options) }).toISOString()}
     />
   );
 }

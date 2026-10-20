@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes";
 type NumKey = { [K in keyof StudyInputs]: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "", num: "×", anos: "anos", m: "m", lotes: "lotes" };
-const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -52,11 +52,15 @@ export function useStudyState(initial: StudyInputs) {
   function setIndice(v: string) {
     setInputs((s) => ({ ...s, indice: v }));
   }
+  /** Liga/desliga a primeira etapa (desmembramento) */
+  function setEtapa(on: boolean) {
+    setInputs((s) => ({ ...s, primeiraEtapa: on }));
+  }
   function clearManual() {
     setTexts((s) => ({ ...s, reajusteManual: "" }));
     setInputs((s) => ({ ...s, reajusteManual: null }));
   }
-  return { inputs, texts, set, setIndice, clearManual };
+  return { inputs, texts, set, setIndice, setEtapa, clearManual };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -277,10 +281,33 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
           <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
           <In s={s} k="extensaoRede" label="Extensão da rede principal" hint="Vazio = estimativa pela área (base: São Judas Tadeu II)" />
-          <In s={s} k="lotesEtapa1" label="Lotes da primeira etapa" hint="Vazio = primeira etapa “a definir”" />
           <In s={s} k="desagio" label="Deságio da antecipação" />
           <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
         </Box>
+      </div>
+
+      {/* Primeira etapa: desmembramento de parte da área para começar a vender antes */}
+      <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
+        <label className="flex cursor-pointer items-center gap-3 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
+          <input type="checkbox" checked={i.primeiraEtapa} onChange={(e) => s.setEtapa(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
+          Tem primeira etapa (desmembramento)
+          <span className="ml-auto font-normal text-white/70">{i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}</span>
+        </label>
+        {i.primeiraEtapa && (
+          <div className="grid divide-gold/30 md:grid-cols-2 md:divide-x">
+            <div className="divide-y divide-gold/30">
+              <In s={s} k="areaEtapa1" label="Tamanho da área da 1ª etapa (m²)" />
+              <Out label="Aproveitamento (o mesmo do estudo)" value={fmtPct(i.aproveitamento)} />
+              <In s={s} k="loteEtapa1" label="Metragem do lote da 1ª etapa (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo`} />
+            </div>
+            <div className="divide-y divide-gold/30">
+              <Out label="Lotes da 1ª etapa" value={r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : "—"} strong />
+              <Out label="Da área aproveitável" value={r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
+              <Out label="VGV parcial à vista" value={r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
+              <Out label={`VGV parcial em ${r.nParcelas} meses`} value={r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Outros períodos */}

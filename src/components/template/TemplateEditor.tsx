@@ -142,7 +142,8 @@ export default function TemplateEditor({
   const tipo = draft.tipos[key];
   const junto = useMemo(() => juntar(draft.comum, tipo), [draft.comum, tipo]);
   const formato = useMemo(() => ({ ...junto, overrides: {} }), [junto]);
-  const inputs = useMemo(() => ({ ...DEFAULT_INPUTS, areaTotal: 137338.46, ...tipo.padroes }), [tipo.padroes]);
+  // primeira etapa ligada no exemplo, para os textos dela poderem ser editados no template
+  const inputs = useMemo(() => ({ ...DEFAULT_INPUTS, areaTotal: 137338.46, primeiraEtapa: true, areaEtapa1: 42552, ...tipo.padroes }), [tipo.padroes]);
   const total = FORMATOS.reduce((s, f) => s + (counts[f]?.total ?? 0), 0);
   const enviadas = FORMATOS.reduce((s, f) => s + (counts[f]?.enviadas ?? 0), 0);
   const nomeTipo = (f: FormatoKey) => draft.tipos[f].label;

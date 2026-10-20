@@ -2,7 +2,8 @@
 
 import ValidadeField from "./ValidadeField";
 import DestinatarioPicker from "./DestinatarioPicker";
-import type { Destinatario } from "@/lib/proposals";
+import { dataDaProposta, type DataProposta, type Destinatario } from "@/lib/proposals";
+import DataField from "./DataField";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
@@ -79,6 +80,7 @@ export default function NewProposalForm({
   const [semValidade, setSemValidade] = useState(false);
   const [corretorNome, setCorretorNome] = useState("");
   const [destinatario, setDestinatario] = useState<Destinatario>({ tipo: "familia" });
+  const [data, setData] = useState<DataProposta>({ modo: "criacao" });
   const [corretorTelefone, setCorretorTelefone] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
@@ -99,13 +101,14 @@ export default function NewProposalForm({
         setCarta(r.carta ?? true); setValidade(r.validade ?? "15"); setSemValidade(!!r.semValidade);
         setCorretorNome(r.corretorNome ?? ""); setCorretorTelefone(r.corretorTelefone ?? "");
         if (r.destinatario) setDestinatario(r.destinatario);
+        if (r.data) setData(r.data);
         setRecuperado(r.savedAt ?? "");
       }
     } catch {}
     carregado.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const rascunho = { templateId, formatoKey, inputs, name, ownerName, ownerPhone, carta, validade, semValidade, corretorNome, corretorTelefone, destinatario };
+  const rascunho = { templateId, formatoKey, inputs, name, ownerName, ownerPhone, carta, validade, semValidade, corretorNome, corretorTelefone, destinatario, data };
   const rascunhoJson = JSON.stringify(rascunho);
   const inicial = useRef(rascunhoJson);
   useEffect(() => {
@@ -141,7 +144,7 @@ export default function NewProposalForm({
         ownerName,
         ownerPhone,
         inputs,
-        options: { cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade, corretorNome, corretorTelefone, destinatario },
+        options: { cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade, corretorNome, corretorTelefone, destinatario, data },
       }),
     });
     const d = await r.json();
@@ -220,6 +223,7 @@ export default function NewProposalForm({
               </span>
             </label>
             <DestinatarioPicker value={destinatario} onChange={setDestinatario} />
+            <DataField value={data} onChange={setData} />
             <div className="grid grid-cols-[auto_1fr_1fr] gap-3">
               <ValidadeField dias={validade} semValidade={semValidade} onDias={setValidade} onSemValidade={setSemValidade} />
               <label><span className="label">Corretor (opcional)</span><input className="input" value={corretorNome} onChange={(e) => setCorretorNome(e.target.value)} /></label>
@@ -241,9 +245,9 @@ export default function NewProposalForm({
           project={project}
           ownerName={ownerName || "Família"}
           inputs={inputs}
-          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade, corretorNome, corretorTelefone, destinatario }}
+          options={{ cartaIntencao: carta, validadeDias: Number(validade) || 15, semValidade, corretorNome, corretorTelefone, destinatario, data }}
           overrides={NO_OVERRIDES}
-          date={TODAY}
+          date={dataDaProposta({ createdAt: TODAY, options: { cartaIntencao: carta, validadeDias: 15, data } }).toISOString()}
         />}
       </section>
 

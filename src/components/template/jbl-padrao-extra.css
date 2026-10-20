@@ -130,3 +130,47 @@
 /* os blocos de número e os números travados herdam o estilo de onde estão (ex.: faixa de números da capa) */
 .jblt .num-var, .jblt .fixo, .jblt .hero-stats .num-var, .jblt .hero-stats .fixo { display: inline !important; font: inherit !important; color: inherit !important; letter-spacing: inherit !important; text-transform: inherit !important; margin: 0 !important; }
 .jblt.editing .num-var { padding: 0 2px !important; }
+
+/* ---------- números retos (algarismos alinhados) ----------
+   A Georgia só tem algarismos que sobem e descem. Os algarismos vêm da Gelasio
+   (mesmo desenho e medidas da Georgia), que tem a versão alinhada; as letras continuam na Georgia. */
+@font-face { font-family: "JBL Numeros"; src: url(/fonts/gelasio-latin-400-normal.woff2) format("woff2"); font-weight: 100 600; font-style: normal; unicode-range: U+0030-0039; font-display: swap; }
+@font-face { font-family: "JBL Numeros"; src: url(/fonts/gelasio-latin-700-normal.woff2) format("woff2"); font-weight: 601 1000; font-style: normal; unicode-range: U+0030-0039; font-display: swap; }
+@font-face { font-family: "JBL Numeros"; src: url(/fonts/gelasio-latin-400-italic.woff2) format("woff2"); font-style: italic; unicode-range: U+0030-0039; font-display: swap; }
+.jblt { --display: "JBL Numeros", Georgia, "Times New Roman", Times, serif; }
+.jblt .preview { font-family: "JBL Numeros", Georgia, "Times New Roman", serif; }
+
+/* ---------- capa: números e legendas centralizados ---------- */
+.jblt .hero-stats > div { text-align: center; }
+
+/* ---------- capa: o 40% do proprietário 15% maior ---------- */
+.jblt .chip .chip-pct { font-size: 1.38em; }
+
+/* ---------- capa: profissionais chefes (título dourado, nomes e a data centralizada embaixo) ---------- */
+.jblt .quote .tech { display: grid; justify-content: end; justify-items: end; text-align: right; }
+.jblt .quote .tech .tech-lbl { display: block; }
+.jblt .quote .tech .tech-nomes { display: block; }
+.jblt .quote .tech .tech-date { display: block; justify-self: center; text-align: center; margin-top: 6px; }
+@media (max-width: 760px) { .jblt .quote .tech { justify-content: start; justify-items: start; text-align: left; } }
+
+/* ---------- tabela de recebimentos: linha entre as colunas ---------- */
+@media (min-width: 761px) {
+  .jblt .tbl-pay:not(.tbl-bank) th + th { border-left: 1px solid rgba(255, 255, 255, .22); }
+  .jblt .tbl-pay:not(.tbl-bank) td + td { border-left: 1px solid var(--line); }
+}
+
+/* ---------- números em destaque pulsando ---------- */
+.jblt .pulsa { display: inline-block; transform-origin: center; animation: vpulse 2.4s ease-in-out infinite; }
+.jblt .tile .v.pulsa { transform-origin: left center; }
+@media (prefers-reduced-motion: reduce) { .jblt .pulsa { animation: none; } }
+
+/* ---------- contatos exclusivos junto da carta de intenção ----------
+   computador: embaixo do formulário (a carta ocupa a coluna da direita); celular: embaixo da carta */
+.jblt .intent-grid > .intent-contatos { margin-top: 4px; }
+@media (min-width: 761px) {
+  /* a 1ª linha tem a altura do formulário; a sobra da carta (mais alta) fica embaixo dos contatos */
+  .jblt .intent-grid:has(> .intent-contatos) { grid-template-rows: auto 1fr; }
+  .jblt .intent-grid > form { grid-column: 1; grid-row: 1; }
+  .jblt .intent-grid > .preview { grid-column: 2; grid-row: 1 / span 2; }
+  .jblt .intent-grid > .intent-contatos { grid-column: 1; grid-row: 2; }
+}
