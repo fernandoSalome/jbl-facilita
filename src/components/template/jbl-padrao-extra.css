@@ -81,9 +81,21 @@
 .jblt .ct-ed .ct-del { margin-left: 8px; vertical-align: middle; }
 .jblt .ct-add { display: block; margin-top: 12px; }
 
-/* número da planilha na edição: não abre para editar */
-.jblt.editing .fixo { cursor: not-allowed; }
-.jblt.editing .fixo:hover { outline: 1px dashed color-mix(in srgb, var(--muted) 55%, transparent); outline-offset: 2px; }
+/* número da planilha na edição: o valor não muda; o clique abre só o visual (negrito, cor...) */
+.jblt.editing .fixo { cursor: pointer; border-radius: 3px; }
+.jblt.editing .fixo:hover { outline: 1px dashed color-mix(in srgb, var(--gold) 70%, transparent); outline-offset: 2px; }
+.jblt.editing .fixo.changed { outline: 2px solid #e0a800; outline-offset: 2px; }
+.jblt.editing .fixo.editing { outline: 2px solid var(--gold); outline-offset: 2px; }
+.jblt .fixo-st { display: inline; }
+
+/* editor do template: aviso das partes que mudam por tipo de loteamento */
+.jblt .tipo-flag { font: 600 13px/1.5 var(--body); color: #7a5a12; background: #fff6d6; border: 1px solid #e0a800; border-radius: 4px; padding: 8px 12px; margin: 0 0 16px; }
+
+/* emoji da benfeitoria: na edição vira um botão que abre a grade de emojis */
+.jblt .bf-emoji { font-style: normal; }
+.jblt .bf-emoji-btn { border: 1px dashed transparent; background: transparent; border-radius: 4px; padding: 0 3px; font: inherit; line-height: inherit; cursor: pointer; }
+.jblt .bf-emoji-btn:hover { border-color: var(--gold); background: #fff; }
+.jblt .bf-emoji-btn.vazio { color: var(--gold-deep); font-size: 12px; font-weight: 700; border-color: var(--gold); }
 
 /* fecho da proposta embaixo do formulário da carta de intenção */
 .jblt .intent .fecho { color: var(--ink); font-size: 16px; line-height: 1.6; max-width: none; }
@@ -114,7 +126,7 @@
 @media (max-width: 900px) { .jblt .intent-head { grid-template-columns: 1fr; } }
 
 /* número da planilha dentro de um texto editável: fica travado e ligado à planilha */
-.jblt.editing .num-var { background: color-mix(in srgb, var(--gold) 14%, transparent); border-radius: 3px; padding: 0 2px; cursor: not-allowed; }
+.jblt.editing .num-var { background: color-mix(in srgb, var(--gold) 14%, transparent); border-radius: 3px; padding: 0 2px; cursor: pointer; }
 /* os blocos de número e os números travados herdam o estilo de onde estão (ex.: faixa de números da capa) */
 .jblt .num-var, .jblt .fixo, .jblt .hero-stats .num-var, .jblt .hero-stats .fixo { display: inline !important; font: inherit !important; color: inherit !important; letter-spacing: inherit !important; text-transform: inherit !important; margin: 0 !important; }
 .jblt.editing .num-var { padding: 0 2px !important; }

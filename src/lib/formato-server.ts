@@ -15,7 +15,7 @@ export async function contentForProposal(p: { templateId: string; formato: strin
   return parseContent(v?.content, formato);
 }
 
-export type FormatoResumo = { key: FormatoKey; content: FormatoContent; versionId: string | null; disponivel: boolean };
+export type FormatoResumo = { key: FormatoKey; content: FormatoContent; versionId: string | null; createdAt: string; disponivel: boolean };
 
 /** Os 4 formatos de um template com a versão mais recente de cada um */
 export async function formatosDoTemplate(templateId: string): Promise<FormatoResumo[]> {
@@ -23,7 +23,7 @@ export async function formatosDoTemplate(templateId: string): Promise<FormatoRes
     FORMATOS.map(async (key) => {
       const v = await latestVersion(templateId, key);
       const content = parseContent(v?.content, key);
-      return { key, content, versionId: v?.id ?? null, disponivel: !!v && formatoTemDados(content) };
+      return { key, content, versionId: v?.id ?? null, createdAt: (v?.createdAt ?? new Date(0)).toISOString(), disponivel: !!v && formatoTemDados(content) };
     }),
   );
 }

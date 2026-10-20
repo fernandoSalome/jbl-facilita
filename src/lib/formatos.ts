@@ -28,7 +28,8 @@ export type Qtd =
   | { kind: "projetar"; label?: string; unit?: string };
 
 export type ObraItem = { id: string; obra: string; desc: string; qtd: Qtd };
-export type Benfeitoria = { id: string; texto: string };
+/** Benfeitoria: o emoji fica à parte do texto (escolhido numa grade). Itens antigos têm o emoji no começo do texto. */
+export type Benfeitoria = { id: string; texto: string; emoji?: string };
 
 export type FormatoContent = {
   label: string;
@@ -43,9 +44,101 @@ export type FormatoContent = {
   benfeitorias: Benfeitoria[];
   /** Linhas de "Contatos exclusivos" (nome, telefone e e-mail ficam nos textos li.<id>.*) */
   contatos: { id: string }[];
-  /** Textos e imagens alterados no template para este formato */
+  /** Textos e imagens alterados no template (os compartilhados e os deste formato) */
   overrides: Overrides;
+  /** Textos que estavam diferentes entre os formatos quando foram unificados (para conferir no editor) */
+  conflitos?: Conflito[];
 };
+
+/**
+ * O template tem duas camadas. O que muda com o tipo de loteamento (listas de obras,
+ * benfeitorias, lei, modelo, padrões e os textos dos itens dessas listas) e o que é
+ * igual nos 4 tipos (todo o resto: textos, imagens, cores, contatos). Cada versão de
+ * formato guarda as duas, para a proposta continuar lendo uma versão só.
+ */
+export type TipoContent = Omit<FormatoContent, "contatos" | "overrides" | "conflitos"> & { overrides: Overrides };
+export type ComumContent = { overrides: Overrides; contatos: { id: string }[] };
+export type Conflito = { k: string; opcoes: { formato: FormatoKey; valor: unknown }[]; escolhido: FormatoKey };
+
+/** Ids dos itens das listas do tipo (obras e benfeitorias) */
+export function idsDoTipo(c: Pick<FormatoContent, "infra" | "complementar" | "benfeitorias">) {
+  return new Set([...c.infra, ...c.complementar, ...c.benfeitorias].map((i) => i.id));
+}
+
+/** A chave de override pertence ao tipo? (texto, quantidade ou estilo de um item das listas dele) */
+export function chaveDoTipo(k: string, ids: Set<string>) {
+  const m = k.replace(/^estilo\./, "").match(/^liq?\.([^.]+)/);
+  return !!m && ids.has(m[1]);
+}
+
+export function separar(c: FormatoContent): { comum: ComumContent; tipo: TipoContent } {
+  const ids = idsDoTipo(c);
+  const comum: Overrides = {};
+  const doTipo: Overrides = {};
+  for (const [k, v] of Object.entries(c.overrides ?? {})) (chaveDoTipo(k, ids) ? doTipo : comum)[k] = v;
+  const { contatos, overrides: _o, conflitos: _c, ...resto } = c;
+  return { comum: { overrides: comum, contatos }, tipo: { ...resto, overrides: doTipo } };
+}
+
+export function juntar(comum: ComumContent, tipo: TipoContent): FormatoContent {
+  return { ...tipo, contatos: comum.contatos, overrides: { ...comum.overrides, ...tipo.overrides } };
+}
+
+/** JSON com as chaves em ordem (o Postgres reordena as chaves dos campos Json) */
+export function estavel(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(estavel).join(",")}]`;
+  if (v && typeof v === "object") {
+    return `{${Object.keys(v as object)
+      .filter((k) => (v as Record<string, unknown>)[k] !== undefined)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${estavel((v as Record<string, unknown>)[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(v);
+}
+
+/**
+ * Junta a parte compartilhada das versões mais recentes dos 4 formatos. Antes, cada
+ * formato tinha seus próprios textos: o que foi alterado em um passa a valer para todos.
+ * Se o mesmo texto ficou diferente em dois formatos, vale a alteração mais recente.
+ */
+export function mesclarComum(versoes: { formato: FormatoKey; content: FormatoContent; createdAt: Date | string }[]) {
+  const ordem = [...versoes].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  const partes = ordem.map((v) => ({ formato: v.formato, ...separar(v.content) }));
+  const overrides: Overrides = {};
+  const vistos: Record<string, Conflito["opcoes"]> = {};
+  for (const p of partes) {
+    for (const [k, v] of Object.entries(p.comum.overrides)) {
+      overrides[k] = v;
+      const ops = (vistos[k] ??= []);
+      const i = ops.findIndex((o) => estavel(o.valor) === estavel(v));
+      if (i >= 0) ops.splice(i, 1); // fica a ocorrência mais recente de cada valor
+      ops.push({ formato: p.formato, valor: v });
+    }
+  }
+  const conflitos: Conflito[] = Object.entries(vistos)
+    .filter(([, ops]) => ops.length > 1)
+    .map(([k, ops]) => ({ k, opcoes: [...ops].reverse(), escolhido: ops[ops.length - 1].formato }));
+  const comum: ComumContent = { overrides, contatos: partes.length ? partes[partes.length - 1].comum.contatos : [{ id: "ct1" }] };
+  const iguais = partes.every((p) => estavel(p.comum) === estavel(partes[0].comum));
+  return { comum, conflitos, iguais, tipos: Object.fromEntries(partes.map((p) => [p.formato, p.tipo])) as Record<FormatoKey, TipoContent> };
+}
+
+// ------------------------------------------------------------ emoji das benfeitorias
+
+const EMOJI_INICIO = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:️|⃣|[\u{1F3FB}-\u{1F3FF}]|‍(?:\p{Extended_Pictographic}|️)+)*)\s*/u;
+
+/** "🌳 Praça" → { emoji: "🌳", texto: "Praça" } */
+export function separarEmoji(t: string): { emoji: string | null; texto: string } {
+  const m = t.match(EMOJI_INICIO);
+  return m ? { emoji: m[1], texto: t.slice(m[0].length) } : { emoji: null, texto: t };
+}
+
+/** Tira o emoji do começo de um texto em HTML (pode vir depois de tags de abertura: "<b>🌳 Praça</b>") */
+export function semEmojiHtml(html: string) {
+  const m = html.match(/^((?:<[a-z][^>]*>)*)([\s\S]*)$/i)!;
+  return m[1] + separarEmoji(m[2]).texto;
+}
 
 export type ListaSecao = "infra" | "complementar" | "benfeitorias" | "contatos";
 

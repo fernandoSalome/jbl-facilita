@@ -7,7 +7,7 @@ import TemplateEditor from "@/components/template/TemplateEditor";
 
 export const dynamic = "force-dynamic";
 
-/** Edição do template base em tela cheia: um formato por vez, salvo pelo botão "Salvar". */
+/** Edição do template base em tela cheia: textos comuns aos 4 tipos de loteamento, listas por tipo; salvo pelo botão "Salvar". */
 export default async function ModeloPage({ params, searchParams }: { params: { id: string }; searchParams: { formato?: string } }) {
   await requireSession();
   const t = await db.template.findFirst({ where: { id: params.id, deletedAt: null } });
@@ -28,7 +28,7 @@ export default async function ModeloPage({ params, searchParams }: { params: { i
     <TemplateEditor
       templateId={t.id}
       templateName={t.name}
-      formatos={formatos.map(({ key, content }) => ({ key, content }))}
+      formatos={formatos.map(({ key, content, createdAt }) => ({ key, content, createdAt }))}
       counts={counts}
       inicial={parseFormato(searchParams.formato)}
     />

@@ -38,6 +38,8 @@ export type TemplateProps = {
   pdfUrl?: string;
   /** Renderização para o PDF: sem rastreio de leitura */
   printing?: boolean;
+  /** Editor do template: nome do tipo de loteamento, para marcar as partes que mudam por tipo */
+  tipoLabel?: string;
 };
 
 /** Texto do template. Chave "txt.<k>". */
@@ -97,6 +99,40 @@ const SOCIAIS: [string, string, React.ReactNode][] = [
   ["https://youtube.com/@jblincorporadoraeurbanismo?si=_-M7hVRRYzh_plcI", "YouTube", <svg key="y" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M21.6 7.2a2.5 2.5 0 00-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 002.4 7.2 26 26 0 002 12a26 26 0 00.4 4.8 2.5 2.5 0 001.8 1.8c1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4a2.5 2.5 0 001.8-1.8A26 26 0 0022 12a26 26 0 00-.4-4.8zM10 15.1V8.9l5.2 3.1z" /></svg>],
   ["https://www.linkedin.com/in/jbl-incorporadora-e-urbanismo-553154437/", "LinkedIn", <svg key="l" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M4.5 8.8h3.2V20H4.5zM6.1 3.8a1.9 1.9 0 110 3.8 1.9 1.9 0 010-3.8zM9.8 8.8h3.1v1.6c.5-.9 1.6-1.9 3.3-1.9 3.4 0 4 2.2 4 5.1V20H17v-5.6c0-1.3 0-3-1.9-3s-2.1 1.4-2.1 2.9V20H9.8z" /></svg>],
 ];
+
+/**
+ * Desenho do lote na proporção real de frente × fundo (8 × 25 em pé, 10 × 10 quadrado,
+ * 30 × 10 deitado). O lado maior ocupa o espaço do desenho original, sem passar dele.
+ */
+export function LoteDesenho({ frente, fundo, area }: { frente: number; fundo: number; area: string }) {
+  const MAXW = 80;
+  const MAXH = 126;
+  const ok = frente > 0 && fundo > 0 && isFinite(frente) && isFinite(fundo);
+  const s = ok ? Math.min(MAXW / frente, MAXH / fundo) : 0;
+  const w = ok ? frente * s : 48;
+  const h = ok ? fundo * s : MAXH;
+  const x = 4 + (MAXW - w) / 2;
+  const y = 14 + (MAXH - h) / 2;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const sans = "Helvetica Neue, Helvetica, Arial, sans-serif";
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return (
+    <svg width="120" height="150" viewBox="0 0 120 150" aria-hidden="true">
+      <rect x={r1(x)} y={r1(y)} width={r1(w)} height={r1(h)} rx={r1(Math.min(4, w / 4, h / 4))} fill="#EFDDB3" stroke="var(--gold-deep)" strokeWidth="3" />
+      {h >= 44 ? (
+        <>
+          <text x={r1(cx)} y={r1(cy + 3)} textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="16" fill="var(--navy)">{area}</text>
+          <text x={r1(cx)} y={r1(cy + 19)} textAnchor="middle" fontFamily={sans} fontSize="12" fill="var(--muted)">m²</text>
+        </>
+      ) : (
+        <text x={r1(cx)} y={r1(cy + 5)} textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="14" fill="var(--navy)">{area} m²</text>
+      )}
+      <text x={r1(cx)} y={r1(y - 4)} textAnchor="middle" fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(frente, 0)} m</text>
+      <text x={r1(x + w + 6)} y={r1(cy + 3)} fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(fundo, 0)} m</text>
+    </svg>
+  );
+}
 
 /** Setas douradas entre as contas do VGV (mesma lógica do site) */
 function useChainArrows(ref: React.RefObject<HTMLDivElement>, deps: unknown[]) {
@@ -474,13 +510,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <div className="s-streets" style={{ flex: (1 - inputs.aproveitamento) * 100 }}><T k="s1Bar2">Outra parte vira ruas, calçadas, áreas verdes e lazer</T></div>
                 </div>
                 <div className="lot">
-                  <svg width="120" height="150" viewBox="0 0 120 150" aria-hidden="true">
-                    <rect x="30" y="14" width="48" height="126" rx="4" fill="#EFDDB3" stroke="var(--gold-deep)" strokeWidth="3" />
-                    <text x="54" y="80" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="400" fontSize="16" fill="var(--navy)">{fmtNum(inputs.metragemLote, 0)}</text>
-                    <text x="54" y="96" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">m²</text>
-                    <text x="54" y="10" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(inputs.frenteLote, 0)} m</text>
-                    <text x="84" y="80" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(r.fundoLote, 0)} m</text>
-                  </svg>
+                  <LoteDesenho frente={inputs.frenteLote} fundo={r.fundoLote} area={fmtNum(inputs.metragemLote, 0)} />
                   <p><T k="s1Lote" html vars={nv}>{`<strong>Cada lote tem {{lote}} m²</strong>: {{frente}} metros de frente por {{fundo}} metros de fundo, conforme a lei de parcelamento do solo do município. É o tamanho de um terreno comum para construir uma casa.`}</T></p>
                 </div>
               </div>
@@ -493,6 +523,9 @@ export default function JblPadrao(props: TemplateProps) {
                 <p><T k="s2Sub">Para virar bairro, o terreno precisa de muita coisa. Esta é a lista completa, com as quantidades médias previstas no processo de aprovação. Tudo será financiado e executado única e exclusivamente pela JBL.</T></p>
               </div></div>
               <div className="content">
+                {editing && props.tipoLabel && (
+                  <p className="tipo-flag">Infraestrutura e benfeitorias: o que mudar aqui vale só para <b>{props.tipoLabel}</b>. Títulos e notas valem para todos os tipos.</p>
+                )}
                 <h3><T k="s2h1">Infraestrutura principal</T></h3>
                 <TabelaObras secao="infra" base={formato.infra} r={r} colunas={3} className="tbl tbl-infra tbl-infra1" />
                 <p className="note"><T k="s2Unid">ml = metros lineares (comprimento) · m² = metros quadrados (área) · un. = unidades</T></p>

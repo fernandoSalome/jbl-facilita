@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { FORMATOS, FORMATOS_INICIAIS } from "../src/lib/formatos";
+import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -46,6 +46,39 @@ async function main() {
   for (const p of semVersao) {
     const v = await db.formatoVersion.findFirst({ where: { templateId: p.templateId, formato: p.formato }, orderBy: { createdAt: "desc" } });
     if (v) await db.proposal.update({ where: { id: p.id }, data: { formatoVersionId: v.id } });
+  }
+
+  await unificarTextos();
+}
+
+/**
+ * Textos compartilhados entre os tipos de loteamento. Antes cada formato tinha os seus;
+ * agora só listas, lei e padrões mudam por tipo. Quando as versões mais recentes dos 4
+ * formatos têm textos diferentes, junta tudo (o alterado em um vale para todos; no mesmo
+ * texto alterado em dois formatos, vale o mais recente), cria uma versão nova de cada
+ * formato e coloca todas as propostas nela. Os textos personalizados de cada proposta
+ * continuam por cima. Nada é apagado: as versões antigas ficam guardadas.
+ */
+async function unificarTextos() {
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    const versoes = [];
+    for (const f of FORMATOS) {
+      const v = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (v) versoes.push({ formato: f, content: parseContent(v.content, f), createdAt: v.createdAt });
+    }
+    if (versoes.length !== FORMATOS.length) continue;
+    const m = mesclarComum(versoes);
+    if (m.iguais) continue;
+
+    for (const f of FORMATOS) {
+      const content = { ...juntar(m.comum, m.tipos[f]), ...(m.conflitos.length ? { conflitos: m.conflitos } : {}) };
+      const v = await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: content as object } });
+      const n = await db.proposal.updateMany({ where: { templateId: t.id, formato: f }, data: { formatoVersionId: v.id } });
+      console.log(`Textos unificados: ${f} → versão ${v.id} (${n.count} proposta(s))`);
+    }
+    console.log(`Template "${t.name}": ${Object.keys(m.comum.overrides).length} texto(s) compartilhado(s), ${m.conflitos.length} diferente(s) entre os tipos`);
+    for (const c of m.conflitos) console.log(`  ${c.k}: valeu o de ${c.escolhido} (havia em ${c.opcoes.map((o) => o.formato).join(", ")})`);
   }
 }
 

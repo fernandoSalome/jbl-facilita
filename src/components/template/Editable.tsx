@@ -11,6 +11,7 @@ import { escapeHtml, HTML_PREFIX, sanitizeHtml } from "@/lib/sanitize";
  *   link.*  endereço de um botão     btn.*  tamanho do botão (sm | md | lg)
  *   img.*   imagem trocada/ajustada  block.*  cor de fundo / seção oculta
  *   theme.* cores da proposta
+ *   estilo.<chave>  negrito, itálico, cor e tamanho de um número da planilha (o número não muda)
  * Na página pública nada disso aparece: só o resultado.
  */
 
@@ -44,11 +45,45 @@ function preencher(modelo: string, vars: Record<string, string>) {
   );
 }
 
-/** Lê o texto editado de volta, com os números como {{nome}} (assim continuam ligados à planilha) */
+/**
+ * Lê o texto editado de volta, com os números como {{nome}} (assim continuam ligados à planilha).
+ * A formatação aplicada no número (negrito, cor...) fica em volta do {{nome}}.
+ */
 function lerModelo(el: HTMLElement) {
   const c = el.cloneNode(true) as HTMLElement;
-  c.querySelectorAll<HTMLElement>("[data-var]").forEach((x) => x.replaceWith(document.createTextNode(`{{${x.dataset.var}}}`)));
+  c.querySelectorAll<HTMLElement>("[data-var]").forEach((x) => {
+    const marca = `{{${x.dataset.var}}}`;
+    const st = x.getAttribute("style");
+    if (st) {
+      const w = document.createElement("span");
+      w.setAttribute("style", st);
+      w.textContent = marca;
+      return x.replaceWith(w);
+    }
+    const textos: Text[] = [];
+    const w = document.createTreeWalker(x, NodeFilter.SHOW_TEXT);
+    while (w.nextNode()) textos.push(w.currentNode as Text);
+    if (!textos.length) return x.replaceWith(document.createTextNode(marca));
+    textos.forEach((t, i) => (i === 0 ? (t.data = marca) : t.remove()));
+    x.replaceWith(...Array.from(x.childNodes));
+  });
   return c;
+}
+
+/** A alteração atinge um número da planilha dentro do texto? */
+function tocaNumero(el: HTMLElement, r: AbstractRange) {
+  const alvo = document.createRange();
+  try {
+    alvo.setStart(r.startContainer, r.startOffset);
+    alvo.setEnd(r.endContainer, r.endOffset);
+  } catch {
+    return false;
+  }
+  return Array.from(el.querySelectorAll("[data-var]")).some((n) => {
+    const num = document.createRange();
+    num.selectNode(n);
+    return alvo.compareBoundaryPoints(Range.START_TO_END, num) > 0 && alvo.compareBoundaryPoints(Range.END_TO_START, num) < 0;
+  });
 }
 
 function valueToHtml(v: unknown, fallback: string) {
@@ -58,7 +93,25 @@ function valueToHtml(v: unknown, fallback: string) {
 
 /* ------------------------------------------------------------------ texto */
 
-export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: string; children: string; label?: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string> }) {
+export function E({
+  k,
+  children,
+  multiline,
+  html: isHtml,
+  fixo,
+  vars,
+  limpar,
+}: {
+  k: string;
+  children: string;
+  label?: string;
+  multiline?: boolean;
+  html?: boolean;
+  fixo?: boolean;
+  vars?: Record<string, string>;
+  /** Ajuste no texto salvo antes de mostrar (ex.: tirar o emoji antigo do começo) */
+  limpar?: (html: string) => string;
+}) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
   const changed = k in own;
@@ -68,7 +121,8 @@ export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: str
   // Valor em uso: alteração da proposta, senão a do template, senão o padrão
   // texto com números editado antes dos blocos travados existirem: ignora (teria número velho, congelado)
   const antigo = !!vars && typeof overrides[k] === "string" && !(overrides[k] as string).includes("{{") && children.includes("{{");
-  const modelo = k in overrides && !antigo ? valueToHtml(overrides[k], children) : defaultHtml;
+  const salvo = k in overrides && !antigo ? valueToHtml(overrides[k], children) : defaultHtml;
+  const modelo = limpar ? limpar(salvo) : salvo;
   const html = vars ? preencher(modelo, vars) : modelo;
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
@@ -81,14 +135,31 @@ export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: str
   const modeloInicio = useRef<string>(modelo);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
   // Na edição o conteúdo é colocado uma vez só; depois o React não toca mais nele (o cursor não pula ao salvar)
+  // Elemento em edição para a barra de formatação: o span é trocado ao entrar na edição,
+  // então a barra só aparece depois que o novo existe (senão clicar no texto fechava a edição)
+  const [alvo, setAlvo] = useState<HTMLSpanElement | null>(null);
   useLayoutEffect(() => {
     if (editing && ref.current && congelado.current !== null) ref.current.innerHTML = congelado.current;
+    setAlvo(editing ? ref.current : null);
   }, [editing]);
 
-  // Número que vem da planilha: sempre o calculado, sem edição (muda em "Editar dados da planilha")
+  // Os números da planilha dentro do texto não podem ser apagados nem trocados (o resto do texto sim)
+  useEffect(() => {
+    const el = ref.current;
+    if (!editing || !el || !vars) return;
+    const antes = (e: InputEvent) => {
+      if (e.inputType.startsWith("format") || e.inputType.startsWith("history")) return;
+      const s = window.getSelection();
+      const alvos: AbstractRange[] = e.getTargetRanges?.().length ? e.getTargetRanges() : s && s.rangeCount ? [s.getRangeAt(0)] : [];
+      if (alvos.some((r) => tocaNumero(el, r))) e.preventDefault();
+    };
+    el.addEventListener("beforeinput", antes);
+    return () => el.removeEventListener("beforeinput", antes);
+  }, [editing, vars]);
+
+  // Número que vem da planilha: sempre o calculado (muda em "Editar dados da planilha"). Só o visual pode mudar.
   if (fixo) {
-    const conteudo = isHtml ? <span dangerouslySetInnerHTML={{ __html: defaultHtml }} /> : <>{children}</>;
-    return editable ? <span className="fixo" title="Vem da planilha. Para mudar, use “Editar dados da planilha”.">{conteudo}</span> : conteudo;
+    return <Fixo k={k}>{isHtml ? <span dangerouslySetInnerHTML={{ __html: defaultHtml }} /> : children}</Fixo>;
   }
 
   if (!editable) {
@@ -131,6 +202,7 @@ export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: str
       <span
         key={editing ? `${k}:editando` : `${k}:${html}`}
         ref={ref}
+        data-k={k}
         className={`ed ${changed ? "changed" : ""} ${editing ? "editing" : ""}`}
         title={editing ? undefined : changed ? "Alterado à mão. Clique para editar" : "Clique para editar"}
         contentEditable={editing}
@@ -145,7 +217,18 @@ export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: str
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (editing) return;
+          if (editing) {
+            // clicar num número da planilha seleciona ele inteiro (para aplicar negrito, cor...)
+            const num = (e.target as HTMLElement).closest?.("[data-var]");
+            if (num && ref.current?.contains(num)) {
+              const r = document.createRange();
+              r.selectNode(num);
+              const s = window.getSelection();
+              s?.removeAllRanges();
+              s?.addRange(r);
+            }
+            return;
+          }
           congelado.current = html;
           ultimo.current = modelo;
           modeloInicio.current = modelo;
@@ -191,9 +274,9 @@ export function E({ k, children, multiline, html: isHtml, fixo, vars }: { k: str
           document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
         }}
       />
-      {editing && ref.current && (
+      {editing && alvo && (
         <Toolbar
-          target={ref.current}
+          target={alvo}
           multi={isMulti}
           changed={changed}
           link={link}
@@ -301,23 +384,83 @@ function Toolbar({
     }
   }
 
+  /** Formatação também nos números da planilha: liberados só durante o comando (o texto deles não muda) */
+  function comNumeros(fn: () => void) {
+    const nums = target.querySelectorAll<HTMLElement>("[data-var]");
+    // seleção que pega só parte de um número passa a pegar o número inteiro (senão ele seria partido em dois)
+    const s = window.getSelection();
+    const selecionados = new Set<Element>();
+    if (s?.rangeCount && !s.getRangeAt(0).collapsed) {
+      const r = s.getRangeAt(0).cloneRange();
+      nums.forEach((n) => {
+        if (!r.intersectsNode(n)) return;
+        selecionados.add(n);
+        const nr = document.createRange();
+        nr.selectNode(n);
+        if (r.compareBoundaryPoints(Range.START_TO_START, nr) > 0) r.setStartBefore(n);
+        if (r.compareBoundaryPoints(Range.END_TO_END, nr) < 0) r.setEndAfter(n);
+      });
+      s.removeAllRanges();
+      s.addRange(r);
+    }
+    nums.forEach((n) => (n.contentEditable = "true"));
+    try {
+      fn();
+    } finally {
+      // o navegador põe o estilo no próprio número: passa para um span em volta (é o que fica salvo com o {{nome}})
+      const envolvidos: Element[] = [];
+      target.querySelectorAll<HTMLElement>("[data-var]").forEach((n) => {
+        n.contentEditable = "false";
+        const st = n.getAttribute("style");
+        if (!st) return;
+        n.removeAttribute("style");
+        const w = document.createElement("span");
+        w.setAttribute("style", st);
+        n.replaceWith(w);
+        w.appendChild(n);
+        if (selecionados.has(n)) envolvidos.push(w);
+      });
+      // a seleção continua cobrindo os números (para o próximo comando, ex.: negrito e depois cor)
+      if (envolvidos.length && s) {
+        const r = s.rangeCount && !s.getRangeAt(0).collapsed ? s.getRangeAt(0).cloneRange() : document.createRange();
+        if (r.collapsed) {
+          r.setStartBefore(envolvidos[0]);
+          r.setEndAfter(envolvidos[envolvidos.length - 1]);
+        }
+        envolvidos.forEach((w) => {
+          const nr = document.createRange();
+          nr.selectNode(w);
+          if (r.compareBoundaryPoints(Range.START_TO_START, nr) > 0) r.setStartBefore(w);
+          if (r.compareBoundaryPoints(Range.END_TO_END, nr) < 0) r.setEndAfter(w);
+        });
+        s.removeAllRanges();
+        s.addRange(r);
+        range.current = r.cloneRange();
+      }
+    }
+  }
+
   function exec(cmd: string, val?: string) {
     restore();
-    document.execCommand("styleWithCSS", false, "true");
-    document.execCommand(cmd, false, val);
+    comNumeros(() => {
+      document.execCommand("styleWithCSS", false, "true");
+      document.execCommand(cmd, false, val);
+    });
   }
 
   function fontSize(px: number) {
     restore();
-    document.execCommand("styleWithCSS", false, "false");
-    document.execCommand("fontSize", false, "7");
-    target.querySelectorAll('font[size="7"], span[style*="xxx-large"]').forEach((f) => {
-      const s = document.createElement("span");
-      s.style.fontSize = `${px}px`;
-      s.innerHTML = f.innerHTML;
-      f.replaceWith(s);
+    comNumeros(() => {
+      document.execCommand("styleWithCSS", false, "false");
+      document.execCommand("fontSize", false, "7");
+      target.querySelectorAll('font[size="7"], span[style*="xxx-large"]').forEach((f) => {
+        const s = document.createElement("span");
+        s.style.fontSize = `${px}px`;
+        s.innerHTML = f.innerHTML;
+        f.replaceWith(s);
+      });
+      document.execCommand("styleWithCSS", false, "true");
     });
-    document.execCommand("styleWithCSS", false, "true");
   }
 
   function currentSize() {
@@ -431,6 +574,142 @@ function ColorBtn({ title, label, swatches, onPick, onClear, underline }: { titl
         </span>
       )}
     </span>
+  );
+}
+
+/* ------------------------------------- números da planilha (só o visual) */
+
+export type Estilo = { n?: "b" | "n"; i?: boolean; u?: boolean; cor?: string; tam?: number };
+
+export function estiloCss(e: Estilo | undefined): React.CSSProperties | undefined {
+  if (!e) return undefined;
+  const st: React.CSSProperties = {};
+  if (e.n) st.fontWeight = e.n === "b" ? 700 : 400;
+  if (e.i !== undefined) st.fontStyle = e.i ? "italic" : "normal";
+  if (e.u) st.textDecoration = "underline";
+  if (e.cor) st.color = e.cor;
+  if (e.tam) st.fontSize = `${e.tam}em`;
+  return st;
+}
+
+/**
+ * Valor que vem da planilha (estudo de viabilidade): o texto é sempre o calculado e
+ * não pode ser alterado. Na edição, clicar nele muda só o visual (chave "estilo.<k>").
+ */
+export function Fixo({ k, children }: { k: string; children: React.ReactNode }) {
+  const { overrides, own, editable, save } = useContext(EditCtx);
+  const key = `estilo.${k}`;
+  const e = overrides[key] as Estilo | undefined;
+  const st = estiloCss(e);
+  const ref = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  // o estilo fica num elemento de dentro: o .fixo herda a fonte e a cor do lugar onde está
+  const conteudo = st ? <span className="fixo-st" style={st}>{children}</span> : children;
+  if (!editable) return <>{conteudo}</>;
+  return (
+    <>
+      <span
+        ref={ref}
+        data-k={key}
+        className={`fixo ${key in own ? "changed" : ""} ${open ? "editing" : ""}`}
+        title="Vem da planilha: o valor não muda aqui. Clique para mudar negrito, itálico, cor ou tamanho."
+        onClick={(ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          setOpen(true);
+        }}
+      >
+        {conteudo}
+      </span>
+      {open && ref.current && <EstiloBar target={ref.current} valor={e ?? {}} proprio={key in own} onChange={(v) => save(key, v)} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function EstiloBar({ target, valor, proprio, onChange, onClose }: { target: HTMLElement; valor: Estilo; proprio: boolean; onChange: (v: Estilo | null) => void; onClose: () => void }) {
+  const bar = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: -999, left: 0 });
+  // negrito/itálico de origem do lugar onde o número está (título, tabela...)
+  const [natural] = useState(() => {
+    const cs = getComputedStyle(target);
+    return { b: (parseInt(cs.fontWeight) || 400) >= 600, i: cs.fontStyle === "italic" };
+  });
+  const negrito = valor.n ? valor.n === "b" : natural.b;
+  const italico = valor.i ?? natural.i;
+  const tam = valor.tam ?? 1;
+
+  useLayoutEffect(() => {
+    let raf = 0;
+    const place = () => {
+      const r = target.getBoundingClientRect();
+      const h = bar.current?.offsetHeight ?? 44;
+      const w = bar.current?.offsetWidth ?? 420;
+      const below = r.bottom + 10 + h < window.innerHeight;
+      const top = Math.round(below ? r.bottom + 10 : Math.max(8, r.top - h - 10));
+      const left = Math.round(Math.min(Math.max(8, r.left), window.innerWidth - w - 8));
+      setPos((p) => (p.top === top && p.left === left ? p : { top, left }));
+      raf = requestAnimationFrame(place);
+    };
+    place();
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!target.contains(t) && !bar.current?.contains(t)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("mousedown", onDown, true);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown, true);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [target, onClose]);
+
+  function set(p: Partial<Estilo>) {
+    const n: Estilo = { ...valor, ...p };
+    (Object.keys(n) as (keyof Estilo)[]).forEach((x) => n[x] === undefined && delete n[x]);
+    if (n.n && (n.n === "b") === natural.b) delete n.n;
+    if (n.i !== undefined && n.i === natural.i) delete n.i;
+    onChange(Object.keys(n).length ? n : null);
+  }
+  const passo = (d: number) => {
+    const t = Math.round(Math.min(3, Math.max(0.6, tam + d)) * 10) / 10;
+    set({ tam: t === 1 ? undefined : t });
+  };
+
+  return createPortal(
+    <div
+      ref={bar}
+      data-ed-toolbar
+      style={{ top: pos.top, left: pos.left }}
+      className="fixed z-[2000] flex max-w-[calc(100vw-16px)] flex-wrap items-center gap-0.5 rounded-md bg-navy p-1 font-sans text-white shadow-[0_14px_34px_-10px_rgba(0,0,0,.5)] ring-1 ring-gold/40"
+    >
+      <span className="px-2 text-[11px] leading-tight text-white/60">Valor da planilha<br />só o visual muda</span>
+      <Sep />
+      <B title="Negrito" active={negrito} onClick={() => set({ n: negrito ? "n" : "b" })}><b>B</b></B>
+      <B title="Itálico" active={italico} onClick={() => set({ i: !italico })}><i className="font-display">I</i></B>
+      <B title="Sublinhado" active={!!valor.u} onClick={() => set({ u: valor.u ? undefined : true })}><u>U</u></B>
+      <Sep />
+      <B title="Diminuir" onClick={() => passo(-0.1)}>A−</B>
+      <span className="w-10 text-center text-[11.5px] tabular-nums text-white/70">{Math.round(tam * 100)}%</span>
+      <B title="Aumentar" onClick={() => passo(0.1)}>A+</B>
+      <Sep />
+      <ColorBtn title="Cor da letra" label="A" swatches={SWATCHES} onPick={(c) => set({ cor: c })} onClear={() => set({ cor: undefined })} underline />
+      <Sep />
+      {proprio && <B title="Voltar ao visual original" onClick={() => { onChange(null); onClose(); }}>↺</B>}
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onClose}
+        className="h-8 rounded bg-gold px-3 text-[12.5px] font-bold text-navy hover:brightness-110"
+      >
+        ✓ Pronto
+      </button>
+    </div>,
+    document.body,
   );
 }
 

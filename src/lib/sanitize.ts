@@ -115,16 +115,32 @@ export function cleanOverride(key: string, v: unknown): unknown {
     return { src: o.src, x: n(o.x, 0, 100, 50), y: n(o.y, 0, 100, 50), zoom: n(o.zoom, 0.3, 3, 1) };
   }
   if (key.startsWith("liq.")) return cleanQtd(v);
+  // Visual de um número da planilha (o número em si nunca é gravado)
+  if (key.startsWith("estilo.")) {
+    const o = v as { n?: unknown; i?: unknown; u?: unknown; cor?: unknown; tam?: unknown };
+    if (!o || typeof o !== "object") return undefined;
+    const e: Record<string, unknown> = {};
+    if (o.n === "b" || o.n === "n") e.n = o.n;
+    if (typeof o.i === "boolean") e.i = o.i;
+    if (o.u === true) e.u = true;
+    if (typeof o.cor === "string" && COLOR.test(o.cor)) e.cor = o.cor;
+    if (typeof o.tam === "number" && isFinite(o.tam) && o.tam !== 1) e.tam = Math.round(Math.min(3, Math.max(0.6, o.tam)) * 100) / 100;
+    return Object.keys(e).length ? e : null;
+  }
+  if (/^li\.[^.]+\.emoji$/.test(key)) return typeof v === "string" && v.length <= 16 && !/[<>&]/.test(v) ? v.trim() : undefined;
   if (key.startsWith("lista.")) {
     const o = v as { added?: unknown; removed?: unknown };
     if (!o || typeof o !== "object") return undefined;
     const removed = Array.isArray(o.removed) ? o.removed.filter((x) => typeof x === "string" && ID.test(x)).slice(0, 200) : [];
     const added: unknown[] = [];
     for (const it of Array.isArray(o.added) ? o.added.slice(0, 100) : []) {
-      const i = it as { id?: unknown; obra?: unknown; desc?: unknown; qtd?: unknown; texto?: unknown };
+      const i = it as { id?: unknown; obra?: unknown; desc?: unknown; qtd?: unknown; texto?: unknown; emoji?: unknown };
       if (!i || typeof i.id !== "string" || !ID.test(i.id)) return undefined;
       if (key === "lista.contatos") added.push({ id: i.id });
-      else if (key === "lista.benfeitorias") added.push({ id: i.id, texto: short(i.texto) });
+      else if (key === "lista.benfeitorias") {
+        const emoji = typeof i.emoji === "string" && i.emoji.length <= 16 && !/[<>&]/.test(i.emoji) ? i.emoji : undefined;
+        added.push(emoji === undefined ? { id: i.id, texto: short(i.texto) } : { id: i.id, texto: short(i.texto), emoji });
+      }
       else {
         const qtd = cleanQtd(i.qtd);
         if (!qtd) return undefined;

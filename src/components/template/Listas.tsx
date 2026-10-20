@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StudyResult } from "@/lib/calc";
 import { fmtNum } from "@/lib/format";
-import { aplicarDiff, QTD_CALC, qtdTexto, type Benfeitoria, type ListaDiff, type ObraItem, type Qtd, type QtdCalcKey } from "@/lib/formatos";
-import { E, useEdit } from "./Editable";
+import { aplicarDiff, QTD_CALC, qtdTexto, semEmojiHtml, separarEmoji, type Benfeitoria, type ListaDiff, type ObraItem, type Qtd, type QtdCalcKey } from "@/lib/formatos";
+import type { Overrides } from "@/lib/proposals";
+import { HTML_PREFIX } from "@/lib/sanitize";
+import { E, Fixo, useEdit } from "./Editable";
 
 /**
  * Listas de obras e benfeitorias do formato. Na proposta, adicionar ou remover
@@ -52,7 +54,8 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
     ) : q.kind === "fixa" ? (
       <E k={`li.${item.id}.qtd`}>{q.text}</E>
     ) : (
-      txt
+      // calculada pela área e pelos lotes: o valor não muda à mão, só o visual
+      <Fixo k={`li.${item.id}.calc`}>{txt}</Fixo>
     );
 
   if (!editable) return <>{conteudo}</>;
@@ -161,20 +164,140 @@ export function TabelaObras({ secao, base, r, colunas, className = "tbl" }: { se
   );
 }
 
+const EMOJIS: [string, string[]][] = [
+  ["Lazer e esporte", ["🏊", "🏀", "⚽", "🎾", "🏐", "🏓", "🏋️", "💪", "🚴", "🚶", "🏃", "🥾", "🧘", "🛝", "🎡", "🪂", "🎣", "🛶", "⛳", "🛹"]],
+  ["Natureza", ["🌳", "🌲", "🌴", "🌿", "🌱", "🍃", "🌷", "🌻", "🌄", "🌅", "🏞️", "💧", "⛲", "🦋", "🐕", "🐾"]],
+  ["Construção e segurança", ["🏛️", "🚪", "🧱", "🏠", "🏡", "🏘️", "🏢", "🛡️", "📹", "🚨", "🔒", "🚧", "💡", "⚡", "🌐", "📶", "🅿️", "🚗"]],
+  ["Convivência", ["🍖", "🍽️", "🎉", "🎈", "⛱️", "🏕️", "⛺", "🪑", "🧒", "👨‍👩‍👧", "🚰", "♻️", "✨", "⭐", "❤️", "✅"]],
+];
+
+/** Emoji em uso: o escolhido, senão o que estava no começo do texto (itens antigos) */
+function emojiDe(b: Benfeitoria, ov: Overrides): string | null {
+  const escolhido = ov[`li.${b.id}.emoji`];
+  if (typeof escolhido === "string") return escolhido || null;
+  const salvo = ov[`li.${b.id}.texto`];
+  if (typeof salvo === "string") {
+    const t = salvo.startsWith(HTML_PREFIX) ? salvo.slice(HTML_PREFIX.length).replace(/^(?:<[^>]+>)*/, "") : salvo;
+    const e = separarEmoji(t).emoji;
+    if (e) return e;
+  }
+  return b.emoji ?? separarEmoji(b.texto).emoji;
+}
+
+function GradeEmojis({ anchor, atual, onPick, onClose }: { anchor: HTMLElement; atual: string | null; onPick: (e: string) => void; onClose: () => void }) {
+  const [outro, setOutro] = useState("");
+  const r = anchor.getBoundingClientRect();
+  const w = 336;
+  const top = r.bottom + 6 + 420 < window.innerHeight ? r.bottom + 6 : Math.max(8, r.top - 426);
+  const left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+  return createPortal(
+    <div className="fixed inset-0 z-[2100]" onMouseDown={onClose}>
+      <div
+        className="absolute max-h-[420px] overflow-auto rounded-md border-t-[3px] border-gold bg-white p-3 font-sans text-[13px] text-ink shadow-2xl"
+        style={{ top, left, width: w }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-gold-deep">Escolha o emoji</div>
+        {EMOJIS.map(([grupo, lista]) => (
+          <div key={grupo} className="mb-2">
+            <div className="mb-1 text-[11px] font-semibold text-muted">{grupo}</div>
+            <div className="grid grid-cols-8 gap-1">
+              {lista.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => onPick(e)}
+                  className={`grid h-9 place-items-center rounded text-[20px] hover:bg-gold-soft ${e === atual ? "bg-gold-soft ring-1 ring-gold" : ""}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="mt-2 flex items-center gap-2 border-t border-line pt-2">
+          <input
+            value={outro}
+            onChange={(e) => setOutro(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && outro.trim() && onPick(separarEmoji(outro).emoji ?? outro.trim().slice(0, 8))}
+            placeholder="Outro: cole aqui"
+            className="input w-full py-1 text-[13px]"
+          />
+          <button type="button" className="btn-ghost shrink-0 py-1 text-[12px]" disabled={!outro.trim()} onClick={() => onPick(separarEmoji(outro).emoji ?? outro.trim().slice(0, 8))}>
+            Usar
+          </button>
+        </div>
+        <button type="button" className="mt-2 w-full rounded bg-alt py-1.5 text-[12px] font-semibold text-muted hover:text-navy" onClick={() => onPick("")}>
+          Sem emoji
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
   const l = useLista("benfeitorias", base);
+  const { overrides, save } = useEdit();
+  const [escolher, setEscolher] = useState<{ id: string; el: HTMLElement } | null>(null);
+  // benfeitoria recém-adicionada: abre a grade de emojis dela
+  const [nova, setNova] = useState<string | null>(null);
+  useEffect(() => {
+    if (!nova) return;
+    const el = document.querySelector<HTMLElement>(`[data-bf="${nova}"]`);
+    if (el) {
+      setEscolher({ id: nova, el });
+      setNova(null);
+    }
+  }, [nova, l.itens.length]);
+
   return (
     <div className="pills">
-      {l.itens.map((b) => (
-        <span key={b.id} className={l.editable ? "pill-ed" : undefined}>
-          <E k={`li.${b.id}.texto`}>{b.texto}</E>
-          {l.editable && <button type="button" className="pill-del" title="Remover" onClick={() => l.remover(b.id)}>✕</button>}
-        </span>
-      ))}
+      {l.itens.map((b) => {
+        const emoji = emojiDe(b, overrides);
+        return (
+          <span key={b.id} className={l.editable ? "pill-ed" : undefined}>
+            {l.editable ? (
+              <button
+                type="button"
+                data-bf={b.id}
+                className={`bf-emoji-btn ${emoji ? "" : "vazio"}`}
+                title="Escolher o emoji"
+                onClick={(e) => setEscolher({ id: b.id, el: e.currentTarget })}
+              >
+                {emoji ?? "+ emoji"}
+              </button>
+            ) : (
+              emoji && <span className="bf-emoji">{emoji} </span>
+            )}
+            <E k={`li.${b.id}.texto`} limpar={semEmojiHtml}>{separarEmoji(b.texto).texto}</E>
+            {l.editable && <button type="button" className="pill-del" title="Remover" onClick={() => l.remover(b.id)}>✕</button>}
+          </span>
+        );
+      })}
       {l.editable && (
-        <button type="button" className="add-pill" onClick={() => l.adicionar({ id: novoId(), texto: "✨ Nova benfeitoria" })}>
+        <button
+          type="button"
+          className="add-pill"
+          onClick={() => {
+            const id = novoId();
+            l.adicionar({ id, texto: "Nova benfeitoria", emoji: "✨" });
+            setNova(id);
+          }}
+        >
           + Benfeitoria
         </button>
+      )}
+      {escolher && (
+        <GradeEmojis
+          anchor={escolher.el}
+          atual={emojiDe(l.itens.find((i) => i.id === escolher.id) ?? { id: escolher.id, texto: "" }, overrides)}
+          onClose={() => setEscolher(null)}
+          onPick={(e) => {
+            save(`li.${escolher.id}.emoji`, e);
+            setEscolher(null);
+          }}
+        />
       )}
     </div>
   );
