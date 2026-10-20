@@ -40,9 +40,6 @@ export function SiteHeader() {
         <Link href="/contato" className="s-header__cta">
           Contato
         </Link>
-        <a href="/login" className="s-header__portal">
-          Portal
-        </a>
         <Link href="/portal-cliente" className="s-header__portal">
           Portal Cliente
         </Link>
@@ -72,7 +69,6 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link href="/contato">Contato</Link>
-          <a href="/login">Portal</a>
           <Link href="/portal-cliente">Portal Cliente</Link>
         </nav>
       )}
