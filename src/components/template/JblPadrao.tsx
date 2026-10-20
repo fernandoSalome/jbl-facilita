@@ -7,7 +7,7 @@ import { calcular, type StudyInputs } from "@/lib/calc";
 import { extensoReais, fmtBRL, fmtBRL0, fmtLongDate, fmtNum, fmtPct } from "@/lib/format";
 import type { Overrides, ProposalOptions } from "@/lib/proposals";
 import type { FormatoContent } from "@/lib/formatos";
-import { tratamento } from "@/lib/destinatario";
+import { comCampos, tratamento, type Tratamento } from "@/lib/destinatario";
 import { E, EditProvider, Img, Lnk, Sec, ThemeRoot } from "./Editable";
 import IntentForm from "./IntentForm";
 import { ListaBenfeitorias, ListaContatos, TabelaObras } from "./Listas";
@@ -46,9 +46,13 @@ export type TemplateProps = {
 function T({ k, children, multiline, html, fixo, vars, limpar }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string }) {
   return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo} vars={vars} limpar={limpar}>{children}</E>;
 }
-/** Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@<tipo>") */
-function DT({ tipo, k, children, html, multiline, vars, limpar }: { tipo: string; k: string; children: string; html?: boolean; multiline?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string }) {
-  return <T k={`${k}@${tipo}`} html={html} multiline={multiline} vars={vars} limpar={limpar}>{children}</T>;
+/**
+ * Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@familia" ou "@pessoa").
+ * O nome ("o Sr. João", "Família Silva") entra como campo travado, vindo da proposta.
+ */
+function DT({ d, k, children, html, multiline, vars }: { d: Tratamento; k: string; children: string; html?: boolean; multiline?: boolean; vars?: Record<string, string> }) {
+  const c = comCampos(children, d, vars);
+  return <T k={`${k}@${d.tipo}`} html={html} multiline={multiline} vars={c.vars}>{c.texto}</T>;
 }
 
 /** Valor calculado pela planilha. Chave "v.<k>". Não é editável na proposta. */
@@ -148,6 +152,11 @@ function soNomesTecnicos(t: string, html: boolean) {
     .replace(/^\s*(?:<span[^>]*>)?\s*Profissionais chefes designados para o projeto\s*(?:<\/span>)?\s*(?:<br[^>]*>\s*)*/i, "")
     .replace(/(?:<br[^>]*>\s*)*<strong[^>]*>(?:(?!<\/strong>)[\s\S])*<\/strong>\s*$/i, "")
     .replace(/(?:<br[^>]*>\s*)+$/i, "");
+}
+
+/** "13 / Vamos avançar na análise" → "Vamos avançar na análise" (o número fica no círculo da seção) */
+function semNumeroSecao(t: string) {
+  return t.replace(/^((?:\s|<[^>]+>)*)\d+\s*\/\s*/, "$1");
 }
 
 /** Primeira etapa: os "a definir" das versões antigas viram os números da planilha */
@@ -331,7 +340,7 @@ export default function JblPadrao(props: TemplateProps) {
   // Primeira etapa só aparece quando a planilha tem a opção ligada; sem ela, as seções seguintes sobem um número
   const etapa = !!r.etapa1;
   const passo = (x: number) => (etapa || x < 6 ? x : x - 1);
-  const renumera = (t: string) => t.replace(/passo 11\b/g, `passo ${passo(11)}`).replace(/^((?:\s|<[^>]+>)*)13(\s*\/)/, `$1${passo(13)}$2`);
+  const renumera = (t: string) => t.replace(/passo 11\b/g, `passo ${passo(11)}`);
   const semEtapa = (t: string) => (etapa ? t : t.replace(/\s*(?:<strong>)?\(incluindo a primeira etapa\)(?:<\/strong>)?/i, ""));
 
   const navLinks: [string, string, string][] = [
@@ -387,7 +396,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <div className="hero-right">
                   <span className="chip"><T k="capaChip2" html vars={nv}>{`Proposta de participação do proprietário: <b class="chip-pct">{{ter}}</b>`}</T></span>
                   <p><T k="capaP1">Você participa com a gleba. A JBL propõe financiar e executar a infraestrutura, conduzir o projeto e comercializar os lotes.</T></p>
-                  <p><DT tipo={d.tipo} k="capaP2">{d.pick(
+                  <p><DT d={d} k="capaP2">{d.pick(
                     "Veja abaixo quanto está projetado para o proprietário, como o recebimento funciona e quais são as condições da parceria.",
                     `Veja abaixo quanto está projetado para ${d.quem}, como o recebimento funciona e quais são as condições da parceria.`,
                     "Veja abaixo quanto está projetado para você, como o recebimento funciona e quais são as condições da parceria.",
@@ -434,15 +443,15 @@ export default function JblPadrao(props: TemplateProps) {
                 <Img k="logoCarta" src="/brand/logo-vertical.webp" alt="Grupo JBL Incorporadora · Urbanismo e Empreendimentos" className="lh-logo" />
               </div>
               <h2 style={{ margin: "6px 0 18px", fontSize: "clamp(26px,4vw,34px)" }}>
-                <DT tipo={d.tipo} k="saudacao">{d.saudacao}</DT>
+                <DT d={d} k="saudacao">{d.saudacao}</DT>
               </h2>
-              <p><DT tipo={d.tipo} k="carta1" html vars={nv}>{d.pick(
+              <p><DT d={d} k="carta1" html vars={nv}>{d.pick(
                 `Recebam nosso abraço e nosso agradecimento pela oportunidade de conhecer a história e o potencial da gleba <strong>{{gleba}}</strong>. Sabemos que uma área carrega o trabalho, os planos e o cuidado de uma família. É com respeito por essa trajetória que apresentamos nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de <strong>{{modelo}}</strong> (<strong>{{lei}}</strong>), para vossa análise e apreciação. A proposta refere-se à gleba <strong>{{gleba}}</strong>, com área total de <strong>{{area}} m²</strong>, localizada em <strong>{{municipio}} - {{uf}}</strong>.`,
                 `Receba nosso abraço e nosso agradecimento pela oportunidade de conhecer a história e o potencial da gleba <strong>{{gleba}}</strong>. Sabemos que uma área carrega o trabalho, os planos e o cuidado de quem a construiu. É com respeito por essa trajetória que levamos ao seu encontro nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de <strong>{{modelo}}</strong> (<strong>{{lei}}</strong>), para sua análise e apreciação. A proposta refere-se à gleba <strong>{{gleba}}</strong>, com área total de <strong>{{area}} m²</strong>, localizada em <strong>{{municipio}} - {{uf}}</strong>.`,
                 `Montamos esta proposta especialmente para a sua apreciação, e esperamos que goste. Agradecemos a oportunidade de conhecer a história e o potencial da gleba <strong>{{gleba}}</strong>, e é com respeito por essa trajetória que apresentamos nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de <strong>{{modelo}}</strong> (<strong>{{lei}}</strong>). A proposta refere-se à gleba <strong>{{gleba}}</strong>, com área total de <strong>{{area}} m²</strong>, localizada em <strong>{{municipio}} - {{uf}}</strong>.`,
               )}</DT></p>
               <p><T k="carta2" html>{"A <strong>JBL Incorporadora e Urbanismo</strong> é uma empresa especializada em loteamentos e urbanização, com ampla experiência de mercado e profissionais altamente qualificados. Cada novo projeto reúne especialistas em arquitetura, engenharia, ciências biológicas, geologia, direito, administração, contabilidade, perícia de avaliação, topografia, comercial e marketing, viabilizando empreendimentos desde o padrão econômico até o de alto padrão."}</T></p>
-              <p><DT tipo={d.tipo} k="carta3">{d.pick(
+              <p><DT d={d} k="carta3">{d.pick(
                 "Nas próximas páginas, compartilhamos as atividades e os números deste projeto, para que vocês possam avaliar a parceria com tranquilidade e clareza. Queremos construir essa decisão juntos, ouvindo suas expectativas e esclarecendo cada dúvida. Nossa estrutura física, equipe capacitada e experiência estão à disposição da família. Será um prazer recebê-los para uma conversa e agendar uma reunião.",
                 `Nas próximas páginas, compartilhamos as atividades e os números deste projeto, para que você possa avaliar a parceria com tranquilidade e clareza. Queremos construir essa decisão juntos, ouvindo suas expectativas e esclarecendo cada dúvida. Nossa estrutura física, equipe capacitada e experiência estão à sua disposição. Será um prazer ${d.recebe} para uma conversa e agendar uma reunião.`,
                 `Nas próximas páginas, compartilhamos as atividades e os números deste projeto, para que você possa avaliar a parceria com tranquilidade e clareza. Queremos construir essa decisão juntos, ouvindo suas expectativas e esclarecendo cada dúvida. Nossa estrutura física, equipe capacitada e experiência estão à sua disposição. Será um prazer ${d.recebe} para uma conversa e agendar uma reunião.`,
@@ -452,15 +461,15 @@ export default function JblPadrao(props: TemplateProps) {
 
             <Sec k="ideia" as="div" className="big-idea">
               <div className="eyebrow"><T k="ideiaEyebrow">A ideia em uma frase</T></div>
-              <h2 style={{ marginTop: 6 }}><DT tipo={d.tipo} k="ideia">{d.pick(
+              <h2 style={{ marginTop: 6 }}><DT d={d} k="ideia">{d.pick(
                 "Vocês entram com o terreno. A JBL entra com o dinheiro e o trabalho. O que for vendido é dividido.",
                 "Você entra com o terreno. A JBL entra com o dinheiro e o trabalho. O que for vendido é dividido.",
                 "Você entra com o terreno. A JBL entra com o dinheiro e o trabalho. O que for vendido é dividido.",
               )}</DT></h2>
               <div className="tiles" style={{ marginTop: 20 }}>
-                <div className="tile"><h3><DT tipo={d.tipo} k="ideia1t">{`🌳 ${d.Quem}`}</DT></h3><p><T k="ideia1">Entra com a terra. Não coloca dinheiro nas obras de infraestrutura previstas.</T></p></div>
+                <div className="tile"><h3><DT d={d} k="ideia1t">{`🌳 ${d.Quem}`}</DT></h3><p><T k="ideia1">Entra com a terra. Não coloca dinheiro nas obras de infraestrutura previstas.</T></p></div>
                 <div className="tile"><h3><T k="ideia2t">🏗️ A JBL</T></h3><p><T k="ideia2">Cuida dos estudos, aprovações, infraestrutura, marketing, vendas e da carteira de recebíveis (os boletos dos compradores).</T></p></div>
-                <div className="tile"><h3><T k="ideia3t">🤝 Os parceiros</T></h3><p><DT tipo={d.tipo} k="ideia3">{`Dividem o resultado. ${d.Quem} escolhe receber em dinheiro, em lotes ou das duas formas.`}</DT></p></div>
+                <div className="tile"><h3><T k="ideia3t">🤝 Os parceiros</T></h3><p><DT d={d} k="ideia3">{`Dividem o resultado. ${d.Quem} escolhe receber em dinheiro, em lotes ou das duas formas.`}</DT></p></div>
               </div>
               <p className="note" style={{ marginTop: 12 }}><T k="ideiaNota" limpar={renumera}>{renumera("Não há aporte de capital do proprietário para a infraestrutura prevista. Impostos e outros custos são tratados à parte (veja o passo 11).")}</T></p>
             </Sec>
@@ -521,8 +530,8 @@ export default function JblPadrao(props: TemplateProps) {
                 <p><T k="d1">A JBL adquire áreas acima de 40 mil metros quadrados (4 hectares) a preços justos ou estabelece parcerias, sem ou com aporte financeiro. Queremos propor muito mais que um negócio: consolidar uma parceria de sucesso para você e sua família ou para sua empresa, e fazer o seu projeto brilhar.</T></p>
                 <p><T k="d2" html>{"No modelo de parceria, o proprietário cede a gleba para o desenvolvimento do empreendimento e participa financeiramente da carteira de recebíveis, garantindo uma <strong>renda passiva mensal de até 20 anos</strong> por meio de uma conta bancária compartilhada com a JBL. Existem três jeitos de receber:"}</T></p>
                 <div className="tiles">
-                  <div className="tile"><h3><T k="d3t">💰 Financeira</T></h3><p><DT tipo={d.tipo} k="d3">{`${d.Quem} recebe a sua parte em dinheiro, todo mês, conforme os clientes pagam as parcelas.`}</DT></p></div>
-                  <div className="tile"><h3><T k="d4t">🏡 Física em lotes</T></h3><p><DT tipo={d.tipo} k="d4">{`${d.Quem} recebe lotes prontos, para vender quando quiser ou guardar como investimento.`}</DT></p></div>
+                  <div className="tile"><h3><T k="d3t">💰 Financeira</T></h3><p><DT d={d} k="d3">{`${d.Quem} recebe a sua parte em dinheiro, todo mês, conforme os clientes pagam as parcelas.`}</DT></p></div>
+                  <div className="tile"><h3><T k="d4t">🏡 Física em lotes</T></h3><p><DT d={d} k="d4">{`${d.Quem} recebe lotes prontos, para vender quando quiser ou guardar como investimento.`}</DT></p></div>
                   <div className="tile"><h3><T k="d5t">🔀 Híbrida</T></h3><p><T k="d5b">Uma parte da participação em lotes e outra em recebimentos financeiros, em proporção a negociar.</T></p></div>
                 </div>
               </div>
@@ -579,7 +588,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <h3><T k="s2h3">Lazer e benfeitorias (após estudo de viabilidade)</T></h3>
                 <ListaBenfeitorias base={formato.benfeitorias} />
                 <p className="note"><T k="s2Nota2">Todos os itens estão a projetar. Outras benfeitorias poderão ser identificadas ao longo dos processos de viabilidade e de aprovação.</T></p>
-                <p className="tip"><DT tipo={d.tipo} k="s2Tip2">{`📱 Além do acompanhamento pessoal, ${d.quem} acompanha as obras por um aplicativo próprio da JBL (JBL Facilita), com relatórios, fotos e vídeos a cada 15 dias. Os compradores dos lotes também terão serviços como segunda via de boletos.`}</DT></p>
+                <p className="tip"><DT d={d} k="s2Tip2">{`📱 Além do acompanhamento pessoal, ${d.quem} acompanha as obras por um aplicativo próprio da JBL (JBL Facilita), com relatórios, fotos e vídeos a cada 15 dias. Os compradores dos lotes também terão serviços como segunda via de boletos.`}</DT></p>
               </div>
             </Sec>
 
@@ -597,7 +606,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <p className="note note-lg"><T k="s3Extenso2" html vars={nv}>{`<span class="extenso">{{extenso}}</span>. Orçamento preliminar.`}</T></p>
                 <div className="tiles two">
                   <div className="tile gold"><div className="k"><T k="s3k1">Quem paga as obras</T></div><div className="v"><T k="s3v1">A JBL</T></div><div className="d"><T k="s3d1">A JBL financia e executa toda a infraestrutura.</T></div></div>
-                  <div className="tile hl"><div className="k"><DT tipo={d.tipo} k="s3k2">{`Quanto ${d.quem} paga`}</DT></div><div className="v num" style={{ color: "var(--good)" }}><T k="s3v2">R$ 0</T></div><div className="d"><T k="s3d2b">Em nenhuma hipótese será solicitado aos proprietários dinheiro para essas obras.</T></div></div>
+                  <div className="tile hl"><div className="k"><DT d={d} k="s3k2">{`Quanto ${d.quem} paga`}</DT></div><div className="v num" style={{ color: "var(--good)" }}><T k="s3v2">R$ 0</T></div><div className="d"><T k="s3d2b">Em nenhuma hipótese será solicitado aos proprietários dinheiro para essas obras.</T></div></div>
                 </div>
                 <p className="gantt-intro" style={{ marginTop: 8 }}><T k="s4Obras">As obras são feitas em etapas ao longo de 48 meses (4 anos). Cronograma ilustrativo:</T></p>
                 <div className="gantt-wrap"><div className="gantt" role="table" aria-label="Cronograma de implantação">
@@ -656,7 +665,7 @@ export default function JblPadrao(props: TemplateProps) {
                   </div>
                   <div className="calc num">
                     <span className="n">2</span><span className="t"><T k="v2t" vars={nv}>{"Entrada paga pelo comprador ({{entrada}})"}</T></span>
-                    <span className="f"><span className="carry" data-from="v1">{fmtBRL(r.valorLote)}</span><span className="op">−</span><span className="idx"><V k="v2b">{fmtBRL(r.entrada)}</V><small><T k="v2bs2">corretagem + marketing</T></small></span><span className="op">=</span><span className="res" id="v2" data-id="v2"><V k="v2r">{fmtBRL(r.valorLote - r.entrada)}</V></span></span>
+                    <span className="f"><span className="carry" data-from="v1">{fmtBRL(r.valorLote)}</span><span className="op op-menos" aria-label="menos">−</span><span className="idx"><V k="v2b">{fmtBRL(r.entrada)}</V><small><T k="v2bs2">corretagem + marketing</T></small></span><span className="op">=</span><span className="res" id="v2" data-id="v2"><V k="v2r">{fmtBRL(r.valorLote - r.entrada)}</V></span></span>
                   </div>
                   <div className="calc num">
                     <span className="n">3</span><span className="t"><T k="v3t">Saldo financiado a prazo</T></span>
@@ -738,7 +747,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>
                   <div className="shares">
-                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT tipo={d.tipo} k="sh1">{d.pick("Proprietários (a família)", d.tipo === "proprietario" ? d.rotulo : "Proprietários", "Proprietários")}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvistaTer)} · Em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}</V></small></div><span className="pct"><V k="sh1p">{ter}</V></span></div>
+                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick("Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvistaTer)} · Em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}</V></small></div><span className="pct"><V k="sh1p">{ter}</V></span></div>
                     <div className="share-group"><span className="brace" aria-hidden="true" /><span className="brace-lbl">{pctTxt(1 - r.terrenistaPct)}</span>
                       <div className="share"><span className="dot" style={{ background: "var(--sky-strong)" }} /><div><b><T k="sh2">JBL Incorporadora</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh2v">{`À vista: ${fmtBRL(r.vgvAvista * r.jblPct)}`}</V></small></div><span className="pct"><V k="sh2p">{pctTxt(r.jblPct)}</V></span></div>
                       <div className="share"><span className="dot" style={{ background: "var(--line)" }} /><div><b><T k="sh3">Infraestrutura (obras)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh3v">{`À vista: ${fmtBRL(r.custoInfra)}`}</V></small></div><span className="pct"><V k="sh3p">{pctTxt(r.infraPct)}</V></span></div>
@@ -746,13 +755,13 @@ export default function JblPadrao(props: TemplateProps) {
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
                 </div>
-                <h3 className="vgv-title"><span><DT tipo={d.tipo} k="vtParte">{d.pick("Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter}</em>{etapa && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
+                <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick("Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter}</em>{etapa && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>
                   <span className="vs-or" aria-hidden="true">ou</span>
                   <div className="s-streets" style={{ flex: 50 }}><span className="vs-k"><T k="vs2k2" html vars={nv}>{"Se todos os lotes forem vendidos <b>a prazo</b> ({{n}} meses)"}</T></span><span className="vs-v num"><V k="vs2v">{fmtBRL(r.principal.carteiraTer)}</V></span></div>
                   <span className="vs-or vs-or2" aria-hidden="true">ou</span>
-                  <div className="s-lotes" style={{ flex: 50 }}><span className="vs-k"><DT tipo={d.tipo} k="vs3k" html>{`Se ${d.quem} preferir receber <b>em lotes</b>`}</DT></span><span className="vs-v num"><V k="vs3v">{`≈ ${fmtNum(r.lotes * r.terrenistaPct)} lotes`}</V></span></div>
+                  <div className="s-lotes" style={{ flex: 50 }}><span className="vs-k"><DT d={d} k="vs3k" html>{`Se ${d.quem} preferir receber <b>em lotes</b>`}</DT></span><span className="vs-v num"><V k="vs3v">{`≈ ${fmtNum(r.lotes * r.terrenistaPct)} lotes`}</V></span></div>
                 </div>
               </div>
             </Sec>
@@ -760,8 +769,8 @@ export default function JblPadrao(props: TemplateProps) {
             {/* 8 */}
             <Sec k="recebimentos" className="step" id="recebimentos">
               <div className="step-head"><div className="badge">{passo(8)}</div><div>
-                <h2><DT tipo={d.tipo} k="s8Titulo">{`Quanto ${d.quem} recebe por mês`}</DT></h2>
-                <p><DT tipo={d.tipo} k="s8Sub2" html>{`Os clientes pagam o lote em parcelas, e ${d.pick("a parte da família", `a parte ${d.da}`, "a sua parte")} cai todo mês numa conta compartilhada com a JBL. Escolha um prazo para ver <strong>(considerando 100% dos lotes vendidos)</strong>:`}</DT></p>
+                <h2><DT d={d} k="s8Titulo">{`Quanto ${d.quem} recebe por mês`}</DT></h2>
+                <p><DT d={d} k="s8Sub2" html>{`Os clientes pagam o lote em parcelas, e ${d.pick("a parte da família", `a parte ${d.da}`, "a sua parte")} cai todo mês numa conta compartilhada com a JBL. Escolha um prazo para ver <strong>(considerando 100% dos lotes vendidos)</strong>:`}</DT></p>
               </div></div>
               <div className="content">
                 <div className="tabs" role="group" aria-label="Prazo de pagamento dos clientes">
@@ -771,9 +780,9 @@ export default function JblPadrao(props: TemplateProps) {
                 </div>
                 <div className="tiles four tiles-sim">
                   <div className="tile"><div className="k"><T k="simK1">Parcela do cliente</T></div><div className="v num">{fmtBRL(sim.parcela)}</div><div className="d"><T k="simD1">por mês, por lote, pagando em dia</T></div></div>
-                  <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK2">{d.pick("Família no 1º ano", `${d.rotulo} no 1º ano`, "Você no 1º ano")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTer)}</div><div className="d"><T k="simD2">por mês, nos primeiros 12 meses</T></div></div>
-                  <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK3">{d.pick("Família última parcela", `${d.rotulo} última parcela`, "Sua última parcela")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTerFinal)}</div><div className="d"><T k="simD3b">por mês, no último ano</T></div></div>
-                  <div className="tile gold"><div className="k"><DT tipo={d.tipo} k="simK4">{d.pick("Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num pulsa">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
+                  <div className="tile gold"><div className="k"><DT d={d} k="simK2">{d.pick("Família no 1º ano", `${d.rotulo} no 1º ano`, "Você no 1º ano")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTer)}</div><div className="d"><T k="simD2">por mês, nos primeiros 12 meses</T></div></div>
+                  <div className="tile gold"><div className="k"><DT d={d} k="simK3">{d.pick("Família última parcela", `${d.rotulo} última parcela`, "Sua última parcela")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTerFinal)}</div><div className="d"><T k="simD3b">por mês, no último ano</T></div></div>
+                  <div className="tile gold"><div className="k"><DT d={d} k="simK4">{d.pick("Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num pulsa">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
                 </div>
                 <div className="bars" aria-label="Total recebido em cada prazo">
                   {r.cenarios.map((c, i) => (
@@ -828,20 +837,20 @@ export default function JblPadrao(props: TemplateProps) {
             {/* 9 */}
             <Sec k="antecipacao" className="step" id="antecipacao">
               <div className="step-head"><div className="badge">{passo(9)}</div><div>
-                <h2><DT tipo={d.tipo} k="s9Titulo">{`E se ${d.quem} quiser o dinheiro antes?`}</DT></h2>
+                <h2><DT d={d} k="s9Titulo">{`E se ${d.quem} quiser o dinheiro antes?`}</DT></h2>
                 <p><T k="s9Sub2">É possível vender as parcelas futuras, trazendo esses valores para o presente. Isso se chama antecipação de recebíveis.</T></p>
               </div></div>
               <div className="content">
                 <p><T k="s9p1">Parceiros terrenistas, intermediadores e prestadores vinculados à SPE ou SCP podem antecipar recebíveis por meio da JBL, quando disponível, ou de parceiros especializados. A operação depende de aprovação, acontece depois do TVO (Termo de Verificação de Obras, ou seja, com as obras prontas) e leva em média 30 dias.</T></p>
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s9CalcT">A conta</T></span>
-                  <span className="f"><span className="idx"><V k="s9a">{fmtBRL(r.antecipacao.carteira)}</V><small><T k="s9as">carteira</T></small></span><span className="op">−</span><span className="idx"><V k="s9b">{fmtPct(inputs.desagio, 3)}</V><small><T k="s9bs">deságio médio</T></small></span><span className="op">=</span><span className="res" id="v8"><V k="s9r">{fmtBRL(r.antecipacao.valor)}</V></span></span>
+                  <span className="f"><span className="idx"><V k="s9a">{fmtBRL(r.antecipacao.carteira)}</V><small><T k="s9as">carteira</T></small></span><span className="op op-menos" aria-label="menos">−</span><span className="idx"><V k="s9b">{fmtPct(inputs.desagio, 3)}</V><small><T k="s9bs">deságio médio</T></small></span><span className="op">=</span><span className="res" id="v8"><V k="s9r">{fmtBRL(r.antecipacao.valor)}</V></span></span>
                 </div>
                 <p><T k="s9p2b">Em palavras simples: bancos ou empresas especializadas compram os boletos futuros dos clientes e pagam à vista, com desconto. Antes, as obras precisam estar verificadas e a operação aprovada.</T></p>
                 <div className="review"><b><T k="s9rT">O que ainda depende de confirmação</T></b><ul>
                   {["Saldo da carteira no momento da antecipação", "Parcelas que já tiverem sido recebidas", "Qualidade dos contratos e inadimplência", "Taxas cobradas na época", "Disponibilidade de compradores para a carteira"].map((x, i) => <li key={i}><T k={`s9r${i}`}>{x}</T></li>)}
                 </ul></div>
-                <h3><DT tipo={d.tipo} k="s9h3">{`E se ${d.quem} aplicar esse dinheiro no banco?`}</DT></h3>
+                <h3><DT d={d} k="s9h3">{`E se ${d.quem} aplicar esse dinheiro no banco?`}</DT></h3>
                 <p><T k="s9p3" vars={nv}>{`A JBL fez uma simulação: aplicar o valor recebido num banco tradicional a {{taxa}} ao mês, comparando com a carteira de {{anos}} anos. A JBL oferece assessoria para essa aplicação, sem custo.`}</T></p>
                 <div className="tbl tbl-pay tbl-bank"><table>
                   <thead><tr><th><T k="s9th1">Indicador da simulação</T></th><th className="r"><T k="s9th2">Valor informado</T></th></tr></thead>
@@ -923,7 +932,9 @@ export default function JblPadrao(props: TemplateProps) {
 
           <Sec k="fim" as="footer" className="end">
             <div className="wrap">
-              <h2><T k="fimTitulo">Próximos passos</T></h2>
+              <div className="step-head"><div className="badge">{passo(13)}</div><div>
+                <h2><T k="fimTitulo">Próximos passos</T></h2>
+              </div></div>
               <p className="lead"><T k="fimLead">{`Estamos convictos de que a incorporação do ${formato.curto.toLowerCase()} na gleba ${gleba} representa uma oportunidade estratégica que seguramente beneficiará ambas as partes. Aguardamos a oportunidade de discutir esta proposta em maior detalhe.`}</T></p>
               <div className="next">
                 <div><b><T k="nx1t">1. Conversar</T></b><T k="nx1">Marcamos uma reunião para tirar todas as dúvidas.</T></div>
@@ -954,14 +965,12 @@ export default function JblPadrao(props: TemplateProps) {
             <Sec k="intent" className="intent" id="intencao">
               <div className="wrap">
                 <div className="intent-head">
-                  <div>
-                    <div className="eyebrow"><T k="intentEyebrow3" limpar={renumera}>{renumera("13 / Vamos avançar na análise")}</T></div>
+                  <div className="step-head"><div className="badge">{passo(14)}</div><div>
+                    {/* o número da seção agora fica no círculo: o "13 /" das versões antigas sai do texto */}
+                    <div className="eyebrow"><T k="intentEyebrow3" limpar={semNumeroSecao}>Vamos avançar na análise</T></div>
                     <h2 className="intent-h2"><T k="intentTitulo3" html>{"Carta de intenção.<br><em>Comece por aqui.</em>"}</T></h2>
-                    <p className="intent-lead"><T k="intentTexto3">Preencha os dados do proprietário e da área para registrar o interesse no prosseguimento dos estudos e na elaboração da carta de intenção.</T></p>
-                  </div>
+                  </div></div>
                   <aside className="intent-aside">
-                    <h4><T k="intentAsideT">O que este envio representa</T></h4>
-                    <p><T k="intentAside1">Uma manifestação de interesse com base no termo de aceite do documento original. O envio não transfere a propriedade, não substitui assinatura contratual e não garante os valores projetados.</T></p>
                     <p className="intent-aside-sm"><T k="intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</T></p>
                   </aside>
                 </div>
@@ -984,7 +993,7 @@ export default function JblPadrao(props: TemplateProps) {
               </div>
               <div className="df-col">
                 <h4><T k="dfA">A proposta</T></h4>
-                <Lnk k="dfA1" href="#carta"><Chevron /><DT tipo={d.tipo} k="dfA1">{d.pick("Carta à família", `Carta ${d.tipo === "proprietario" ? (options.destinatario?.genero === "f" ? "à proprietária" : "ao proprietário") : ""}`, `Carta a ${d.nome}`)}</DT></Lnk>
+                <Lnk k="dfA1" href="#carta"><Chevron /><DT d={d} k="dfA1">{d.pick(d.nome ? `Carta à ${d.rotulo}` : "Carta à família", `Carta ${d.ao} ${d.rotulo}`)}</DT></Lnk>
                 {[["#participacao", "dfA2", "Sua participação"], ["#recebimentos", "dfA3", "Recebimentos"], ["#execucao", "dfA4", "Execução"]].map(([h, k, l]) => (
                   <Lnk key={k} k={k} href={h}><Chevron /><T k={k}>{l}</T></Lnk>
                 ))}

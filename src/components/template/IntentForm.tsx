@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import { fmtNum } from "@/lib/format";
 import { E } from "./Editable";
+import { CPF, mascarar, RG } from "@/lib/mascara";
 
 /**
  * Carta de intenção: formulário no layout do site da proposta (campos à esquerda,
@@ -103,6 +104,15 @@ function Texto({ partes }: { partes: Parte[] }) {
   );
 }
 
+const MASCARAS: Record<string, string | ((digitos: string) => string)> = {
+  p_cpf: CPF,
+  j_cpf: CPF,
+  p_rg: RG,
+  j_rg: RG,
+  // celular com 9 dígitos ou fixo com 8
+  p_tel: (d) => (d.length > 10 ? "(00) 00000-0000" : "(00) 0000-0000"),
+};
+
 function readFile(file: File): Promise<{ name: string; type: string; data: string }> {
   return new Promise((res, rej) => {
     const fr = new FileReader();
@@ -136,7 +146,11 @@ export default function IntentForm({
   const [err, setErr] = useState("");
   const [protocolo, setProtocolo] = useState("");
   const g = (k: string) => (v[k] ?? "").trim();
-  const on = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setV((o) => ({ ...o, [k]: e.target.value }));
+  const on = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const m = MASCARAS[k];
+    const val = m ? mascarar(e.target.value, m) : e.target.value;
+    setV((o) => ({ ...o, [k]: val }));
+  };
 
   const L = ({ k, children, req }: { k: string; children: string; req?: boolean }) => (
     <label htmlFor={`ci-${k}`}><E k={`form.${k}`}>{children}</E>{req && <> <span className="req">*</span></>}</label>
@@ -196,10 +210,10 @@ export default function IntentForm({
       <form noValidate onSubmit={(e) => { e.preventDefault(); enviar(); }}>
         <fieldset className="group"><legend><i>01</i><E k="form.grupo1b">Dados do proprietário</E></legend>
           {I({ k: "p_nome", label: "Nome completo", req: true })}
-          <div className="row2">{I({ k: "p_cpf", label: "CPF", req: true, ph: "000.000.000-00", mode: "numeric" })}{I({ k: "p_rg", label: "RG" })}</div>
+          <div className="row2">{I({ k: "p_cpf", label: "CPF", req: true, ph: "000.000.000-00", mode: "numeric" })}{I({ k: "p_rg", label: "RG", ph: RG })}</div>
           <div className="row2">{I({ k: "p_nac", label: "Nacionalidade", ph: "Brasileira" })}{I({ k: "p_prof", label: "Profissão" })}</div>
           {I({ k: "p_end", label: "Endereço residencial (rua, número, bairro, cidade/UF)" })}
-          <div className="row2">{I({ k: "p_email", label: "E-mail", type: "email" })}{I({ k: "p_tel", label: "Telefone com DDD", type: "tel", ph: "(18) 99999-9999" })}</div>
+          <div className="row2">{I({ k: "p_email", label: "E-mail", type: "email" })}{I({ k: "p_tel", label: "Telefone com DDD", type: "tel", ph: "(18) 99999-9999", mode: "numeric" })}</div>
           <div className="row2">
             {S({ k: "estado_civil", label: "Estado civil", opts: [["", "Selecione"], ...["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"].map((x) => [x, x] as [string, string])] })}
             {S({ k: "modalidade", label: "Modalidade de interesse", opts: [["quero avaliar as opções", "Quero avaliar as opções"], ["parceria financeira", "Parceria financeira (dinheiro)"], ["parceria em lotes", "Parceria em lotes"], ["parceria híbrida", "Parceria híbrida (lotes + dinheiro)"]] })}
@@ -216,7 +230,7 @@ export default function IntentForm({
           <div className="row2">{I({ k: "c_matricula", label: "Matrícula da certidão de casamento" })}{I({ k: "c_rcpn", label: "RCPN / cartório do registro civil" })}</div>
           {I({ k: "c_municipio", label: "Município / comarca do casamento" })}
           {I({ k: "j_nome", label: "Nome completo do cônjuge" })}
-          <div className="row2">{I({ k: "j_cpf", label: "CPF do cônjuge", mode: "numeric" })}{I({ k: "j_rg", label: "RG do cônjuge" })}</div>
+          <div className="row2">{I({ k: "j_cpf", label: "CPF do cônjuge", ph: CPF, mode: "numeric" })}{I({ k: "j_rg", label: "RG do cônjuge", ph: RG })}</div>
           <div className="row2">{I({ k: "j_nac", label: "Nacionalidade do cônjuge" })}{I({ k: "j_prof", label: "Profissão do cônjuge" })}</div>
         </fieldset>
 
@@ -234,6 +248,10 @@ export default function IntentForm({
         </fieldset>
 
         <div className="declara"><E k="form.declaracao2" html>{"<strong>Declaração.</strong> Declaro que desejo dar continuidade aos estudos de viabilidade técnica, jurídica, ambiental, comercial e econômica da gleba informada e à elaboração da carta de intenção com a JBL Incorporadora e Urbanismo."}</E></div>
+        <div className="lgpd">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+          <span><E k="form.lgpd" html>{"<strong>Proteção dos seus dados (LGPD).</strong> Asseguramos o sigilo das informações enviadas, tratadas conforme a Lei Geral de Proteção de Dados (Lei n.º 13.709/2018). Os dados serão usados somente para a análise da área e a elaboração da carta de intenção, com acesso restrito à equipe responsável da JBL. A qualquer momento você pode pedir a consulta, a correção ou a exclusão dos seus dados."}</E></span>
+        </div>
         {err && <p className="err">{err}</p>}
 
         {protocolo ? (

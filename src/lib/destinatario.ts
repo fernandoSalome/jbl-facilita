@@ -1,34 +1,77 @@
 import type { Destinatario } from "./proposals";
 
 /**
- * Formas de tratamento da proposta conforme o destinatário:
- *   família      → "Prezada Família", "a família recebe", "vocês"
- *   proprietário → "Prezado Proprietário" / "Prezada Proprietária", "o proprietário recebe", "você"
- *   pessoa       → "Prezado Daniel", "você recebe"
- * `pick(familia, proprietario, pessoa)` escolhe a frase certa.
+ * Formas de tratamento da proposta conforme o destinatário (duas opções):
+ *   família → "Prezada Família Silva,", "a família recebe"
+ *   pessoa  → "Prezado Sr. João," / "Prezada Sra. Maria,", "o Sr. João recebe"
+ *             (sem nome: "Prezado Proprietário,", "o proprietário recebe")
+ * Propostas antigas com "proprietário" ou "pessoa" sem Sr./Sra. viram "pessoa".
+ * `pick(familia, pessoa)` escolhe a frase certa (um 3º argumento antigo é ignorado).
  */
 export function tratamento(d?: Destinatario) {
-  const tipo = d?.tipo ?? "familia";
+  const tipo: "familia" | "pessoa" = !d?.tipo || d.tipo === "familia" ? "familia" : "pessoa";
   const fem = d?.genero === "f";
-  const nome = (d?.nome ?? "").trim() || "[nome]";
-  const pick = <T,>(familia: T, proprietario: T, pessoa: T) => (tipo === "familia" ? familia : tipo === "proprietario" ? proprietario : pessoa);
-  const prop = fem ? "proprietária" : "proprietário";
+  const nome = (d?.nome ?? "").trim();
+  const pick = <T,>(familia: T, pessoa: T, _antigo?: T) => (tipo === "familia" ? familia : pessoa);
+
+  if (tipo === "familia") {
+    const familia = nome ? `Família ${nome.replace(/^fam[ií]lia\s+/i, "")}` : "Família";
+    return {
+      tipo,
+      pick,
+      nome,
+      /** "a família" */
+      quem: "a família",
+      /** "A família" */
+      Quem: "A família",
+      /** "da família" (para "a parte da família") */
+      da: "da família",
+      /** "à" / "ao" (para "Carta à Família Silva") */
+      ao: "à",
+      saudacao: `Prezada ${familia},`,
+      /** rótulo curto: gráfico de pizza, simulador */
+      rotulo: familia,
+      /** "recebê-los" / "recebê-lo" / "recebê-la" */
+      recebe: "recebê-los",
+      /** Partes do texto que viram campos travados (o nome muda de uma proposta para outra) */
+      campos: (nome ? [["familia", familia]] : []) as [string, string][],
+    };
+  }
+
+  const pessoa = nome ? `${fem ? "Sra." : "Sr."} ${nome}` : fem ? "proprietária" : "proprietário";
+  const rotulo = nome ? pessoa : fem ? "Proprietária" : "Proprietário";
+  const quem = `${fem ? "a" : "o"} ${pessoa}`;
+  const Quem = `${fem ? "A" : "O"} ${pessoa}`;
+  const da = `${fem ? "da" : "do"} ${pessoa}`;
   return {
     tipo,
     pick,
     nome,
-    /** "a família" / "o proprietário" / "você" */
-    quem: pick("a família", `${fem ? "a" : "o"} ${prop}`, "você"),
-    /** "A família" / "O proprietário" / "Você" */
-    Quem: pick("A família", `${fem ? "A" : "O"} ${prop}`, "Você"),
-    /** "da família" / "do proprietário" (para "a parte da família") */
-    da: pick("da família", `${fem ? "da" : "do"} ${prop}`, "sua"),
-    saudacao: pick("Prezada Família,", `${fem ? "Prezada" : "Prezado"} ${fem ? "Proprietária" : "Proprietário"},`, `${fem ? "Prezada" : "Prezado"} ${nome},`),
-    /** rótulo curto: gráfico de pizza, simulador */
-    rotulo: pick("Família", fem ? "Proprietária" : "Proprietário", "Você"),
-    /** "recebê-los" / "recebê-lo" / "recebê-la" */
-    recebe: pick("recebê-los", fem ? "recebê-la" : "recebê-lo", fem ? "recebê-la" : "recebê-lo"),
+    quem,
+    Quem,
+    da,
+    ao: fem ? "à" : "ao",
+    saudacao: `${fem ? "Prezada" : "Prezado"} ${rotulo},`,
+    rotulo,
+    recebe: fem ? "recebê-la" : "recebê-lo",
+    // do mais longo para o mais curto ("do Sr. João" antes de "o Sr. João" e de "Sr. João")
+    campos: [["da", da], ["quem", quem], ["Quem", Quem], ["rotulo", rotulo], ["pessoa", pessoa]] as [string, string][],
   };
 }
 
 export type Tratamento = ReturnType<typeof tratamento>;
+
+/**
+ * Texto que depende do destinatário: o nome (e "o Sr. João", "do Sr. João"...) vira {{campo}},
+ * para a edição valer para qualquer pessoa e o nome continuar vindo da proposta.
+ */
+export function comCampos(texto: string, d: Tratamento, vars?: Record<string, string>) {
+  let t = texto;
+  const v: Record<string, string> = { ...(vars ?? {}) };
+  for (const [campo, valor] of d.campos) {
+    if (!valor || !t.includes(valor)) continue;
+    t = t.split(valor).join(`{{${campo}}}`);
+    v[campo] = valor;
+  }
+  return { texto: t, vars: Object.keys(v).length ? v : undefined };
+}
