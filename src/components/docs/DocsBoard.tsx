@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TIPOS } from "@/lib/ia";
+import { ETAPA, FASES, faseEmUso } from "@/lib/fases";
 
 export type DocRow = {
-  id: string; tipo: string; titulo: string; resumo: string | null; fileName: string; mime: string; size: number;
+  id: string; tipo: string; fase: string | null; titulo: string; resumo: string | null; fileName: string; mime: string; size: number;
   origem: string; enviadoPor: string | null; grupo: string | null; createdAt: string; projectId: string | null; projectName?: string | null;
 };
 
@@ -22,13 +23,11 @@ function Icone({ mime }: { mime: string }) {
   );
 }
 
-/** Pastas por tipo de documento; cada arquivo pode mudar de pasta ou de loteamento */
+/** Documentos por etapa do processo; cada arquivo pode mudar de etapa, de pasta ou de loteamento */
 export default function DocsBoard({ docs, projetos, mostrarProjeto }: { docs: DocRow[]; projetos: { id: string; name: string }[]; mostrarProjeto?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
-  const pastas = Object.entries(TIPOS)
-    .map(([k, v]) => ({ k, nome: v.pasta, itens: docs.filter((d) => d.tipo === k) }))
-    .filter((p) => p.itens.length);
+  const pastas = FASES.map(([k]) => ({ k, nome: ETAPA[k], itens: docs.filter((d) => faseEmUso(d) === k) })).filter((p) => p.itens.length);
 
   async function patch(id: string, body: object) {
     setBusy(id);
@@ -49,7 +48,7 @@ export default function DocsBoard({ docs, projetos, mostrarProjeto }: { docs: Do
       <div className="card grid place-items-center gap-2 px-6 py-14 text-center">
         <div className="text-4xl">📁</div>
         <div className="h-display text-xl">Nenhum documento ainda</div>
-        <p className="max-w-md text-sm text-muted">Mande um PDF ou foto no grupo do WhatsApp “JBL IA Monitoring” dizendo de qual loteamento é. O assistente guarda aqui, já separado por pasta.</p>
+        <p className="max-w-md text-sm text-muted">Mande um PDF ou foto no grupo do WhatsApp do assistente dizendo de qual loteamento é. Ele guarda aqui, separado por etapa do processo e por pasta.</p>
       </div>
     );
   }
@@ -81,6 +80,9 @@ export default function DocsBoard({ docs, projetos, mostrarProjeto }: { docs: Do
                     {projetos.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                   </select>
                 )}
+                <select className="input w-36 py-1.5 text-[13px]" value={faseEmUso(d)} onChange={(e) => patch(d.id, { fase: e.target.value })} title="Mudar de etapa">
+                  {FASES.map(([k]) => <option key={k} value={k}>{ETAPA[k]}</option>)}
+                </select>
                 <select className="input w-44 py-1.5 text-[13px]" value={d.tipo} onChange={(e) => patch(d.id, { tipo: e.target.value })} title="Mudar de pasta">
                   {Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v.pasta}</option>)}
                 </select>

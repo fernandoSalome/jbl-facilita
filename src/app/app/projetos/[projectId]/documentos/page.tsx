@@ -18,7 +18,7 @@ export default async function ProjectDocs({ params }: { params: { projectId: str
       <PageHeader
         eyebrow={`${project.municipio} · ${project.uf}`}
         title="Documentação"
-        subtitle={`${project.name} · ${docs.length} documento(s). Os arquivos mandados no WhatsApp chegam aqui sozinhos, separados por pasta.`}
+        subtitle={`${project.name} · ${docs.length} documento(s). Os arquivos mandados no WhatsApp chegam aqui sozinhos, separados por etapa do processo e por pasta.`}
       />
       <div className="p-8">
         <DocsBoard docs={docs} projetos={projetos} mostrarProjeto />

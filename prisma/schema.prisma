@@ -159,8 +159,10 @@ model ProjectDocument {
   id         String    @id @default(cuid())
   projectId  String?
   project    Project?  @relation(fields: [projectId], references: [id])
-  /// matricula | car | certidao | iptu | contrato | planta | procuracao | foto | outro
+  /// matricula | car | certidao | iptu | contrato | planta | procuracao | foto | proposta | obra | venda | outro
   tipo       String    @default("outro")
+  /// Etapa do processo: prospeccao | proposta | parceria | aprovacao | obras | vendas (vazio = pela pasta)
+  fase       String?
   titulo     String
   resumo     String?
   dados      Json?
@@ -184,7 +186,7 @@ model WaGroup {
   id          String   @id @default(cuid())
   jid         String   @unique
   name        String
-  /// controle = grupo de comandos (JBL IA Monitoring); projeto = grupo com terrenistas
+  /// controle = o robô age neste grupo; inativo = ignorado (só os grupos cadastrados aqui são atendidos)
   papel       String   @default("controle")
   projectId   String?
   /// último loteamento citado na conversa (para saber de quem é o próximo documento)

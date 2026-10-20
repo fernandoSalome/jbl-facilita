@@ -50,9 +50,9 @@ function T({ k, children, multiline, html, fixo, vars, limpar }: { k: string; ch
  * Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@familia" ou "@pessoa").
  * O nome ("o Sr. João", "Família Silva") entra como campo travado, vindo da proposta.
  */
-function DT({ d, k, children, html, multiline, vars }: { d: Tratamento; k: string; children: string; html?: boolean; multiline?: boolean; vars?: Record<string, string> }) {
+function DT({ d, k, children, html, multiline, vars, limpar }: { d: Tratamento; k: string; children: string; html?: boolean; multiline?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string }) {
   const c = comCampos(children, d, vars);
-  return <T k={`${k}@${d.tipo}`} html={html} multiline={multiline} vars={c.vars}>{c.texto}</T>;
+  return <T k={`${k}@${d.tipo}`} html={html} multiline={multiline} vars={c.vars} limpar={limpar}>{c.texto}</T>;
 }
 
 /** Valor calculado pela planilha. Chave "v.<k>". Não é editável na proposta. */
@@ -152,6 +152,11 @@ function soNomesTecnicos(t: string, html: boolean) {
     .replace(/^\s*(?:<span[^>]*>)?\s*Profissionais chefes designados para o projeto\s*(?:<\/span>)?\s*(?:<br[^>]*>\s*)*/i, "")
     .replace(/(?:<br[^>]*>\s*)*<strong[^>]*>(?:(?!<\/strong>)[\s\S])*<\/strong>\s*$/i, "")
     .replace(/(?:<br[^>]*>\s*)+$/i, "");
+}
+
+/** O aplicativo "JBL Facilita" passou a se chamar Portal do Cliente (também nos textos já editados) */
+function portalDoCliente(t: string) {
+  return t.replace(/um aplicativo próprio da JBL \(JBL Facilita\)/g, "o Portal do Cliente da JBL").replace(/\bJBL Facilita\b/g, "Portal do Cliente");
 }
 
 /** "13 / Vamos avançar na análise" → "Vamos avançar na análise" (o número fica no círculo da seção) */
@@ -588,7 +593,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <h3><T k="s2h3">Lazer e benfeitorias (após estudo de viabilidade)</T></h3>
                 <ListaBenfeitorias base={formato.benfeitorias} />
                 <p className="note"><T k="s2Nota2">Todos os itens estão a projetar. Outras benfeitorias poderão ser identificadas ao longo dos processos de viabilidade e de aprovação.</T></p>
-                <p className="tip"><DT d={d} k="s2Tip2">{`📱 Além do acompanhamento pessoal, ${d.quem} acompanha as obras por um aplicativo próprio da JBL (JBL Facilita), com relatórios, fotos e vídeos a cada 15 dias. Os compradores dos lotes também terão serviços como segunda via de boletos.`}</DT></p>
+                <p className="tip"><DT d={d} k="s2Tip2" limpar={portalDoCliente}>{`📱 Além do acompanhamento pessoal, ${d.quem} acompanha as obras pelo Portal do Cliente da JBL, com relatórios, fotos e vídeos a cada 15 dias. Os compradores dos lotes também terão serviços como segunda via de boletos.`}</DT></p>
               </div>
             </Sec>
 

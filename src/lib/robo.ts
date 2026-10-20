@@ -1,33 +1,44 @@
 import { db } from "./db";
-import { entenderTexto, lerDocumento, projetoPorTexto, TIPOS } from "./ia";
+import { ETAPA, FASES, faseDoDocumento, faseEmUso } from "./fases";
+import { entenderTexto, lerDocumento, norm, projetoPorTexto, TIPOS } from "./ia";
+import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
- * Robô do WhatsApp. Por enquanto só age no grupo de comandos (nome com "JBL IA"):
- *  - arquivo recebido → guarda na pasta do loteamento e confirma;
+ * Robô do WhatsApp. Só age nos grupos cadastrados (tela "Assistente WhatsApp" do portal):
+ *  - arquivo recebido → guarda na pasta do loteamento, na etapa do processo, e confirma;
  *  - "estou enviando a matrícula do X" → responde que vai armazenar;
- *  - "manda a matrícula do X" → envia o arquivo no grupo dizendo de qual loteamento é;
- *  - "como está o X" / "quais documentos do X" → resumo da pasta.
+ *  - "manda a matrícula do X" → envia o arquivo; "manda os documentos da aprovação do X" → envia os da etapa;
+ *  - "manda a proposta do X" → envia o PDF da proposta;
+ *  - "qual o valor do lote no X?" → responde pelas propostas;
+ *  - "como está o X" / "quais documentos do X" → resumo da pasta, por etapa.
  * Mensagens de qualquer outro grupo ou conversa são ignoradas e não ficam guardadas.
  */
 
-/** Nome do grupo de comandos: "JBL IA Monitoring", "AI"... (WA_GRUPO_CONTROLE troca a regra) */
-const GRUPO_CONTROLE = new RegExp(process.env.WA_GRUPO_CONTROLE || String.raw`jbl\s*ia|^\s*(ai|ia)\s*$`, "i");
 const ROBO = "🤖";
+/** Quantos arquivos o robô manda de uma vez quando pedem os documentos de uma etapa */
+const MAX_ENVIO = 6;
 const CONTEXTO_MIN = 30;
 const MAX_ARQUIVO = 20 * 1024 * 1024;
 
 const projetosAtivos = () =>
-  db.project.findMany({ where: { deletedAt: null }, select: { id: true, name: true, municipio: true, uf: true }, orderBy: { name: "asc" } });
+  db.project.findMany({ where: { deletedAt: null }, select: { id: true, name: true, municipio: true, uf: true, fase: true }, orderBy: { name: "asc" } });
 
+/** Só os grupos cadastrados (e ativos) são atendidos; o nome vem do WhatsApp na 1ª mensagem */
 async function grupoMonitorado(jid: string) {
   const g = await db.waGroup.findUnique({ where: { jid } });
-  if (g) return g;
-  const nome = await nomeDoGrupo(jid).catch(() => "");
-  if (!GRUPO_CONTROLE.test(nome)) return null;
-  return db.waGroup.create({ data: { jid, name: nome, papel: "controle" } });
+  if (!g || g.papel === "inativo") return null;
+  if (!g.name || g.name === jid) {
+    const nome = await nomeDoGrupo(jid).catch(() => "");
+    if (nome) return db.waGroup.update({ where: { id: g.id }, data: { name: nome } });
+  }
+  return g;
 }
+
+/** Endereço para gerar o PDF da proposta (a página pública é aberta por dentro do servidor) */
+const origemInterna = () =>
+  process.env.VERCEL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
 
 const pastaDe = (tipo: string) => TIPOS[tipo]?.pasta ?? "Outros";
 const tamanho = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
@@ -57,9 +68,11 @@ export async function tratarMensagem(m: Recebida) {
     const fileName = midia.fileName || m.arquivo.fileName;
     const leitura = await lerDocumento({ base64: midia.base64, mime, fileName, legenda: m.texto }, projetos);
     const projectId = citado?.id ?? leitura.projetoId ?? contextoValido ?? null;
+    const projeto = projetos.find((x) => x.id === projectId);
+    const fase = leitura.fase && ETAPA[leitura.fase] ? leitura.fase : faseDoDocumento(leitura.tipo, `${m.texto} ${fileName}`, projeto?.fase);
     const doc = await db.projectDocument.create({
       data: {
-        projectId, tipo: leitura.tipo, titulo: leitura.titulo, resumo: leitura.resumo ?? null, dados: (leitura.dados ?? undefined) as object | undefined,
+        projectId, tipo: leitura.tipo, fase, titulo: leitura.titulo, resumo: leitura.resumo ?? null, dados: (leitura.dados ?? undefined) as object | undefined,
         fileName, mime, size: bytes.length, data: bytes, origem: "whatsapp", enviadoPor: m.autor || null, grupo: g.name, messageId: m.id,
       },
     });
@@ -70,7 +83,7 @@ export async function tratarMensagem(m: Recebida) {
     const p = projetos.find((x) => x.id === projectId)!;
     const extra = leitura.resumo ? `\n📝 ${leitura.resumo}` : "";
     return responder(
-      `Armazenado! ✅\n📁 *${p.name}* › ${pastaDe(doc.tipo)}\n📄 ${doc.titulo} (${fileName}, ${tamanho(bytes.length)})${extra}\n\nPara pedir de volta: _manda a ${TIPOS[doc.tipo].nome.toLowerCase()} do ${p.name}_`,
+      `Armazenado! ✅\n📁 *${p.name}* › ${ETAPA[fase]} › ${pastaDe(doc.tipo)}\n📄 ${doc.titulo} (${fileName}, ${tamanho(bytes.length)})${extra}\n\nPara pedir de volta: _manda a ${TIPOS[doc.tipo].nome.toLowerCase()} do ${p.name}_ ou _manda os documentos da ${ETAPA[fase].toLowerCase()} do ${p.name}_`,
     );
   }
 
@@ -106,6 +119,17 @@ export async function tratarMensagem(m: Recebida) {
     }
     case "pedido_documento": {
       if (!alvo) return responder(`De qual loteamento? Tenho pastas para:\n${listaProjetos(projetos)}`);
+      // "manda os documentos da aprovação do X": todos os da etapa
+      if (!it.tipo && it.fase) {
+        const todos = await db.projectDocument.findMany({ where: { projectId: alvo.id, deletedAt: null }, orderBy: { createdAt: "desc" } });
+        const daEtapa = todos.filter((d) => faseEmUso(d) === it.fase);
+        if (!daEtapa.length) return responder(`Ainda não tenho documentos da etapa *${ETAPA[it.fase]}* do *${alvo.name}*.`);
+        await responder(`Mandando ${Math.min(daEtapa.length, MAX_ENVIO)} documento(s) da etapa *${ETAPA[it.fase]}* do *${alvo.name}*:${daEtapa.length > MAX_ENVIO ? ` (são ${daEtapa.length}; mando os ${MAX_ENVIO} mais recentes)` : ""}`);
+        for (const d of daEtapa.slice(0, MAX_ENVIO)) {
+          await enviarArquivo(m.grupo, { base64: Buffer.from(d.data).toString("base64"), mime: d.mime, fileName: d.fileName, caption: `${ROBO} *${d.titulo}*\n📁 ${alvo.name} › ${ETAPA[it.fase]} › ${pastaDe(d.tipo)}` });
+        }
+        return;
+      }
       const doc = await db.projectDocument.findFirst({
         where: { projectId: alvo.id, deletedAt: null, ...(it.tipo ? { tipo: it.tipo } : {}) },
         orderBy: { createdAt: "desc" },
@@ -119,7 +143,33 @@ export async function tratarMensagem(m: Recebida) {
         base64: Buffer.from(doc.data).toString("base64"),
         mime: doc.mime,
         fileName: doc.fileName,
-        caption: `${ROBO} *${doc.titulo}*\n📁 Loteamento *${alvo.name}* (${alvo.municipio}/${alvo.uf}) › ${pastaDe(doc.tipo)}\n🗓 Recebido em ${quando}${doc.enviadoPor ? ` · enviado por ${doc.enviadoPor}` : ""}${doc.grupo ? ` no grupo ${doc.grupo}` : ""}`,
+        caption: `${ROBO} *${doc.titulo}*\n📁 Loteamento *${alvo.name}* (${alvo.municipio}/${alvo.uf}) › ${ETAPA[faseEmUso(doc)]} › ${pastaDe(doc.tipo)}\n🗓 Recebido em ${quando}${doc.enviadoPor ? ` · enviado por ${doc.enviadoPor}` : ""}${doc.grupo ? ` no grupo ${doc.grupo}` : ""}`,
+      });
+      return;
+    }
+    case "pedido_proposta": {
+      if (!alvo) return responder(`De qual loteamento? Tenho propostas para:\n${listaProjetos(projetos)}`);
+      const props = await db.proposal.findMany({
+        where: { projectId: alvo.id, deletedAt: null },
+        select: { name: true, ownerName: true, status: true, publicToken: true },
+        orderBy: { updatedAt: "desc" },
+      });
+      if (!props.length) return responder(`O *${alvo.name}* ainda não tem proposta no portal.`);
+      // a proposta citada pelo nome ou pelo terrenista; senão a mais recente já enviada
+      const n = norm(m.texto);
+      const escolhida =
+        props.find((p) => [p.name, p.ownerName].some((x) => norm(x).split(/\s+/).some((w) => w.length >= 4 && n.includes(w)))) ??
+        props.find((p) => p.status !== "rascunho") ??
+        props[0];
+      await responder(`Gerando o PDF da proposta *${escolhida.name}* (${alvo.name})… ⏳`);
+      const pdf = await pdfDaProposta(origemInterna(), escolhida.publicToken).catch((e) => (console.error("robo pdf", e), null));
+      if (!pdf) return responder(`Não consegui gerar o PDF agora. O link da proposta funciona: ${origemInterna().startsWith("http://127") ? "" : `${origemInterna()}/p/${escolhida.publicToken}`}`);
+      const nome = `Proposta JBL - ${alvo.name} - ${escolhida.name}.pdf`.normalize("NFD").replace(/[̀-ͯ]/g, "");
+      await enviarArquivo(m.grupo, {
+        base64: pdf.data.toString("base64"),
+        mime: "application/pdf",
+        fileName: nome,
+        caption: `${ROBO} *${escolhida.name}* · ${alvo.name}\n👤 ${escolhida.ownerName} · ${pdf.pages} páginas${props.length > 1 ? `\nOutras propostas deste loteamento: ${props.filter((p) => p !== escolhida).map((p) => p.name).join("; ")}` : ""}`,
       });
       return;
     }
@@ -128,19 +178,24 @@ export async function tratarMensagem(m: Recebida) {
     case "status":
     case "listar": {
       if (!alvo) return responder(`De qual loteamento? Tenho pastas para:\n${listaProjetos(projetos)}`);
-      const docs = await db.projectDocument.findMany({ where: { projectId: alvo.id, deletedAt: null }, select: { tipo: true, titulo: true, createdAt: true }, orderBy: { createdAt: "desc" } });
+      const docs = await db.projectDocument.findMany({ where: { projectId: alvo.id, deletedAt: null }, select: { tipo: true, fase: true, titulo: true, createdAt: true }, orderBy: { createdAt: "desc" } });
       const props = await db.proposal.findMany({ where: { projectId: alvo.id, deletedAt: null }, select: { name: true, status: true } });
-      const porPasta = new Map<string, string[]>();
-      for (const d of docs) porPasta.set(pastaDe(d.tipo), [...(porPasta.get(pastaDe(d.tipo)) ?? []), d.titulo]);
-      const pastas = docs.length ? [...porPasta].map(([k, v]) => `📁 ${k}: ${v.join("; ")}`).join("\n") : "📁 Nenhum documento guardado ainda.";
+      // documentos separados por etapa do processo (e a pasta de cada um)
+      const pastas = docs.length
+        ? FASES.map(([f]) => [f, docs.filter((d) => faseEmUso(d) === f)] as const)
+            .filter(([, ds]) => ds.length)
+            .map(([f, ds]) => `*${ETAPA[f]}*\n${ds.map((d) => `  📄 ${d.titulo} _(${pastaDe(d.tipo)})_`).join("\n")}`)
+            .join("\n")
+        : "📁 Nenhum documento guardado ainda.";
+      const faseAtual = FASES.find(([f]) => f === alvo.fase)?.[1];
       const falta = ["matricula", "car", "certidao"].filter((t) => !docs.some((d) => d.tipo === t)).map((t) => TIPOS[t].nome);
       const ultimo = docs[0] ? `\n🕓 Último documento: ${docs[0].titulo} (${docs[0].createdAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })})` : "";
       const propTxt = props.length ? `\n📄 Propostas: ${props.map((p) => `${p.name} (${p.status.replace("_", " ")})`).join("; ")}` : "";
-      return responder(`*${alvo.name}* · ${alvo.municipio}/${alvo.uf}\n${pastas}${ultimo}${propTxt}${falta.length ? `\n⏳ Ainda falta: ${falta.join(", ")}` : ""}`);
+      return responder(`*${alvo.name}* · ${alvo.municipio}/${alvo.uf}${faseAtual ? ` · fase: ${faseAtual}` : ""}\n${pastas}${ultimo}${propTxt}${falta.length ? `\n⏳ Ainda falta: ${falta.join(", ")}` : ""}`);
     }
     case "ajuda":
       return responder(
-        `Sou o assistente da JBL. Aqui você pode:\n• Mandar um documento (PDF ou foto): eu guardo na pasta do loteamento.\n• Pedir: _manda a matrícula do São Judas_\n• Perguntar: _como está o São Judas?_\n• Perguntar das propostas: _qual o valor do lote na proposta do São Judas?_\n\nLoteamentos:\n${listaProjetos(projetos)}`,
+        `Sou o assistente da JBL. Aqui você pode:\n• *Mandar um documento* (PDF ou foto) de qualquer etapa: eu guardo na pasta do loteamento. Diga a etapa se quiser: _segue a licença da aprovação do São Judas_\n• *Pedir um documento:* _manda a matrícula do São Judas_\n• *Pedir os de uma etapa:* _manda os documentos da aprovação do São Judas_\n• *Pedir a proposta em PDF:* _manda a proposta do São Judas_\n• *Perguntar das propostas:* _qual o valor do lote na proposta do São Judas?_\n• *Ver o andamento:* _como está o São Judas?_\n\nEtapas: ${FASES.map(([f]) => ETAPA[f]).join(" · ")}\n\nLoteamentos:\n${listaProjetos(projetos)}`,
       );
     default:
       return;

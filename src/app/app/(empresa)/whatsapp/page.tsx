@@ -4,6 +4,7 @@ import { listarDocumentos } from "@/lib/docs";
 import { estadoConexao } from "@/lib/whatsapp";
 import PageHeader from "@/components/PageHeader";
 import DocsBoard from "@/components/docs/DocsBoard";
+import GruposWhatsapp from "@/components/docs/GruposWhatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -27,19 +28,16 @@ export default async function WhatsappPage() {
               <span className={`h-3 w-3 rounded-full ${on ? "bg-emerald-500" : "bg-rose-500"}`} />
               <b className="text-navy">{on ? "WhatsApp conectado" : "WhatsApp desconectado"}</b>
             </div>
-            <h3 className="eyebrow mb-2 mt-5">Grupos acompanhados</h3>
-            {grupos.length ? (
-              <ul className="grid gap-1.5 text-sm">{grupos.map((g) => <li key={g.id}>💬 <b>{g.name}</b> <span className="text-muted">· grupo de comandos</span></li>)}</ul>
-            ) : (
-              <p className="text-sm text-muted">Nenhum ainda. Crie um grupo com “JBL IA” no nome (ex.: JBL IA Monitoring) e mande uma mensagem.</p>
-            )}
+            <GruposWhatsapp grupos={grupos.map(({ id, jid, name, papel }) => ({ id, jid, name, papel }))} />
           </section>
           <section className="card p-5 text-sm leading-relaxed">
             <h3 className="eyebrow mb-3">Como usar no grupo</h3>
             <ul className="grid gap-2">
-              <li>📎 <b>Mandar um documento</b> (PDF ou foto). Escreva de qual loteamento é, na legenda ou antes: <i>“estou enviando a matrícula do São Judas”</i>.</li>
-              <li>📥 <b>Pedir de volta:</b> <i>“manda a matrícula do São Judas”</i>. O assistente envia o arquivo dizendo de qual loteamento é.</li>
-              <li>📊 <b>Perguntar:</b> <i>“como está o São Judas?”</i> mostra o que tem na pasta e o que falta.</li>
+              <li>📎 <b>Mandar um documento</b> (PDF ou foto) de qualquer etapa do processo. Escreva de qual loteamento é, na legenda ou antes: <i>“segue a licença da aprovação do São Judas”</i>. Ele guarda na pasta do loteamento, na etapa certa.</li>
+              <li>📥 <b>Pedir de volta:</b> <i>“manda a matrícula do São Judas”</i>, ou todos os de uma etapa: <i>“manda os documentos da aprovação do São Judas”</i>.</li>
+              <li>📄 <b>Proposta em PDF:</b> <i>“manda a proposta do São Judas”</i>.</li>
+              <li>💬 <b>Perguntar das propostas:</b> <i>“qual o valor do lote no São Judas?”</i>, <i>“a família já abriu a proposta?”</i></li>
+              <li>📊 <b>Andamento:</b> <i>“como está o São Judas?”</i> mostra os documentos por etapa e o que falta.</li>
               <li>❓ <b>ajuda</b> mostra os comandos.</li>
             </ul>
           </section>
