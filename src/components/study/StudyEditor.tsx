@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes";
 type NumKey = { [K in keyof StudyInputs]: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "", num: "×", anos: "anos", m: "m", lotes: "lotes" };
-const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -54,7 +54,9 @@ export function useStudyState(initial: StudyInputs) {
   }
   /** Liga/desliga a primeira etapa (desmembramento) */
   function setEtapa(on: boolean) {
-    setInputs((s) => ({ ...s, primeiraEtapa: on }));
+    // desligada, a quantidade de lotes some (senão a proposta voltaria com a etapa ligada)
+    if (!on) setTexts((s) => ({ ...s, lotesEtapa1: "" }));
+    setInputs((s) => ({ ...s, primeiraEtapa: on, ...(on ? {} : { lotesEtapa1: null }) }));
   }
   function clearManual() {
     setTexts((s) => ({ ...s, reajusteManual: "" }));
@@ -119,7 +121,6 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
   const s = state;
   const r = useMemo(() => calcular(s.inputs), [s.inputs]);
   const i = r.inputs;
-  const p2 = r.plano02;
   const invalid = r.jblPct < 0;
 
   return (
@@ -203,78 +204,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        {/* Plano de Venda 02 */}
-        <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
-          <div className="bg-navy px-3 py-1.5 text-center text-[12.5px] font-bold text-white">Plano de Venda 02</div>
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="bg-navy/90 text-[12px] text-white">
-                <th className="px-3 py-1 text-left font-bold" />
-                <th className="px-2 py-1 font-bold">Dados</th>
-                <th className="px-2 py-1 font-bold">%</th>
-                <th className="px-2 py-1 font-bold">Incorporador</th>
-                <th className="px-2 py-1 font-bold">Terrenista</th>
-              </tr>
-            </thead>
-            <tbody className="tabular divide-y divide-gold/30">
-              {(
-                [
-                  ["Valor do Lote", p2.lote, null],
-                  ["Corretagem", p2.corretagem, null],
-                  ["Entrada Inc/Ter", p2.entrada, "entradaIncTerPct"],
-                  ["Parcela até entrega", p2.parcelaEntrega, "parcelaEntregaPct"],
-                  ["Balão entrega do Emp.", p2.balao, "balaoPct"],
-                  ["Valor Remanescente", p2.remanescente, null],
-                ] as [string, { total: number; inc: number; ter: number; pct: number }, NumKey | null][]
-              ).map(([label, row, key]) => (
-                <tr key={label}>
-                  <td className="px-3 py-1 font-semibold text-navy">{label}</td>
-                  <td className="px-2 py-1 text-right">{fmtBRL(row.total)}</td>
-                  <td className="w-[104px] px-2 py-1 text-right">
-                    {key ? (
-                      <span className="relative block">
-                        <input
-                          inputMode="decimal"
-                          value={s.texts[key] ?? ""}
-                          onChange={(e) => s.set(key, e.target.value)}
-                          className="w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-0.5 pl-2 pr-6 text-right font-semibold text-navy outline-none focus:border-gold focus:bg-white"
-                        />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-navy/60">%</span>
-                      </span>
-                    ) : (
-                      fmtPct(row.pct)
-                    )}
-                  </td>
-                  <td className="px-2 py-1 text-right">{fmtBRL(row.inc)}</td>
-                  <td className="px-2 py-1 text-right">{fmtBRL(row.ter)}</td>
-                </tr>
-              ))}
-              <tr className="bg-alt">
-                <td className="px-3 py-1 font-semibold text-navy">Valor da Parcela</td>
-                <td className="px-2 py-1 text-right">{fmtBRL(p2.parcelaRemanescente.total)}</td>
-                <td />
-                <td className="px-2 py-1 text-right">{fmtBRL(p2.parcelaRemanescente.inc)}</td>
-                <td className="px-2 py-1 text-right">{fmtBRL(p2.parcelaRemanescente.ter)}</td>
-              </tr>
-              <tr className="bg-alt">
-                <td className="px-3 py-1 font-semibold text-navy">Valor do Lote (Total Parcela)</td>
-                <td className="px-2 py-1 text-right">{fmtBRL(p2.valorFinalLote.total)}</td>
-                <td />
-                <td className="px-2 py-1 text-right">{fmtBRL(p2.valorFinalLote.inc)}</td>
-                <td className="px-2 py-1 text-right">{fmtBRL(p2.valorFinalLote.ter)}</td>
-              </tr>
-              <tr className="bg-gold-soft font-semibold text-navy">
-                <td className="px-3 py-1">Total da Carteira</td>
-                <td className="px-2 py-1 text-right">{fmtBRL0(p2.totalCarteira.total)}</td>
-                <td />
-                <td className="px-2 py-1 text-right">{fmtBRL0(p2.totalCarteira.inc)}</td>
-                <td className="px-2 py-1 text-right">{fmtBRL0(p2.totalCarteira.ter)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
+      <div className="grid items-start gap-4 xl:grid-cols-2">
         {/* Dados que a planilha não tem, usados no site da proposta */}
         <Box title="Para o site da proposta" right="não está na planilha">
           <In s={s} k="frenteLote" label="Frente do lote" hint="Só para escrever “lotes de 8 × 25 metros”" />
@@ -284,9 +214,8 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <In s={s} k="desagio" label="Deságio da antecipação" />
           <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
         </Box>
-      </div>
 
-      {/* Primeira etapa: desmembramento de parte da área para começar a vender antes */}
+        {/* Primeira etapa: desmembramento de parte da área para começar a vender antes */}
       <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
         <label className="flex cursor-pointer items-center gap-3 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
           <input type="checkbox" checked={i.primeiraEtapa} onChange={(e) => s.setEtapa(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
@@ -294,20 +223,21 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <span className="ml-auto font-normal text-white/70">{i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}</span>
         </label>
         {i.primeiraEtapa && (
-          <div className="grid divide-gold/30 md:grid-cols-2 md:divide-x">
+          <div className="grid divide-y divide-gold/30">
             <div className="divide-y divide-gold/30">
-              <In s={s} k="areaEtapa1" label="Tamanho da área da 1ª etapa (m²)" />
-              <Out label="Aproveitamento (o mesmo do estudo)" value={fmtPct(i.aproveitamento)} />
+              <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
               <In s={s} k="loteEtapa1" label="Metragem do lote da 1ª etapa (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo`} />
+              <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} />
             </div>
             <div className="divide-y divide-gold/30">
-              <Out label="Lotes da 1ª etapa" value={r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : "—"} strong />
+              <In s={s} k="lotesEtapa1" label="Quantidade de lotes da 1ª etapa" />
               <Out label="Da área aproveitável" value={r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
               <Out label="VGV parcial à vista" value={r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
               <Out label={`VGV parcial em ${r.nParcelas} meses`} value={r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
             </div>
           </div>
         )}
+      </div>
       </div>
 
       {/* Outros períodos */}

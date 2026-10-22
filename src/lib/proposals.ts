@@ -56,10 +56,13 @@ export function displayStatus(p: { status: string; expiresAt: Date | null }) {
 
 export function parseInputs(json: unknown): StudyInputs {
   const i: StudyInputs = { ...DEFAULT_INPUTS, ...((json as Partial<StudyInputs>) ?? {}) };
-  // Antes da opção de desmembramento, a primeira etapa era só o número de lotes:
-  // vira a área equivalente (lotes × lote ÷ aproveitamento), com os mesmos números
-  if (i.lotesEtapa1 && !i.primeiraEtapa && !i.areaEtapa1 && i.aproveitamento > 0) {
-    return { ...i, primeiraEtapa: true, areaEtapa1: (i.lotesEtapa1 * i.metragemLote) / i.aproveitamento, loteEtapa1: i.metragemLote, lotesEtapa1: null };
+  // Primeira etapa: a quantidade de lotes é digitada. Propostas antigas viram lotes:
+  // só o número de lotes (sem a opção ligada) → liga a opção com o lote do estudo;
+  // pela área desmembrada → lotes = área × aproveitamento ÷ lote da etapa
+  if (i.lotesEtapa1 && !i.primeiraEtapa) return { ...i, primeiraEtapa: true, loteEtapa1: i.loteEtapa1 ?? i.metragemLote };
+  if (i.primeiraEtapa && !i.lotesEtapa1 && i.areaEtapa1) {
+    const lote = i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
+    return { ...i, lotesEtapa1: lote > 0 ? (Math.min(i.areaEtapa1, i.areaTotal) * i.aproveitamento) / lote : null, areaEtapa1: null };
   }
   return i;
 }
