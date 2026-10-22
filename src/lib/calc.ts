@@ -67,8 +67,8 @@ export type StudyInputs = {
   areaPerimetralE1: number | null;
   /** Primeira etapa: largura da rua (m) */
   ruaE1: number | null;
-  /** Primeira etapa: distância entre ruas = largura da quadra (m) */
-  distRuasE1: number | null;
+  /** Primeira etapa: área que não vira lote (árvore, casa existente...), descontada da perimetral (m²) */
+  descontoE1: number | null;
   /** Primeira etapa: comprimento da quadra (m) */
   compQuadraE1: number | null;
   /** Primeira etapa: frente do lote (m) */
@@ -112,7 +112,7 @@ export const DEFAULT_INPUTS: StudyInputs = {
   valorM2Etapa1: null,
   areaPerimetralE1: null,
   ruaE1: null,
-  distRuasE1: null,
+  descontoE1: null,
   compQuadraE1: null,
   frenteE1: null,
   desagio: 0.66667,
@@ -200,7 +200,7 @@ export type StudyResult = {
   etapa1: {
     lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; avista: number; prazo: number;
     /** Pelas medidas da fileira de quadras (null = proposta sem as medidas) */
-    quadras: { quarteiroes: number; porQuadra: number; fundo: number; frente: number; compFaixa: number } | null;
+    quadras: { liquida: number; quarteiroes: number; porQuadra: number; fundo: number; frente: number; compFaixa: number } | null;
   } | null;
   /** Antecipação de recebíveis da carteira do terrenista no prazo escolhido */
   antecipacao: { carteira: number; valor: number; jurosMes1: number; multiplicador: number; rentabilidade: number; ultimaBase: number };
@@ -289,21 +289,26 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     // propostas sem as medidas: lotes salvos; ou a área desmembrada × aproveitamento ÷ lote
     let qtd = i.lotesEtapa1 ?? (i.areaEtapa1 && lote > 0 ? (Math.min(i.areaEtapa1, i.areaTotal) * i.aproveitamento) / lote : 0);
     let quadras: NonNullable<StudyResult["etapa1"]>["quadras"] = null;
-    // Uma fileira de quadras: faixa com a largura da quadra + a rua da frente; quarteirões separados
-    // por ruas ao longo da faixa; lotes em duas fileiras de costas (fundo = metade da quadra).
-    if (i.areaPerimetralE1 && i.distRuasE1 && i.compQuadraE1 && i.frenteE1) {
+    // Uma fileira de quadras com duas fileiras de lotes de costas: fundo = m² do lote ÷ frente,
+    // largura da faixa = 2 fundos + a rua da frente. Ao longo da faixa, quadras separadas por ruas;
+    // a última pode ficar mais curta. A área descontada (árvore, casa...) sai da perimetral.
+    const frente = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;
+    if (i.areaPerimetralE1 && i.areaPerimetralE1 > 0 && frente > 0 && lote > 0) {
       const rua = i.ruaE1 ?? 0;
-      const compFaixa = i.areaPerimetralE1 / (i.distRuasE1 + rua);
-      const quarteiroes = Math.max(0, Math.floor((compFaixa + rua) / (i.compQuadraE1 + rua) + 1e-9));
-      const porQuadra = 2 * Math.floor(i.compQuadraE1 / i.frenteE1 + 1e-9);
-      const fundo = i.distRuasE1 / 2;
-      quadras = { quarteiroes, porQuadra, fundo, frente: i.frenteE1, compFaixa };
-      qtd = quarteiroes * porQuadra;
-      lote = i.frenteE1 * fundo;
+      const fundo = lote / frente;
+      const liquida = Math.max(0, i.areaPerimetralE1 - (i.descontoE1 ?? 0));
+      const compFaixa = liquida / (2 * fundo + rua);
+      const comp = i.compQuadraE1 && i.compQuadraE1 > 0 ? i.compQuadraE1 : compFaixa;
+      const porQuadra = 2 * Math.floor(comp / frente + 1e-9);
+      const cheias = Math.floor((compFaixa + rua) / (comp + rua) + 1e-9);
+      const resto = compFaixa - cheias * (comp + rua);
+      const extra = resto > 0 ? 2 * Math.floor(resto / frente + 1e-9) : 0;
+      quadras = { liquida, quarteiroes: cheias + (extra > 0 ? 1 : 0), porQuadra, fundo, frente, compFaixa };
+      qtd = cheias * porQuadra + extra;
     }
     const valorM2E = i.valorM2Etapa1 ?? i.valorM2;
     const avista = qtd * lote * valorM2E;
-    if (qtd > 0) {
+    if (qtd > 0 || quadras) {
       etapa1 = {
         lotes: qtd, lote, valorM2: valorM2E, areaUtil: qtd * lote, pct: (qtd * lote) / areaUtil, avista, quadras,
         // a prazo com o mesmo financiamento do estudo: carteira ÷ VGV à vista

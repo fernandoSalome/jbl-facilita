@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes";
 type NumKey = { [K in keyof StudyInputs]: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "", num: "×", anos: "anos", m: "m", lotes: "lotes" };
-const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "distRuasE1", "compQuadraE1", "frenteE1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "compQuadraE1", "frenteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m2", ruaE1: "m", distRuasE1: "m", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m2", ruaE1: "m", descontoE1: "m2", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -227,13 +227,16 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <div className="divide-y divide-gold/30">
               <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
               <In s={s} k="areaPerimetralE1" label="Área perimetral da 1ª etapa (m²)" />
+              <In s={s} k="descontoE1" label="Área a descontar (m²)" hint="Árvore que não pode cortar, casa existente... sai da área perimetral" />
               <In s={s} k="ruaE1" label="Largura da rua (m)" />
-              <In s={s} k="distRuasE1" label="Distância entre ruas (m)" hint="Largura da quadra" />
-              <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" />
-              <In s={s} k="frenteE1" label="Frente do lote (m)" />
+              <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da faixa" />
+              <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} />
+              <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} />
               <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} />
             </div>
             <div className="divide-y divide-gold/30">
+              <Out label="Área perimetral líquida (m²)" value={r.etapa1?.quadras ? fmtNum(r.etapa1.quadras.liquida) : "—"} />
+              <Out label="Comprimento da faixa (m)" value={r.etapa1?.quadras ? fmtNum(r.etapa1.quadras.compFaixa) : "—"} />
               <Out label="Quarteirões (uma fileira)" value={r.etapa1?.quadras ? String(r.etapa1.quadras.quarteiroes) : "—"} />
               <Out label="Lotes por quadra" value={r.etapa1?.quadras ? String(r.etapa1.quadras.porQuadra) : "—"} />
               <Out label="Lote (frente × fundo)" value={r.etapa1?.quadras ? `${fmtNum(r.etapa1.quadras.frente)} × ${fmtNum(r.etapa1.quadras.fundo)} = ${fmtNum(r.etapa1.lote)} m²` : "—"} />

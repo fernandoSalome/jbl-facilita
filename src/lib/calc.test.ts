@@ -155,11 +155,17 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(q.etapa1!.avista).toBeCloseTo(100 * 250 * 600, 2);
     expect(q.etapa1!.pct).toBeCloseTo((100 * 250) / q.areaUtil, 8);
     expect(q.etapa1!.prazo).toBeCloseTo(q.etapa1!.avista * (q.principal.carteiraEmp / q.vgvAvista), 2);
-    // pelas medidas: faixa 2.000 m² ÷ (30 + 10) = 50 m → (50 + 10) ÷ (20 + 10) = 2 quarteirões; 2 × (20 ÷ 10) = 4 lotes por quadra
-    const g = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 2000, ruaE1: 10, distRuasE1: 30, compQuadraE1: 20, frenteE1: 10 });
-    expect(g.etapa1!.quadras).toMatchObject({ quarteiroes: 2, porQuadra: 4, fundo: 15 });
+    // pelas medidas: lote 150 m² ÷ frente 10 = fundo 15; faixa (2.100 − 100) ÷ (2 × 15 + 10) = 50 m
+    // → (50 + 10) ÷ (20 + 10) = 2 quarteirões de 2 × (20 ÷ 10) = 4 lotes
+    const g = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 2100, descontoE1: 100, ruaE1: 10, compQuadraE1: 20, frenteE1: 10, loteEtapa1: 150 });
+    expect(g.etapa1!.quadras).toMatchObject({ liquida: 2000, quarteiroes: 2, porQuadra: 4, fundo: 15 });
     expect(g.etapa1!.lotes).toBe(8);
-    expect(g.etapa1!.lote).toBe(150);
+    expect(g.etapa1!.avista).toBeCloseTo(8 * 150 * g.inputs.valorM2, 2);
+    // faixa mais curta que a quadra (o caso da tela): conta a quadra parcial
+    const curta = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 1000, ruaE1: 12, compQuadraE1: 200, frenteE1: 8, loteEtapa1: 200, valorM2Etapa1: 350 });
+    expect(curta.etapa1!.quadras!.compFaixa).toBeCloseTo(1000 / 62, 6);
+    expect(curta.etapa1!.lotes).toBe(4);
+    expect(curta.etapa1!.avista).toBeCloseTo(4 * 200 * 350, 2);
     // desligada: não existe primeira etapa
     expect(calcular({ ...r.inputs, lotesEtapa1: null, primeiraEtapa: false, areaEtapa1: 40000 }).etapa1).toBe(null);
     // proposta antiga (só lotes) abre com a opção ligada e os mesmos números
