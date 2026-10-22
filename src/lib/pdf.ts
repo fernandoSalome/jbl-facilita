@@ -68,9 +68,13 @@ export function contarPaginas(pdf: Buffer) {
 
 async function imprimir(origin: string, token: string, rodape: string, paginas?: number) {
   const { chromium } = await import("playwright-core");
+  // Na Vercel não há Chromium instalado: usa a versão compactada para funções sem servidor.
+  // As funções da Vercel rodam no Amazon Linux 2023; a variável faz o pacote extrair as bibliotecas certas (libnss3...).
+  if (process.env.VERCEL) process.env.AWS_LAMBDA_JS_RUNTIME ??= "nodejs20.x";
+  const vercel = process.env.VERCEL ? (await import("@sparticuz/chromium")).default : null;
   const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || undefined,
-    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    executablePath: vercel ? await vercel.executablePath() : process.env.CHROMIUM_PATH || undefined,
+    args: vercel ? vercel.args : ["--no-sandbox", "--disable-dev-shm-usage"],
   });
   try {
     const page = await browser.newPage({ viewport: { width: W, height: 900 } });
