@@ -155,6 +155,11 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(q.etapa1!.avista).toBeCloseTo(100 * 250 * 600, 2);
     expect(q.etapa1!.pct).toBeCloseTo((100 * 250) / q.areaUtil, 8);
     expect(q.etapa1!.prazo).toBeCloseTo(q.etapa1!.avista * (q.principal.carteiraEmp / q.vgvAvista), 2);
+    // pelas medidas: faixa 2.000 m² ÷ (30 + 10) = 50 m → (50 + 10) ÷ (20 + 10) = 2 quarteirões; 2 × (20 ÷ 10) = 4 lotes por quadra
+    const g = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 2000, ruaE1: 10, distRuasE1: 30, compQuadraE1: 20, frenteE1: 10 });
+    expect(g.etapa1!.quadras).toMatchObject({ quarteiroes: 2, porQuadra: 4, fundo: 15 });
+    expect(g.etapa1!.lotes).toBe(8);
+    expect(g.etapa1!.lote).toBe(150);
     // desligada: não existe primeira etapa
     expect(calcular({ ...r.inputs, lotesEtapa1: null, primeiraEtapa: false, areaEtapa1: 40000 }).etapa1).toBe(null);
     // proposta antiga (só lotes) abre com a opção ligada e os mesmos números
