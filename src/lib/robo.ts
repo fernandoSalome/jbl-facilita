@@ -37,8 +37,7 @@ async function grupoMonitorado(jid: string) {
 }
 
 /** Endereço para gerar o PDF da proposta (a página pública é aberta por dentro do servidor) */
-const origemInterna = () =>
-  process.env.VERCEL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
+const origemInterna = () => `http://127.0.0.1:${process.env.PORT || 3000}`;
 
 const pastaDe = (tipo: string) => TIPOS[tipo]?.pasta ?? "Outros";
 const tamanho = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);

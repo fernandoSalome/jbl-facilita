@@ -7,8 +7,8 @@ export const maxDuration = 120;
 /** PDF A4 da proposta. Com ?info=1 devolve só o número de páginas (gera se preciso). */
 export async function GET(req: Request, { params }: { params: { token: string } }) {
   const info = new URL(req.url).searchParams.has("info");
-  // a impressão abre a própria página pública: por dentro do servidor no Railway; na Vercel, pelo endereço público
-  const origin = process.env.VERCEL ? `https://${req.headers.get("x-forwarded-host") ?? req.headers.get("host")}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
+  // a impressão abre a própria página pública por dentro do servidor
+  const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
   try {
     const r = await pdfDaProposta(origin, params.token);
     if (!r) return json({ error: "Proposta indisponível" }, 404);

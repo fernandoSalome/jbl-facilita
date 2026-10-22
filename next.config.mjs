@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: { bodySizeLimit: "8mb" },
-    serverComponentsExternalPackages: ["playwright-core", "@sparticuz/chromium"],
-    // Vercel: os arquivos do Chromium vão junto da função que gera o PDF
-    outputFileTracingIncludes: { "/api/public/[token]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"] },
-  },
+  experimental: { serverActions: { bodySizeLimit: "8mb" }, serverComponentsExternalPackages: ["playwright-core"] },
   async headers() {
     // Imagens do site: o navegador guarda por 30 dias em vez de revalidar a cada visita.
     // Ao trocar uma imagem, use outro nome de arquivo.
