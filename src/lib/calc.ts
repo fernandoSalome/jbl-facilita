@@ -69,7 +69,7 @@ export type StudyInputs = {
   areaPerimetralE1: number | null;
   /** Primeira etapa: largura da rua (m) */
   ruaE1: number | null;
-  /** Primeira etapa: outras medidas a descontar do perímetro (árvore, casa existente...) (m²) */
+  /** Primeira etapa: outras medidas a descontar do perímetro (m), tiradas da linha antes da conta */
   descontoE1: number | null;
   /** Primeira etapa: comprimento da quadra (m) */
   compQuadraE1: number | null;
@@ -206,8 +206,10 @@ export type StudyResult = {
       linha: number; rua: number; fundo: number; frente: number; comp: number;
       /** quadras inteiras e lotes em cada uma; quadra menor no final (0 = não há) */
       cheias: number; porQuadra: number; resto: number; lotesResto: number; quarteiroes: number; lotesBrutos: number;
-      /** áreas (m²): lotes + ruas entre quadras + sobra = total (linha × fundo); final = total − desconto */
-      areaLotes: number; areaRuas: number; sobra: number; areaTotal: number; desconto: number; perdidos: number; areaFinal: number;
+      /** perímetro digitado, desconto (m) e a linha que sobra para a conta: linha = perímetro − desconto */
+      perimetro: number; desconto: number;
+      /** áreas (m²): lotes + ruas entre quadras + sobra = total (linha × fundo) */
+      areaLotes: number; areaRuas: number; sobra: number; areaTotal: number;
     } | null;
   } | null;
   /** Primeira etapa marcada como existente, mas a definir (sem números) */
@@ -302,16 +304,18 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     let quadras: NonNullable<StudyResult["etapa1"]>["quadras"] = null;
     // Uma linha de quarteirões (área perimetral = comprimento da linha, em metros), com uma fileira
     // de lotes de frente para a rua: fundo = m² do lote ÷ frente. Quadras inteiras separadas por
-    // ruas; se sobrar espaço no final, entra uma quadra menor. O desconto (árvore, casa...) sai da
-    // área total e tira lotes inteiros (lote atingido não vale).
+    // ruas; se sobrar espaço no final, entra uma quadra menor. As outras medidas a descontar (m)
+    // saem do perímetro antes de tudo: a conta inteira usa o que sobra.
     const frente = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;
     if (i.areaPerimetralE1 && i.areaPerimetralE1 > 0 && frente > 0 && lote > 0) {
-      const linha = i.areaPerimetralE1;
+      const perimetro = i.areaPerimetralE1;
+      const desconto = Math.min(perimetro, Math.max(0, i.descontoE1 ?? 0));
+      const linha = perimetro - desconto;
       const rua = i.ruaE1 ?? 0;
       const fundo = lote / frente;
-      const comp = i.compQuadraE1 && i.compQuadraE1 > 0 ? Math.min(i.compQuadraE1, linha) : linha;
+      const comp = Math.max(0, i.compQuadraE1 && i.compQuadraE1 > 0 ? Math.min(i.compQuadraE1, linha) : linha);
       const porQuadra = Math.floor(comp / frente + 1e-9);
-      const cheias = Math.floor((linha + rua) / (comp + rua) + 1e-9);
+      const cheias = comp > 0 ? Math.floor((linha + rua) / (comp + rua) + 1e-9) : 0;
       const sobraLinha = Math.max(0, linha - cheias * (comp + rua));
       const lotesResto = Math.floor(sobraLinha / frente + 1e-9);
       const resto = lotesResto > 0 ? sobraLinha : 0;
@@ -322,13 +326,11 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       // sem rua na frente: só as ruas entre as quadras, dentro da faixa
       const areaRuas = ruasEntre * rua * fundo;
       const areaTotal = linha * fundo;
-      const desconto = Math.max(0, i.descontoE1 ?? 0);
-      const perdidos = desconto > 0 ? Math.min(lotesBrutos, Math.ceil(desconto / lote - 1e-9)) : 0;
       quadras = {
         linha, rua, fundo, frente, comp, cheias, porQuadra, resto, lotesResto, quarteiroes, lotesBrutos,
-        areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal, desconto, perdidos, areaFinal: Math.max(0, areaTotal - desconto),
+        perimetro, desconto, areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal,
       };
-      qtd = lotesBrutos - perdidos;
+      qtd = lotesBrutos;
     }
     const valorM2E = i.valorM2Etapa1 ?? i.valorM2;
     const avista = qtd * lote * valorM2E;
