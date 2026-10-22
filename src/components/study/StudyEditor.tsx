@@ -12,7 +12,7 @@ import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
-const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "", num: "×", anos: "anos", m: "m", lotes: "lotes" };
+const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes" };
 const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "compQuadraE1", "frenteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
@@ -127,7 +127,6 @@ function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: strin
         {hint && <span className="ml-1 cursor-help text-[11px] font-normal text-muted">ⓘ</span>}
       </span>
       <span className="relative">
-        {kind === "brl" && <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-navy/60">R$</span>}
         <input
           inputMode="decimal"
           {...celula}
@@ -135,7 +134,7 @@ function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: strin
           value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
           placeholder={disabled ? "a definir" : OPTIONAL.includes(k) ? "opcional" : ""}
-          className={`tabular w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 ${kind === "brl" ? "pl-8" : "pl-2"} ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
+          className={`tabular w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 pl-2 ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
         />
         {SUFFIX[kind] && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-navy/60">{SUFFIX[kind]}</span>}
       </span>
@@ -250,21 +249,20 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
 
       {/* Primeira etapa: uma linha de quarteirões para começar a vender antes */}
       <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
-        <label className="flex cursor-pointer items-center gap-3 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
-          <input type="checkbox" checked={i.primeiraEtapa} onChange={(e) => s.setEtapa(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
-          Tem primeira etapa (desmembramento)
-          <span className="ml-auto font-normal text-white/70">{i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}</span>
-        </label>
-        {i.primeiraEtapa && (
-          <>
-            <label className="flex cursor-pointer items-center gap-3 border-b border-gold/30 bg-gold-soft/60 px-3 py-1.5 text-[13px] font-semibold text-navy">
-              <input type="checkbox" checked={!!i.etapaADefinir} onChange={(e) => s.setEtapaADefinir(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
-              Primeira etapa existente, mas a definir
-              <span className="ml-auto text-[12px] font-normal text-muted">{i.etapaADefinir ? "na proposta, os números aparecem como “a definir”" : ""}</span>
-            </label>
-            <EtapaBloco s={s} r={r} />
-          </>
-        )}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={i.primeiraEtapa} onChange={(e) => s.setEtapa(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
+            Tem primeira etapa (desmembramento)
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={!!i.etapaADefinir} onChange={(e) => s.setEtapaADefinir(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
+            Primeira etapa existente, mas a definir
+          </label>
+          <span className="ml-auto font-normal text-white/70">
+            {i.etapaADefinir ? "aparece na proposta com os números “a definir”" : i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}
+          </span>
+        </div>
+        {(i.primeiraEtapa || i.etapaADefinir) && <EtapaBloco s={s} r={r} />}
       </div>
 
       {/* Outros períodos */}
@@ -365,9 +363,6 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo>Área da 1ª etapa</Titulo>
-        <Out label="Área dos lotes" value={v(q ? m2(q.areaLotes) : "")} />
-        <Out label="Ruas entre as quadras" value={v(q ? m2(q.areaRuas) : "")} />
-        <Out label="Sobra dentro das quadras" value={v(q ? m2(q.sobra) : "")} />
         <Out label="Área total da etapa" value={v(q ? m2(q.areaTotal) : "")} strong />
         <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${m2(q.desconto)}` : "—") : "")} />
         <Out label="Área total final" value={v(q ? m2(q.areaFinal) : "")} strong />

@@ -294,7 +294,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   // Proporção pela área (ou pela extensão da rede, quando informada)
   const escala = i.extensaoRede ? i.extensaoRede / BASE.rede : i.areaTotal / BASE.area;
   let etapa1: StudyResult["etapa1"] = null;
-  const etapa1ADefinir = !!(i.primeiraEtapa && i.etapaADefinir);
+  const etapa1ADefinir = !!i.etapaADefinir;
   if ((i.primeiraEtapa || i.lotesEtapa1) && !etapa1ADefinir && areaUtil > 0) {
     let lote = i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
     // propostas sem as medidas: lotes salvos; ou a área desmembrada × aproveitamento ÷ lote
