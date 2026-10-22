@@ -63,11 +63,13 @@ export type StudyInputs = {
   loteEtapa1: number | null;
   /** Primeira etapa: valor do m² do lote (R$). Vazio = o do estudo */
   valorM2Etapa1: number | null;
-  /** Primeira etapa (uma fileira de quadras): área perimetral da etapa (m²) */
+  /** Primeira etapa existente, mas sem os números: a proposta mostra "a definir" */
+  etapaADefinir?: boolean;
+  /** Primeira etapa (uma linha de quarteirões): comprimento da área perimetral (m) */
   areaPerimetralE1: number | null;
   /** Primeira etapa: largura da rua (m) */
   ruaE1: number | null;
-  /** Primeira etapa: área que não vira lote (árvore, casa existente...), descontada da perimetral (m²) */
+  /** Primeira etapa: outras medidas a descontar do perímetro (árvore, casa existente...) (m²) */
   descontoE1: number | null;
   /** Primeira etapa: comprimento da quadra (m) */
   compQuadraE1: number | null;
@@ -200,8 +202,16 @@ export type StudyResult = {
   etapa1: {
     lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; avista: number; prazo: number;
     /** Pelas medidas da fileira de quadras (null = proposta sem as medidas) */
-    quadras: { liquida: number; quarteiroes: number; porQuadra: number; fundo: number; frente: number; compFaixa: number } | null;
+    quadras: {
+      linha: number; rua: number; fundo: number; frente: number; comp: number;
+      /** quadras inteiras e lotes em cada uma; quadra menor no final (0 = não há) */
+      cheias: number; porQuadra: number; resto: number; lotesResto: number; quarteiroes: number; lotesBrutos: number;
+      /** áreas (m²): lotes + ruas + sobra = total; final = total − desconto */
+      areaLotes: number; areaRuas: number; sobra: number; areaTotal: number; desconto: number; perdidos: number; areaFinal: number;
+    } | null;
   } | null;
+  /** Primeira etapa marcada como existente, mas a definir (sem números) */
+  etapa1ADefinir: boolean;
   /** Antecipação de recebíveis da carteira do terrenista no prazo escolhido */
   antecipacao: { carteira: number; valor: number; jurosMes1: number; multiplicador: number; rentabilidade: number; ultimaBase: number };
   /** Plano de Venda 02 (linhas 29–40 da planilha) */
@@ -284,27 +294,40 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   // Proporção pela área (ou pela extensão da rede, quando informada)
   const escala = i.extensaoRede ? i.extensaoRede / BASE.rede : i.areaTotal / BASE.area;
   let etapa1: StudyResult["etapa1"] = null;
-  if ((i.primeiraEtapa || i.lotesEtapa1) && areaUtil > 0) {
+  const etapa1ADefinir = !!(i.primeiraEtapa && i.etapaADefinir);
+  if ((i.primeiraEtapa || i.lotesEtapa1) && !etapa1ADefinir && areaUtil > 0) {
     let lote = i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
     // propostas sem as medidas: lotes salvos; ou a área desmembrada × aproveitamento ÷ lote
     let qtd = i.lotesEtapa1 ?? (i.areaEtapa1 && lote > 0 ? (Math.min(i.areaEtapa1, i.areaTotal) * i.aproveitamento) / lote : 0);
     let quadras: NonNullable<StudyResult["etapa1"]>["quadras"] = null;
-    // Uma fileira de quadras com duas fileiras de lotes de costas: fundo = m² do lote ÷ frente,
-    // largura da faixa = 2 fundos + a rua da frente. Ao longo da faixa, quadras separadas por ruas;
-    // a última pode ficar mais curta. A área descontada (árvore, casa...) sai da perimetral.
+    // Uma linha de quarteirões (área perimetral = comprimento da linha, em metros), com uma fileira
+    // de lotes de frente para a rua: fundo = m² do lote ÷ frente. Quadras inteiras separadas por
+    // ruas; se sobrar espaço no final, entra uma quadra menor. O desconto (árvore, casa...) sai da
+    // área total e tira lotes inteiros (lote atingido não vale).
     const frente = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;
     if (i.areaPerimetralE1 && i.areaPerimetralE1 > 0 && frente > 0 && lote > 0) {
+      const linha = i.areaPerimetralE1;
       const rua = i.ruaE1 ?? 0;
       const fundo = lote / frente;
-      const liquida = Math.max(0, i.areaPerimetralE1 - (i.descontoE1 ?? 0));
-      const compFaixa = liquida / (2 * fundo + rua);
-      const comp = i.compQuadraE1 && i.compQuadraE1 > 0 ? i.compQuadraE1 : compFaixa;
-      const porQuadra = 2 * Math.floor(comp / frente + 1e-9);
-      const cheias = Math.floor((compFaixa + rua) / (comp + rua) + 1e-9);
-      const resto = compFaixa - cheias * (comp + rua);
-      const extra = resto > 0 ? 2 * Math.floor(resto / frente + 1e-9) : 0;
-      quadras = { liquida, quarteiroes: cheias + (extra > 0 ? 1 : 0), porQuadra, fundo, frente, compFaixa };
-      qtd = cheias * porQuadra + extra;
+      const comp = i.compQuadraE1 && i.compQuadraE1 > 0 ? Math.min(i.compQuadraE1, linha) : linha;
+      const porQuadra = Math.floor(comp / frente + 1e-9);
+      const cheias = Math.floor((linha + rua) / (comp + rua) + 1e-9);
+      const sobraLinha = Math.max(0, linha - cheias * (comp + rua));
+      const lotesResto = Math.floor(sobraLinha / frente + 1e-9);
+      const resto = lotesResto > 0 ? sobraLinha : 0;
+      const quarteiroes = cheias + (lotesResto > 0 ? 1 : 0);
+      const ruasEntre = Math.max(0, quarteiroes - 1);
+      const lotesBrutos = cheias * porQuadra + lotesResto;
+      const areaLotes = lotesBrutos * lote;
+      const areaRuas = linha * rua + ruasEntre * rua * fundo;
+      const areaTotal = linha * (fundo + rua);
+      const desconto = Math.max(0, i.descontoE1 ?? 0);
+      const perdidos = desconto > 0 ? Math.min(lotesBrutos, Math.ceil(desconto / lote - 1e-9)) : 0;
+      quadras = {
+        linha, rua, fundo, frente, comp, cheias, porQuadra, resto, lotesResto, quarteiroes, lotesBrutos,
+        areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal, desconto, perdidos, areaFinal: Math.max(0, areaTotal - desconto),
+      };
+      qtd = lotesBrutos - perdidos;
     }
     const valorM2E = i.valorM2Etapa1 ?? i.valorM2;
     const avista = qtd * lote * valorM2E;
@@ -382,6 +405,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       arvores: Math.floor(lotes),
     },
     etapa1,
+    etapa1ADefinir,
     antecipacao: {
       carteira: principal.carteiraTer,
       valor: valorAntecipado,

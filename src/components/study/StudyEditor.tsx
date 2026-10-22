@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { calcular, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 
@@ -10,7 +10,7 @@ import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
  */
 
 type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes";
-type NumKey = { [K in keyof StudyInputs]: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
+type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "", num: "×", anos: "anos", m: "m", lotes: "lotes" };
 const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "compQuadraE1", "frenteE1", "reajusteManual"];
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m2", ruaE1: "m", descontoE1: "m2", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m2", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -58,11 +58,15 @@ export function useStudyState(initial: StudyInputs) {
     if (!on) setTexts((s) => ({ ...s, lotesEtapa1: "" }));
     setInputs((s) => ({ ...s, primeiraEtapa: on, ...(on ? {} : { lotesEtapa1: null }) }));
   }
+  /** Primeira etapa existente, mas sem os números ainda: a proposta mostra "a definir" */
+  function setEtapaADefinir(on: boolean) {
+    setInputs((s) => ({ ...s, etapaADefinir: on }));
+  }
   function clearManual() {
     setTexts((s) => ({ ...s, reajusteManual: "" }));
     setInputs((s) => ({ ...s, reajusteManual: null }));
   }
-  return { inputs, texts, set, setIndice, setEtapa, clearManual };
+  return { inputs, texts, set, setIndice, setEtapa, setEtapaADefinir, clearManual };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -85,8 +89,37 @@ function Sub({ children }: { children: React.ReactNode }) {
   return <div className="bg-navy/90 px-3 py-1 text-center text-[12px] font-bold text-white">{children}</div>;
 }
 
-function In({ s, k, label, hint }: { s: State; k: NumKey; label: string; hint?: string }) {
+/**
+ * Campo de número como no Excel: um clique seleciona o valor todo (digitar substitui);
+ * dois cliques entram na edição com o cursor onde clicou, para mudar só um trecho.
+ */
+function useCelula() {
+  const novo = useRef(false);
+  const cursor = useRef<number | null>(null);
+  return {
+    onMouseDown: (e: React.MouseEvent<HTMLInputElement>) => {
+      novo.current = document.activeElement !== e.currentTarget;
+    },
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+    onMouseUp: (e: React.MouseEvent<HTMLInputElement>) => {
+      const el = e.currentTarget;
+      if (novo.current) {
+        e.preventDefault();
+        el.select();
+        novo.current = false;
+      } else cursor.current = el.selectionStart;
+    },
+    onDoubleClick: (e: React.MouseEvent<HTMLInputElement>) => {
+      const el = e.currentTarget;
+      const pos = cursor.current ?? el.value.length;
+      requestAnimationFrame(() => el.setSelectionRange(pos, pos));
+    },
+  };
+}
+
+function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean }) {
   const kind = KINDS[k]!;
+  const celula = useCelula();
   return (
     <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1" title={hint}>
       <span className="text-[13px] font-semibold text-navy">
@@ -97,10 +130,12 @@ function In({ s, k, label, hint }: { s: State; k: NumKey; label: string; hint?: 
         {kind === "brl" && <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-navy/60">R$</span>}
         <input
           inputMode="decimal"
-          value={s.texts[k] ?? ""}
+          {...celula}
+          disabled={disabled}
+          value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
-          placeholder={OPTIONAL.includes(k) ? "opcional" : ""}
-          className={`tabular w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft ${kind === "brl" ? "pl-8" : "pl-2"} ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
+          placeholder={disabled ? "a definir" : OPTIONAL.includes(k) ? "opcional" : ""}
+          className={`tabular w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 ${kind === "brl" ? "pl-8" : "pl-2"} ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
         />
         {SUFFIX[kind] && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-navy/60">{SUFFIX[kind]}</span>}
       </span>
@@ -201,21 +236,19 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="Valor da Parcela a ser Comercializada" value={fmtBRL(r.parcela)} strong />
             <Out label="Valor do Lote em Contrato" value={fmtBRL(r.valorLoteContrato)} />
           </Box>
+          {/* Dados que a planilha não tem, usados no site da proposta */}
+          <Box title="Para o site da proposta" right="não está na planilha">
+            <In s={s} k="frenteLote" label="Frente do lote" hint="Só para escrever “lotes de 8 × 25 metros”" />
+            <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
+            <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
+            <In s={s} k="extensaoRede" label="Extensão da rede principal" hint="Vazio = estimativa pela área (base: São Judas Tadeu II)" />
+            <In s={s} k="desagio" label="Deságio da antecipação" />
+            <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
+          </Box>
         </div>
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-2">
-        {/* Dados que a planilha não tem, usados no site da proposta */}
-        <Box title="Para o site da proposta" right="não está na planilha">
-          <In s={s} k="frenteLote" label="Frente do lote" hint="Só para escrever “lotes de 8 × 25 metros”" />
-          <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
-          <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
-          <In s={s} k="extensaoRede" label="Extensão da rede principal" hint="Vazio = estimativa pela área (base: São Judas Tadeu II)" />
-          <In s={s} k="desagio" label="Deságio da antecipação" />
-          <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
-        </Box>
-
-        {/* Primeira etapa: desmembramento de parte da área para começar a vender antes */}
+      {/* Primeira etapa: uma linha de quarteirões para começar a vender antes */}
       <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
         <label className="flex cursor-pointer items-center gap-3 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
           <input type="checkbox" checked={i.primeiraEtapa} onChange={(e) => s.setEtapa(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
@@ -223,31 +256,15 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <span className="ml-auto font-normal text-white/70">{i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}</span>
         </label>
         {i.primeiraEtapa && (
-          <div className="grid divide-y divide-gold/30">
-            <div className="divide-y divide-gold/30">
-              <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
-              <In s={s} k="areaPerimetralE1" label="Área perimetral da 1ª etapa (m²)" />
-              <In s={s} k="descontoE1" label="Área a descontar (m²)" hint="Árvore que não pode cortar, casa existente... sai da área perimetral" />
-              <In s={s} k="ruaE1" label="Largura da rua (m)" />
-              <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da faixa" />
-              <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} />
-              <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} />
-              <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} />
-            </div>
-            <div className="divide-y divide-gold/30">
-              <Out label="Área perimetral líquida (m²)" value={r.etapa1?.quadras ? fmtNum(r.etapa1.quadras.liquida) : "—"} />
-              <Out label="Comprimento da faixa (m)" value={r.etapa1?.quadras ? fmtNum(r.etapa1.quadras.compFaixa) : "—"} />
-              <Out label="Quarteirões (uma fileira)" value={r.etapa1?.quadras ? String(r.etapa1.quadras.quarteiroes) : "—"} />
-              <Out label="Lotes por quadra" value={r.etapa1?.quadras ? String(r.etapa1.quadras.porQuadra) : "—"} />
-              <Out label="Lote (frente × fundo)" value={r.etapa1?.quadras ? `${fmtNum(r.etapa1.quadras.frente)} × ${fmtNum(r.etapa1.quadras.fundo)} = ${fmtNum(r.etapa1.lote)} m²` : "—"} />
-              <Out label="Quantidade de lotes da 1ª etapa" value={r.etapa1 ? fmtNum(r.etapa1.lotes, r.etapa1.quadras ? 0 : 2) : "—"} strong />
-              <Out label="Da área aproveitável" value={r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
-              <Out label="VGV parcial à vista" value={r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
-              <Out label={`VGV parcial em ${r.nParcelas} meses`} value={r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
-            </div>
-          </div>
+          <>
+            <label className="flex cursor-pointer items-center gap-3 border-b border-gold/30 bg-gold-soft/60 px-3 py-1.5 text-[13px] font-semibold text-navy">
+              <input type="checkbox" checked={!!i.etapaADefinir} onChange={(e) => s.setEtapaADefinir(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
+              Primeira etapa existente, mas a definir
+              <span className="ml-auto text-[12px] font-normal text-muted">{i.etapaADefinir ? "na proposta, os números aparecem como “a definir”" : ""}</span>
+            </label>
+            <EtapaBloco s={s} r={r} />
+          </>
         )}
-      </div>
       </div>
 
       {/* Outros períodos */}
@@ -312,6 +329,57 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Titulo({ children }: { children: React.ReactNode }) {
+  return <div className="bg-navy/90 px-3 py-1 text-[11.5px] font-bold uppercase tracking-wider text-white">{children}</div>;
+}
+
+/** Bloco da primeira etapa: medidas (azuis), quadras, áreas e resultado */
+function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+  const i = r.inputs;
+  const off = !!i.etapaADefinir;
+  const q = r.etapa1?.quadras ?? null;
+  const v = (x: string) => (off ? "a definir" : q ? x : "—");
+  const m2 = (n: number) => `${fmtNum(n)} m²`;
+  return (
+    <div className="grid divide-gold/30 md:grid-cols-2 md:divide-x">
+      <div className="divide-y divide-gold/30">
+        <Titulo>Medidas da 1ª etapa</Titulo>
+        <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
+        <In s={s} k="areaPerimetralE1" label="Área perimetral da 1ª etapa (m)" hint="Comprimento da linha de quarteirões" disabled={off} />
+        <In s={s} k="ruaE1" label="Largura da rua (m)" disabled={off} />
+        <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
+        <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
+        <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
+        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m²)" hint="Árvore que não pode cortar, casa existente... sai da área total e tira lotes inteiros" disabled={off} />
+        <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
+        <Titulo>Quadras</Titulo>
+        <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
+        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} × ${q.porQuadra} lotes` : "")} />
+        <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto, 0)} m · ${q.lotesResto} lotes` : "não sobra") : "")} />
+        <Out label="Total de quarteirões" value={v(q ? String(q.quarteiroes) : "")} />
+      </div>
+      <div className="divide-y divide-gold/30">
+        <Titulo>Área da 1ª etapa</Titulo>
+        <Out label="Área dos lotes" value={v(q ? m2(q.areaLotes) : "")} />
+        <Out label="Ruas (frente + entre quadras)" value={v(q ? m2(q.areaRuas) : "")} />
+        <Out label="Sobra dentro das quadras" value={v(q ? m2(q.sobra) : "")} />
+        <Out label="Área total da etapa" value={v(q ? m2(q.areaTotal) : "")} strong />
+        <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${m2(q.desconto)}` : "—") : "")} />
+        <Out label="Área total final" value={v(q ? m2(q.areaFinal) : "")} strong />
+        <Titulo>Resultado</Titulo>
+        <Out
+          label="Quantidade de lotes da 1ª etapa"
+          value={off ? "a definir" : r.etapa1 ? `${fmtNum(r.etapa1.lotes, q ? 0 : 2)}${q?.perdidos ? ` (−${q.perdidos})` : ""}` : "—"}
+          strong
+        />
+        <Out label="Da área aproveitável" value={off ? "a definir" : r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
+        <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
+        <Out label={`VGV parcial em ${r.nParcelas} meses`} value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
       </div>
     </div>
   );

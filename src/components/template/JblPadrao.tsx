@@ -339,11 +339,14 @@ export default function JblPadrao(props: TemplateProps) {
     m1: String(r.vendas.mes1), m2: String(r.vendas.mes2), m3: String(r.vendas.mes3), total: String(r.vendas.total),
     area: fmtNum(inputs.areaTotal), municipio: project.municipio, uf: project.uf, modelo: formato.modelo, lei: formato.lei,
     data,
-    e1Lotes: r.etapa1 ? String(Math.floor(r.etapa1.lotes)) : "", e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 0) : "", e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : "",
+    // primeira etapa "a definir": os números do texto ficam "a definir"
+    e1Lotes: r.etapa1 ? String(Math.floor(r.etapa1.lotes)) : r.etapa1ADefinir ? "a definir" : "",
+    e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 0) : r.etapa1ADefinir ? "a definir" : "",
+    e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
   };
 
   // Primeira etapa só aparece quando a planilha tem a opção ligada; sem ela, as seções seguintes sobem um número
-  const etapa = !!r.etapa1;
+  const etapa = !!r.etapa1 || r.etapa1ADefinir;
   const passo = (x: number) => (etapa || x < 6 ? x : x - 1);
   const renumera = (t: string) => t.replace(/passo 11\b/g, `passo ${passo(11)}`);
   const semEtapa = (t: string) => (etapa ? t : t.replace(/\s*(?:<strong>)?\(incluindo a primeira etapa\)(?:<\/strong>)?/i, ""));
@@ -707,15 +710,15 @@ export default function JblPadrao(props: TemplateProps) {
             </Sec>
 
             {/* 6: só com primeira etapa */}
-            {r.etapa1 && <Sec k="etapa1" className="step" id="etapa1">
+            {etapa && <Sec k="etapa1" className="step" id="etapa1">
               <div className="step-head"><div className="badge">6</div><div>
                 <h2><T k="e1Titulo">A primeira etapa</T></h2>
               </div></div>
               <div className="content">
                 <p className="tip gold tip-full"><T k="e1t2" html vars={nv} limpar={etapaComNumeros}>{"Identificada a possibilidade de lançamento da primeira etapa para <strong>{{e1Lotes}}</strong> lotes de <strong>{{e1Lote}}</strong> m², utilizando <strong>{{e1Pct}}</strong>% da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura."}</T></p>
                 <div className="tiles two" style={{ marginTop: 22 }}>
-                  <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{fmtBRL(r.etapa1.avista)}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
-                  <div className="tile hl"><div className="k"><T k="e1k2" vars={nv}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{fmtBRL(r.etapa1.prazo)}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
+                  <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{r.etapa1 ? fmtBRL(r.etapa1.avista) : "a definir"}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
+                  <div className="tile hl"><div className="k"><T k="e1k2" vars={nv}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
                 </div>
               </div>
             </Sec>}

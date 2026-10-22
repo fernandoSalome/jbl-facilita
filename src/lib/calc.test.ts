@@ -155,17 +155,26 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(q.etapa1!.avista).toBeCloseTo(100 * 250 * 600, 2);
     expect(q.etapa1!.pct).toBeCloseTo((100 * 250) / q.areaUtil, 8);
     expect(q.etapa1!.prazo).toBeCloseTo(q.etapa1!.avista * (q.principal.carteiraEmp / q.vgvAvista), 2);
-    // pelas medidas: lote 150 m² ÷ frente 10 = fundo 15; faixa (2.100 − 100) ÷ (2 × 15 + 10) = 50 m
-    // → (50 + 10) ÷ (20 + 10) = 2 quarteirões de 2 × (20 ÷ 10) = 4 lotes
-    const g = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 2100, descontoE1: 100, ruaE1: 10, compQuadraE1: 20, frenteE1: 10, loteEtapa1: 150 });
-    expect(g.etapa1!.quadras).toMatchObject({ liquida: 2000, quarteiroes: 2, porQuadra: 4, fundo: 15 });
-    expect(g.etapa1!.lotes).toBe(8);
-    expect(g.etapa1!.avista).toBeCloseTo(8 * 150 * g.inputs.valorM2, 2);
-    // faixa mais curta que a quadra (o caso da tela): conta a quadra parcial
-    const curta = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 1000, ruaE1: 12, compQuadraE1: 200, frenteE1: 8, loteEtapa1: 200, valorM2Etapa1: 350 });
-    expect(curta.etapa1!.quadras!.compFaixa).toBeCloseTo(1000 / 62, 6);
-    expect(curta.etapa1!.lotes).toBe(4);
-    expect(curta.etapa1!.avista).toBeCloseTo(4 * 200 * 350, 2);
+    // o exemplo combinado: linha de 1.000 m, rua 12, quadra 250, frente 8, lote 220 m², R$ 350/m²
+    const ex = { ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 1000, ruaE1: 12, compQuadraE1: 250, frenteE1: 8, loteEtapa1: 220, valorM2Etapa1: 350 };
+    const g = calcular(ex);
+    expect(g.etapa1!.quadras).toMatchObject({ fundo: 27.5, cheias: 3, porQuadra: 31, resto: 214, lotesResto: 26, quarteiroes: 4, lotesBrutos: 119 });
+    expect(g.etapa1!.quadras!.areaLotes).toBeCloseTo(26180, 6);
+    expect(g.etapa1!.quadras!.areaRuas).toBeCloseTo(12990, 6);
+    expect(g.etapa1!.quadras!.sobra).toBeCloseTo(330, 6);
+    expect(g.etapa1!.quadras!.areaTotal).toBeCloseTo(39500, 6);
+    expect(g.etapa1!.lotes).toBe(119);
+    expect(g.etapa1!.avista).toBeCloseTo(9163000, 2);
+    expect(g.etapa1!.prazo).toBeCloseTo(9163000 * (g.principal.carteiraEmp / g.vgvAvista), 2);
+    // 500 m² a descontar: área total 39.000 m² e 3 lotes a menos (500 ÷ 220 = 2,27)
+    const d5 = calcular({ ...ex, descontoE1: 500 });
+    expect(d5.etapa1!.quadras).toMatchObject({ perdidos: 3, areaFinal: 39000 });
+    expect(d5.etapa1!.lotes).toBe(116);
+    expect(d5.etapa1!.avista).toBeCloseTo(8932000, 2);
+    // a definir: a etapa existe, sem números
+    const ad = calcular({ ...ex, etapaADefinir: true });
+    expect(ad.etapa1).toBe(null);
+    expect(ad.etapa1ADefinir).toBe(true);
     // desligada: não existe primeira etapa
     expect(calcular({ ...r.inputs, lotesEtapa1: null, primeiraEtapa: false, areaEtapa1: 40000 }).etapa1).toBe(null);
     // proposta antiga (só lotes) abre com a opção ligada e os mesmos números
