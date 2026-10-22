@@ -160,15 +160,15 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     const g = calcular(ex);
     expect(g.etapa1!.quadras).toMatchObject({ fundo: 27.5, cheias: 3, porQuadra: 31, resto: 214, lotesResto: 26, quarteiroes: 4, lotesBrutos: 119 });
     expect(g.etapa1!.quadras!.areaLotes).toBeCloseTo(26180, 6);
-    expect(g.etapa1!.quadras!.areaRuas).toBeCloseTo(12990, 6);
+    expect(g.etapa1!.quadras!.areaRuas).toBeCloseTo(990, 6);
     expect(g.etapa1!.quadras!.sobra).toBeCloseTo(330, 6);
-    expect(g.etapa1!.quadras!.areaTotal).toBeCloseTo(39500, 6);
+    expect(g.etapa1!.quadras!.areaTotal).toBeCloseTo(27500, 6);
     expect(g.etapa1!.lotes).toBe(119);
     expect(g.etapa1!.avista).toBeCloseTo(9163000, 2);
     expect(g.etapa1!.prazo).toBeCloseTo(9163000 * (g.principal.carteiraEmp / g.vgvAvista), 2);
-    // 500 m² a descontar: área total 39.000 m² e 3 lotes a menos (500 ÷ 220 = 2,27)
+    // 500 m² a descontar: área total 27.000 m² e 3 lotes a menos (500 ÷ 220 = 2,27)
     const d5 = calcular({ ...ex, descontoE1: 500 });
-    expect(d5.etapa1!.quadras).toMatchObject({ perdidos: 3, areaFinal: 39000 });
+    expect(d5.etapa1!.quadras).toMatchObject({ perdidos: 3, areaFinal: 27000 });
     expect(d5.etapa1!.lotes).toBe(116);
     expect(d5.etapa1!.avista).toBeCloseTo(8932000, 2);
     // a definir: a etapa existe, sem números

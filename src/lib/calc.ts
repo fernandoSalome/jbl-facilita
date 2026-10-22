@@ -206,7 +206,7 @@ export type StudyResult = {
       linha: number; rua: number; fundo: number; frente: number; comp: number;
       /** quadras inteiras e lotes em cada uma; quadra menor no final (0 = não há) */
       cheias: number; porQuadra: number; resto: number; lotesResto: number; quarteiroes: number; lotesBrutos: number;
-      /** áreas (m²): lotes + ruas + sobra = total; final = total − desconto */
+      /** áreas (m²): lotes + ruas entre quadras + sobra = total (linha × fundo); final = total − desconto */
       areaLotes: number; areaRuas: number; sobra: number; areaTotal: number; desconto: number; perdidos: number; areaFinal: number;
     } | null;
   } | null;
@@ -319,8 +319,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       const ruasEntre = Math.max(0, quarteiroes - 1);
       const lotesBrutos = cheias * porQuadra + lotesResto;
       const areaLotes = lotesBrutos * lote;
-      const areaRuas = linha * rua + ruasEntre * rua * fundo;
-      const areaTotal = linha * (fundo + rua);
+      // sem rua na frente: só as ruas entre as quadras, dentro da faixa
+      const areaRuas = ruasEntre * rua * fundo;
+      const areaTotal = linha * fundo;
       const desconto = Math.max(0, i.descontoE1 ?? 0);
       const perdidos = desconto > 0 ? Math.min(lotesBrutos, Math.ceil(desconto / lote - 1e-9)) : 0;
       quadras = {

@@ -366,7 +366,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       <div className="divide-y divide-gold/30">
         <Titulo>Área da 1ª etapa</Titulo>
         <Out label="Área dos lotes" value={v(q ? m2(q.areaLotes) : "")} />
-        <Out label="Ruas (frente + entre quadras)" value={v(q ? m2(q.areaRuas) : "")} />
+        <Out label="Ruas entre as quadras" value={v(q ? m2(q.areaRuas) : "")} />
         <Out label="Sobra dentro das quadras" value={v(q ? m2(q.sobra) : "")} />
         <Out label="Área total da etapa" value={v(q ? m2(q.areaTotal) : "")} strong />
         <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${m2(q.desconto)}` : "—") : "")} />
