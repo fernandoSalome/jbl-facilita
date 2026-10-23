@@ -375,7 +375,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
         <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
-        <In s={s} k="ruasObrigE1" label="Desconto de ruas obrigatórias" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
+        <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
@@ -393,7 +393,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           value={v(q ? (q.ruasEntre ? `−${fmtNum(q.ruasEntre * q.rua)} m` : "—") : "")}
         />
         <Out
-          label={`(−) Ruas obrigatórias${q?.ruasObrig ? ` (${q.ruasObrig} × ${fmtNum(q.rua, 0)} m)` : ""}`}
+          label={`(−) Ruas contínuas vindas de fora${q?.ruasObrig ? ` (${q.ruasObrig} × ${fmtNum(q.rua, 0)} m)` : ""}`}
           value={v(q ? (q.obrigM ? `−${fmtNum(q.obrigM)} m` : "—") : "")}
         />
         <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${fmtNum(q.desconto)} m` : "—") : "")} />
@@ -481,7 +481,7 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
               <g key={k}>
                 <rect x={p.x} y={Y} width={p.w} height={H} fill="url(#e1-obrig)" stroke="#2E6DB4" strokeDasharray="4 3" />
                 <text x={p.x + p.w / 2} y={Y - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#2E6DB4">{n(p.m)} m</text>
-                <text x={Math.min(W - 4, p.x + p.w)} y={Y + H + 44} textAnchor="end" fontSize="11" fill="#2E6DB4">{`ruas obrigatórias ${q.ruasObrig} × ${n(q.rua)} m`}</text>
+                <text x={Math.min(W - 4, p.x + p.w)} y={Y + H + 44} textAnchor="end" fontSize="11" fill="#2E6DB4">{`ruas contínuas vindas de fora ${q.ruasObrig} × ${n(q.rua)} m`}</text>
               </g>
             );
           if (p.tipo === "desconto" || p.tipo === "sobra")
