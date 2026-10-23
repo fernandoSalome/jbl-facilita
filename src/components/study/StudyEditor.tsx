@@ -379,9 +379,9 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
-        <Out label="Fundo do lote" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
+        <Out label="Fundo do lote (metragem do lote / frente do lote)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
         <Out label="Quadras inteiras" value={v(q ? `${q.cheias} ${q.cheias === 1 ? "quadra" : "quadras"} × ${fmtNum(q.porQuadra)} lotes = ${fmtNum(q.cheias * q.porQuadra)} lotes` : "")} />
-        <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m = ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
+        <Out label="Quadra menor" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m = ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
         <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
         <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} ${q.ruasEntre === 1 ? "rua" : "ruas"} × ${fmtNum(q.rua, 0)} metros` : "nenhuma") : "")} />
       </div>
