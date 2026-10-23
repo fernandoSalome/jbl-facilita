@@ -56,11 +56,12 @@ export function useStudyState(initial: StudyInputs) {
   function setEtapa(on: boolean) {
     // desligada, a quantidade de lotes some (senão a proposta voltaria com a etapa ligada)
     if (!on) setTexts((s) => ({ ...s, lotesEtapa1: "" }));
-    setInputs((s) => ({ ...s, primeiraEtapa: on, ...(on ? {} : { lotesEtapa1: null }) }));
+    setInputs((s) => ({ ...s, primeiraEtapa: on, ...(on ? { etapaADefinir: false } : { lotesEtapa1: null }) }));
   }
-  /** Primeira etapa existente, mas sem os números ainda: a proposta mostra "a definir" */
+  /** Primeira etapa existente, mas sem os números ainda: a proposta mostra "a definir". Um ou outro. */
   function setEtapaADefinir(on: boolean) {
-    setInputs((s) => ({ ...s, etapaADefinir: on }));
+    if (on) setTexts((s) => ({ ...s, lotesEtapa1: "" }));
+    setInputs((s) => ({ ...s, etapaADefinir: on, ...(on ? { primeiraEtapa: false, lotesEtapa1: null } : {}) }));
   }
   function clearManual() {
     setTexts((s) => ({ ...s, reajusteManual: "" }));
@@ -262,7 +263,12 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             {i.etapaADefinir ? "aparece na proposta com os números “a definir”" : i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}
           </span>
         </div>
-        {(i.primeiraEtapa || i.etapaADefinir) && <EtapaBloco s={s} r={r} />}
+        {i.primeiraEtapa && !i.etapaADefinir && <EtapaBloco s={s} r={r} />}
+        {i.etapaADefinir && (
+          <div className="px-3 py-2.5 text-[13px] text-muted">
+            Na proposta, a seção “A primeira etapa” aparece com lotes, metragem, área e VGV <b className="text-navy">a definir</b>. Para colocar os números, marque “Tem primeira etapa”.
+          </div>
+        )}
       </div>
 
       {/* Outros períodos */}
@@ -344,6 +350,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const v = (x: string) => (off ? "a definir" : q ? x : "—");
   const m2 = (n: number) => `${fmtNum(n)} m²`;
   return (
+    <div>
     <div className="grid divide-gold/30 md:grid-cols-2 md:divide-x">
       <div className="divide-y divide-gold/30">
         <Titulo>Medidas da 1ª etapa</Titulo>
@@ -353,19 +360,20 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
         <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
-        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Sai do perímetro antes da conta: 2.000 m − 200 m = a conta usa 1.800 m" disabled={off} />
+        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
         <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
         <Out label="Quadras inteiras" value={v(q ? `${q.cheias} × ${q.porQuadra} lotes` : "")} />
         <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto, 0)} m · ${q.lotesResto} lotes` : "não sobra") : "")} />
         <Out label="Total de quarteirões" value={v(q ? String(q.quarteiroes) : "")} />
+        <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} × ${fmtNum(q.rua, 0)} m` : "nenhuma") : "")} />
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo>Área da 1ª etapa</Titulo>
         <Out label="Perímetro da área da 1ª etapa" value={v(q ? `${fmtNum(q.perimetro)} m` : "")} />
         <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${fmtNum(q.desconto)} m` : "—") : "")} />
-        <Out label="Perímetro usado na conta" value={v(q ? `${fmtNum(q.linha)} m` : "")} strong />
+        <Out label="Perímetro usado para os lotes" value={v(q ? `${fmtNum(q.linha)} m` : "")} strong />
         <Out label="Área total da etapa (perímetro × fundo)" value={v(q ? m2(q.areaTotal) : "")} strong />
         <Titulo>Resultado</Titulo>
         <Out
@@ -377,6 +385,94 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
         <Out label={`VGV parcial em ${r.nParcelas} meses`} value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
       </div>
+    </div>
+    {q && !off && <Desenho q={q} lote={r.etapa1!.lote} />}
+    </div>
+  );
+}
+
+/* ---------- desenho da linha de quarteirões (ilustrativo, fora de escala no fundo) ---------- */
+
+type Quadras = NonNullable<NonNullable<ReturnType<typeof calcular>["etapa1"]>["quadras"]>;
+
+function Desenho({ q, lote }: { q: Quadras; lote: number }) {
+  const W = 1000, X0 = 40, LARG = W - 2 * X0, Y = 46, H = 46;
+  const esc = q.perimetro > 0 ? LARG / q.perimetro : 0;
+  const n = (x: number, d = 0) => fmtNum(x, d);
+  // trechos ao longo da linha: quadras inteiras, ruas, quadra menor, sobra e desconto
+  type Trecho = { tipo: "quadra" | "rua" | "sobra" | "desconto"; m: number; lotes?: number };
+  const t: Trecho[] = [];
+  for (let k = 0; k < q.cheias; k++) {
+    if (k > 0) t.push({ tipo: "rua", m: q.rua });
+    t.push({ tipo: "quadra", m: q.comp, lotes: q.porQuadra });
+  }
+  if (q.lotesResto > 0) {
+    if (q.cheias > 0) t.push({ tipo: "rua", m: q.rua });
+    t.push({ tipo: "quadra", m: q.resto, lotes: q.lotesResto });
+  }
+  const usado = t.reduce((a, x) => a + x.m, 0);
+  if (q.linha - usado > 0.01) t.push({ tipo: "sobra", m: q.linha - usado });
+  if (q.desconto > 0) t.push({ tipo: "desconto", m: q.desconto });
+  let x = X0;
+  const peças = t.map((tr) => {
+    const w = tr.m * esc;
+    const p = { ...tr, x, w };
+    x += w;
+    return p;
+  });
+  return (
+    <div className="border-t border-gold/30 px-3 py-3">
+      <div className="mb-1 text-[11.5px] font-bold uppercase tracking-wider text-navy">Desenho da 1ª etapa (ilustrativo)</div>
+      <svg viewBox={`0 0 ${W} 150`} className="h-auto w-full" role="img" aria-label="Linha de quarteirões da primeira etapa">
+        <defs>
+          <pattern id="e1-hachura" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#C0392B" strokeWidth="2" opacity="0.45" />
+          </pattern>
+        </defs>
+        {/* cota do perímetro */}
+        <line x1={X0} x2={X0 + LARG} y1={18} y2={18} stroke="#122A45" strokeWidth="1" />
+        <line x1={X0} x2={X0} y1={12} y2={24} stroke="#122A45" />
+        <line x1={X0 + LARG} x2={X0 + LARG} y1={12} y2={24} stroke="#122A45" />
+        <text x={W / 2} y={13} textAnchor="middle" fontSize="13" fontWeight="700" fill="#122A45">Perímetro {n(q.perimetro)} m</text>
+        {/* cota do fundo */}
+        <line x1={X0 - 14} x2={X0 - 14} y1={Y} y2={Y + H} stroke="#122A45" />
+        <text x={X0 - 18} y={Y + H / 2} textAnchor="middle" fontSize="11" fill="#122A45" transform={`rotate(-90 ${X0 - 18} ${Y + H / 2})`}>fundo {n(q.fundo, 1)} m</text>
+        {peças.map((p, k) => {
+          if (p.tipo === "rua")
+            return (
+              <g key={k}>
+                <rect x={p.x} y={Y} width={p.w} height={H} fill="#DDE3E9" />
+                {p.w > 26 && <text x={p.x + p.w / 2} y={Y + H / 2 + 4} textAnchor="middle" fontSize="10" fill="#697683">rua</text>}
+              </g>
+            );
+          if (p.tipo === "desconto" || p.tipo === "sobra")
+            return (
+              <g key={k}>
+                <rect x={p.x} y={Y} width={p.w} height={H} fill={p.tipo === "desconto" ? "url(#e1-hachura)" : "#F7F2E7"} stroke={p.tipo === "desconto" ? "#C0392B" : "#ECE1C4"} strokeDasharray="4 3" />
+                {p.w > 40 && <text x={p.x + p.w / 2} y={Y + H + 16} textAnchor="middle" fontSize="11" fill={p.tipo === "desconto" ? "#C0392B" : "#697683"}>{p.tipo === "desconto" ? `desconto ${n(p.m)} m` : `sobra ${n(p.m, 1)} m`}</text>}
+              </g>
+            );
+          const passo = q.frente * esc;
+          return (
+            <g key={k}>
+              <rect x={p.x} y={Y} width={p.w} height={H} fill="#F7F2E7" stroke="#C1943D" strokeWidth="1.5" />
+              {passo >= 3 &&
+                Array.from({ length: Math.max(0, (p.lotes ?? 0) - 1) }, (_, j) => (
+                  <line key={j} x1={p.x + (j + 1) * passo} x2={p.x + (j + 1) * passo} y1={Y} y2={Y + H} stroke="#C1943D" strokeWidth="0.7" opacity="0.7" />
+                ))}
+              {p.w > 70 && (
+                <>
+                  <text x={p.x + p.w / 2} y={Y + H + 16} textAnchor="middle" fontSize="11" fontWeight="700" fill="#122A45">{n(p.m)} m</text>
+                  <text x={p.x + p.w / 2} y={Y + H + 30} textAnchor="middle" fontSize="11" fill="#697683">{p.lotes} lotes</text>
+                </>
+              )}
+            </g>
+          );
+        })}
+        <text x={X0} y={142} fontSize="11.5" fill="#122A45">
+          {`${q.quarteiroes} quarteirões · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
+        </text>
+      </svg>
     </div>
   );
 }

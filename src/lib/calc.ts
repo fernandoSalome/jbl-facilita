@@ -69,7 +69,7 @@ export type StudyInputs = {
   areaPerimetralE1: number | null;
   /** Primeira etapa: largura da rua (m) */
   ruaE1: number | null;
-  /** Primeira etapa: outras medidas a descontar do perímetro (m), tiradas da linha antes da conta */
+  /** Primeira etapa: outras medidas a descontar do perímetro (m): tiram lotes, a área da etapa não muda */
   descontoE1: number | null;
   /** Primeira etapa: comprimento da quadra (m) */
   compQuadraE1: number | null;
@@ -206,9 +206,9 @@ export type StudyResult = {
       linha: number; rua: number; fundo: number; frente: number; comp: number;
       /** quadras inteiras e lotes em cada uma; quadra menor no final (0 = não há) */
       cheias: number; porQuadra: number; resto: number; lotesResto: number; quarteiroes: number; lotesBrutos: number;
-      /** perímetro digitado, desconto (m) e a linha que sobra para a conta: linha = perímetro − desconto */
-      perimetro: number; desconto: number;
-      /** áreas (m²): lotes + ruas entre quadras + sobra = total (linha × fundo) */
+      /** perímetro digitado, desconto (m) e a linha onde cabem os lotes: linha = perímetro − desconto */
+      perimetro: number; desconto: number; ruasEntre: number;
+      /** áreas (m²): a área da etapa é perímetro × fundo (o desconto não muda a área, só os lotes) */
       areaLotes: number; areaRuas: number; sobra: number; areaTotal: number;
     } | null;
   } | null;
@@ -305,7 +305,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     // Uma linha de quarteirões (área perimetral = comprimento da linha, em metros), com uma fileira
     // de lotes de frente para a rua: fundo = m² do lote ÷ frente. Quadras inteiras separadas por
     // ruas; se sobrar espaço no final, entra uma quadra menor. As outras medidas a descontar (m)
-    // saem do perímetro antes de tudo: a conta inteira usa o que sobra.
+    // saem do perímetro só para contar os lotes; a área da etapa continua perímetro × fundo.
     const frente = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;
     if (i.areaPerimetralE1 && i.areaPerimetralE1 > 0 && frente > 0 && lote > 0) {
       const perimetro = i.areaPerimetralE1;
@@ -325,10 +325,10 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       const areaLotes = lotesBrutos * lote;
       // sem rua na frente: só as ruas entre as quadras, dentro da faixa
       const areaRuas = ruasEntre * rua * fundo;
-      const areaTotal = linha * fundo;
+      const areaTotal = perimetro * fundo;
       quadras = {
         linha, rua, fundo, frente, comp, cheias, porQuadra, resto, lotesResto, quarteiroes, lotesBrutos,
-        perimetro, desconto, areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal,
+        perimetro, desconto, ruasEntre, areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal,
       };
       qtd = lotesBrutos;
     }

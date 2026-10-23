@@ -158,7 +158,7 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     // o exemplo combinado: linha de 1.000 m, rua 12, quadra 250, frente 8, lote 220 m², R$ 350/m²
     const ex = { ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 1000, ruaE1: 12, compQuadraE1: 250, frenteE1: 8, loteEtapa1: 220, valorM2Etapa1: 350 };
     const g = calcular(ex);
-    expect(g.etapa1!.quadras).toMatchObject({ fundo: 27.5, cheias: 3, porQuadra: 31, resto: 214, lotesResto: 26, quarteiroes: 4, lotesBrutos: 119 });
+    expect(g.etapa1!.quadras).toMatchObject({ fundo: 27.5, ruasEntre: 3, cheias: 3, porQuadra: 31, resto: 214, lotesResto: 26, quarteiroes: 4, lotesBrutos: 119 });
     expect(g.etapa1!.quadras!.areaLotes).toBeCloseTo(26180, 6);
     expect(g.etapa1!.quadras!.areaRuas).toBeCloseTo(990, 6);
     expect(g.etapa1!.quadras!.sobra).toBeCloseTo(330, 6);
@@ -171,7 +171,8 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     const l1800 = calcular({ ...ex, areaPerimetralE1: 1800 });
     expect(d2.etapa1!.quadras).toMatchObject({ perimetro: 2000, desconto: 200, linha: 1800 });
     expect(d2.etapa1!.lotes).toBe(l1800.etapa1!.lotes);
-    expect(d2.etapa1!.quadras!.areaTotal).toBeCloseTo(1800 * 27.5, 6);
+    // a área não muda com o desconto (perímetro × fundo); só os lotes
+    expect(d2.etapa1!.quadras!.areaTotal).toBeCloseTo(2000 * 27.5, 6);
     expect(d2.etapa1!.avista).toBeCloseTo(l1800.etapa1!.avista, 2);
     // a definir: a etapa existe, sem números
     const ad = calcular({ ...ex, etapaADefinir: true });
