@@ -8,7 +8,7 @@ import { extensoReais, fmtBRL, fmtBRL0, fmtLongDate, fmtNum, fmtPct } from "@/li
 import type { Overrides, ProposalOptions } from "@/lib/proposals";
 import type { FormatoContent } from "@/lib/formatos";
 import { comCampos, tratamento, type Tratamento } from "@/lib/destinatario";
-import { E, EditProvider, Img, Lnk, Sec, ThemeRoot } from "./Editable";
+import { E, EditProvider, Img, Lnk, Sec, ThemeRoot, Fotos } from "./Editable";
 import IntentForm from "./IntentForm";
 import { ListaBenfeitorias, ListaContatos, TabelaObras } from "./Listas";
 import Tracker from "./Tracker";
@@ -350,7 +350,7 @@ export default function JblPadrao(props: TemplateProps) {
     area: fmtNum(inputs.areaTotal), municipio: project.municipio, uf: project.uf, modelo: formato.modelo, lei: formato.lei,
     data,
     // primeira etapa "a definir": os números do texto ficam "a definir"
-    e1Lotes: r.etapa1 ? String(Math.floor(r.etapa1.lotes)) : r.etapa1ADefinir ? "a definir" : "",
+    e1Lotes: r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : r.etapa1ADefinir ? "a definir" : "",
     e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 0) : r.etapa1ADefinir ? "a definir" : "",
     e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
     // área da etapa: perímetro × fundo (pelas medidas das quadras); o % continua o dos lotes sobre a área aproveitável
@@ -361,7 +361,7 @@ export default function JblPadrao(props: TemplateProps) {
   const etapa = !!r.etapa1 || r.etapa1ADefinir;
   const passo = (x: number) => (etapa || x < 6 ? x : x - 1);
   const renumera = (t: string) => t.replace(/passo 11\b/g, `passo ${passo(11)}`);
-  const semEtapa = (t: string) => (etapa ? t : t.replace(/\s*(?:<strong>)?\(incluindo a primeira etapa\)(?:<\/strong>)?/i, ""));
+  const semEtapa = (t: string) => (r.etapa1 ? t : t.replace(/\s*(?:<strong>)?\(incluindo a primeira etapa\)(?:<\/strong>)?/i, ""));
 
   const navLinks: [string, string, string][] = [
     ["#participacao", "nav1", "Sua participação"],
@@ -428,7 +428,7 @@ export default function JblPadrao(props: TemplateProps) {
               </div>
               {/* sem foto no loteamento: imagem de exemplo, para a seção nunca sumir (troca clicando nela) */}
               <figure className="photo hero-photo">
-                <Img k="fotoCapa" src={project.aerialImage || "/demo/foto-exemplo.svg"} alt={`Vista aérea da gleba ${gleba}, contornada em vermelho`} />
+                <Fotos k="fotoCapa" src={project.aerialImage || "/demo/foto-exemplo.svg"} alt={`Vista aérea da gleba ${gleba}, contornada em vermelho`} />
                 <div className="photo-bar">
                   <b><T k="fotoLegenda" vars={nv}>{"Gleba {{gleba}} · {{ha}} hectares"}</T></b>
                   <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
@@ -775,7 +775,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
                 </div>
-                <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick(fam ? `Parte da ${fam}` : "Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter2}</em>{etapa && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
+                <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick(fam ? `Parte da ${fam}` : "Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter2}</em>{r.etapa1 && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>
                   <span className="vs-or" aria-hidden="true">ou</span>

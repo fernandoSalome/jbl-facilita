@@ -108,6 +108,9 @@ export function cleanOverride(key: string, v: unknown): unknown {
   if (key.startsWith("theme.")) return typeof v === "string" && COLOR.test(v) ? v : undefined;
   if (key.startsWith("link.")) return typeof v === "string" && LINK.test(v.trim()) ? v.trim() : undefined;
   if (key.startsWith("btn.")) return v === "sm" || v === "md" || v === "lg" ? v : undefined;
+  // alinhamento de um texto e quantidade de fotos de um bloco de imagem
+  if (key.startsWith("al.")) return v === "left" || v === "center" || v === "right" ? v : undefined;
+  if (key.startsWith("fotos.")) return v === 1 || v === 2 ? v : undefined;
   if (key.startsWith("img.")) {
     const o = v as { src?: unknown; x?: unknown; y?: unknown; zoom?: unknown };
     if (!o || typeof o !== "object" || typeof o.src !== "string" || !(IMG_SRC.test(o.src) || o.src === "default")) return undefined;

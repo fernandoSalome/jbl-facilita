@@ -334,21 +334,21 @@ export default function TemplateEditor({
             ))}
             {!dirty && conflitos.length > 0 && <li>• Confirma os textos unificados (o aviso de conferência some).</li>}
           </ul>
-          <p className="text-[14px] font-semibold text-navy">Aplicar este template em quais propostas?</p>
-          <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "todas" ? "border-gold bg-gold-soft" : "border-line"}`}>
-            <input type="radio" checked={aplicar === "todas"} onChange={() => setAplicar("todas")} className="mt-1 accent-[#A2782F]" />
-            <span>
-              <b className="block text-navy">Em todas as propostas, as já criadas e as próximas</b>
-              <span className="text-[13px] text-muted">
-                As {total} proposta(s) já criadas com este template{enviadas ? `, ${enviadas} delas já enviadas,` : ""} passam a ficar assim. Os números da planilha de cada proposta e os textos personalizados dentro de cada uma continuam como estão.
-              </span>
-            </span>
-          </label>
+          <p className="text-[14px] font-semibold text-navy">Onde este template vai valer?</p>
           <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "proximas" ? "border-gold bg-gold-soft" : "border-line"}`}>
             <input type="radio" checked={aplicar === "proximas"} onChange={() => setAplicar("proximas")} className="mt-1 accent-[#A2782F]" />
             <span>
-              <b className="block text-navy">Só nas próximas propostas</b>
-              <span className="text-[13px] text-muted">As propostas já criadas continuam como estão. As novas nascem com este template.</span>
+              <b className="block text-navy">Só nas propostas novas</b>
+              <span className="text-[13px] text-muted">O template muda só nas propostas criadas daqui para frente. As que já existem ficam como estão.</span>
+            </span>
+          </label>
+          <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "todas" ? "border-gold bg-gold-soft" : "border-line"}`}>
+            <input type="radio" checked={aplicar === "todas"} onChange={() => setAplicar("todas")} className="mt-1 accent-[#A2782F]" />
+            <span>
+              <b className="block text-navy">Em todas as propostas (as que já existem e as novas)</b>
+              <span className="text-[13px] text-muted">
+                As {total} proposta(s) que usam este template{enviadas ? ` (${enviadas} já enviadas)` : ""} ficam iguais ao template. Só continua diferente o que foi mudado dentro de cada proposta e os números da planilha dela.
+              </span>
             </span>
           </label>
           {msg && <p className="text-sm font-semibold text-rose-700">{msg}</p>}

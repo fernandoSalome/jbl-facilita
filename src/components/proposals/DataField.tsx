@@ -3,13 +3,13 @@
 import type { DataProposta } from "@/lib/proposals";
 
 const OPCOES: [DataProposta["modo"], string, string][] = [
-  ["criacao", "Dia da criação", "fixa no dia em que a proposta foi criada"],
+  ["envio", "Dia do envio", "o dia em que a proposta foi enviada"],
   ["fixa", "Escolher", "uma data definida por você"],
 ];
 
 /** Data escrita na proposta (bloco dos profissionais, validade, rodapé) */
 export default function DataField({ value, onChange }: { value?: DataProposta; onChange: (v: DataProposta) => void }) {
-  const modo = value?.modo ?? "criacao";
+  const modo = value?.modo === "fixa" ? "fixa" : "envio";
   const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   return (
     <div>

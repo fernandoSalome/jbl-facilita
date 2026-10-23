@@ -251,8 +251,18 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
       {/* Primeira etapa: uma linha de quadras para começar a vender antes */}
       <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
+          {/* uma opção só: sem primeira etapa (padrão), com os números ou a definir */}
           <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={i.primeiraEtapa} onChange={(e) => s.setEtapa(e.target.checked)} className="h-4 w-4 accent-[#C1943D]" />
+            <input
+              type="checkbox"
+              checked={!i.primeiraEtapa && !i.etapaADefinir}
+              onChange={() => { s.setEtapa(false); s.setEtapaADefinir(false); }}
+              className="h-4 w-4 accent-[#C1943D]"
+            />
+            Não tem primeira etapa
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={i.primeiraEtapa && !i.etapaADefinir} onChange={(e) => (e.target.checked ? s.setEtapa(true) : (s.setEtapa(false), s.setEtapaADefinir(false)))} className="h-4 w-4 accent-[#C1943D]" />
             Tem primeira etapa (desmembramento)
           </label>
           <label className="flex cursor-pointer items-center gap-2">
@@ -364,11 +374,11 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="ruasObrigE1" label="Desconto de ruas obrigatórias" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
-        <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
-        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} × ${fmtNum(q.porQuadra)} lotes` : "")} />
+        <Out label="Fundo do lote" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
+        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} ${q.cheias === 1 ? "quadra" : "quadras"} × ${fmtNum(q.porQuadra)} lotes` : "")} />
         <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m · ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
         <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
-        <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} × ${fmtNum(q.rua, 0)} m` : "nenhuma") : "")} />
+        <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} ${q.ruasEntre === 1 ? "rua" : "ruas"} × ${fmtNum(q.rua, 0)} metros` : "nenhuma") : "")} />
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo>Área da 1ª etapa</Titulo>

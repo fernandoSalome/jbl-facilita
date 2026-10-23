@@ -55,11 +55,9 @@ const CSS = `
   .pdf-slide .hero-photo{max-height:none}
 `;
 
-/** Chave que muda sempre que a proposta (ou o template aplicado a ela) muda; com data automática, também a cada dia */
+/** Chave que muda sempre que a proposta (ou o template aplicado a ela) muda */
 export function pdfKeyOf(p: { updatedAt: Date; formatoVersionId: string | null; options?: unknown }) {
-  const auto = (p.options as { data?: { modo?: string } } | null)?.data?.modo === "auto";
-  const dia = auto ? `:${new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : "";
-  return `slides:${p.updatedAt.getTime()}:${p.formatoVersionId ?? ""}${dia}`;
+  return `slides:${p.updatedAt.getTime()}:${p.formatoVersionId ?? ""}`;
 }
 
 export function contarPaginas(pdf: Buffer) {

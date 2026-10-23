@@ -141,7 +141,9 @@ export function E({
 }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
-  const changed = k in own;
+  const changed = k in own || `al.${k}` in own;
+  const al = overrides[`al.${k}`] as "left" | "center" | "right" | undefined;
+  const alStyle: React.CSSProperties | undefined = al ? { display: "block", textAlign: al } : undefined;
   // Padrão em HTML (título com dourado e quebras, parágrafo com negrito) ou texto simples
   // (com `vars`, os números aparecem como {{nome}} e são preenchidos na hora de mostrar)
   const defaultHtml = isHtml ? sanitizeHtml(children) : plainToHtml(children);
@@ -184,7 +186,25 @@ export function E({
       if (e.inputType.startsWith("format") || e.inputType.startsWith("history")) return;
       const s = window.getSelection();
       const alvos: AbstractRange[] = e.getTargetRanges?.().length ? e.getTargetRanges() : s && s.rangeCount ? [s.getRangeAt(0)] : [];
-      if (alvos.some((r) => tocaNumero(el, r))) e.preventDefault();
+      if (!alvos.some((r) => tocaNumero(el, r))) return;
+      e.preventDefault();
+      // apagar (Backspace/Delete): o número sai inteiro, junto com o resto do trecho; trocar só o número não pode
+      if (!e.inputType.startsWith("delete")) return;
+      const r = document.createRange();
+      r.setStart(alvos[0].startContainer, alvos[0].startOffset);
+      r.setEnd(alvos[alvos.length - 1].endContainer, alvos[alvos.length - 1].endOffset);
+      el.querySelectorAll("[data-var]").forEach((n) => {
+        if (!r.intersectsNode(n)) return;
+        const nr = document.createRange();
+        nr.selectNode(n);
+        if (r.compareBoundaryPoints(Range.START_TO_START, nr) > 0) r.setStartBefore(n);
+        if (r.compareBoundaryPoints(Range.END_TO_END, nr) < 0) r.setEndAfter(n);
+      });
+      r.deleteContents();
+      r.collapse(true);
+      s?.removeAllRanges();
+      s?.addRange(r);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
     };
     el.addEventListener("beforeinput", antes);
     return () => el.removeEventListener("beforeinput", antes);
@@ -196,8 +216,8 @@ export function E({
   }
 
   if (!editable) {
-    if (!vars && !(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    if (!al && !vars && !(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;
+    return <span style={alStyle} dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
   /** Grava o que está escrito agora (sem sair da edição) */
@@ -206,7 +226,9 @@ export function E({
     timer.current = null;
     if (!ref.current) return;
     const el = vars ? lerModelo(ref.current) : ref.current;
-    const clean = sanitizeHtml(el.innerHTML).replace(/(<br>)+$/, "").trim();
+    let clean = sanitizeHtml(el.innerHTML).replace(/(<br>)+$/, "").trim();
+    // todos os números da planilha apagados: a marca {{_}} (invisível) evita que o texto volte ao padrão
+    if (vars && children.includes("{{") && !clean.includes("{{")) clean += "{{_}}";
     if (norm(clean) === norm(sanitizeHtml(ultimo.current))) return; // nada mudou desde a última gravação
     ultimo.current = clean;
     if (!clean || norm(clean) === norm(defaultHtml)) return void ((k in own || changed) && save(k, null));
@@ -237,6 +259,7 @@ export function E({
         ref={ref}
         data-k={k}
         className={`ed ${changed ? "changed" : ""} ${editing ? "editing" : ""}`}
+        style={alStyle}
         title={editing ? undefined : changed ? "Alterado à mão. Clique para editar" : "Clique para editar"}
         contentEditable={editing}
         suppressContentEditableWarning
@@ -316,6 +339,23 @@ export function E({
             else document.execCommand("insertLineBreak");
           }
         }}
+        onCopy={(e) => {
+          const s = window.getSelection();
+          if (!s || !s.rangeCount || s.isCollapsed) return;
+          const box = document.createElement("div");
+          box.appendChild(s.getRangeAt(0).cloneContents());
+          e.preventDefault();
+          e.clipboardData.setData("text/plain", box.textContent ?? "");
+        }}
+        onCut={(e) => {
+          const s = window.getSelection();
+          if (!s || !s.rangeCount || s.isCollapsed) return;
+          const box = document.createElement("div");
+          box.appendChild(s.getRangeAt(0).cloneContents());
+          e.preventDefault();
+          e.clipboardData.setData("text/plain", box.textContent ?? "");
+          document.execCommand("delete");
+        }}
         onPaste={(e) => {
           e.preventDefault();
           document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
@@ -329,6 +369,8 @@ export function E({
           link={link}
           onCommit={commit}
           onCancel={cancel}
+          align={al}
+          onAlign={(v) => save(`al.${k}`, v)}
           onReset={() => {
             setEditing(false);
             save(k, null);
@@ -342,7 +384,12 @@ export function E({
 /* ------------------------------------------------- barra de formatação */
 
 const SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56, 64];
-const SWATCHES = ["#122A45", "#C1943D", "#A2782F", "#2B3A4A", "#697683", "#2E7D4F", "#B3261E", "#FFFFFF", "#000000"];
+const SWATCHES = [
+  "#122A45", "#1B3757", "#2B3A4A", "#3B6EA5", "#0E7490", "#2563EB",
+  "#C1943D", "#A2782F", "#8F6B28", "#CA8A04", "#EA580C", "#B45309",
+  "#2E7D4F", "#15803D", "#65A30D", "#B3261E", "#DC2626", "#BE185D",
+  "#7C3AED", "#697683", "#4B5563", "#9CA3AF", "#FFFFFF", "#000000",
+];
 const HIGHLIGHTS = ["#FFE58A", "#F7F2E7", "#DFF3E6", "#E3ECF7", "#FDE2E1"];
 
 /** Botão da barra de formatação (fora do Toolbar para não ser recriado a cada render) */
@@ -367,6 +414,8 @@ function Toolbar({
   changed,
   link,
   onCommit,
+  align,
+  onAlign,
   onCancel,
   onReset,
 }: {
@@ -375,6 +424,8 @@ function Toolbar({
   changed: boolean;
   link: { k: string; href: string; defaultHref: string } | null;
   onCommit: () => void;
+  align?: "left" | "center" | "right";
+  onAlign: (v: "left" | "center" | "right") => void;
   onCancel: () => void;
   onReset: () => void;
 }) {
@@ -558,6 +609,12 @@ function Toolbar({
       <ColorBtn title="Cor do letra" label="A" swatches={SWATCHES} onPick={(c) => exec("foreColor", c)} underline />
       <ColorBtn title="Grifar / cor de fundo do texto" label="▮" swatches={HIGHLIGHTS} onPick={(c) => exec("hiliteColor", c)} onClear={() => exec("hiliteColor", "transparent")} />
       <B title="Limpar formatação" onClick={() => exec("removeFormat")}>⌫</B>
+      <Sep />
+      {([["left", "Alinhar à esquerda", "M3 6h18M3 12h12M3 18h16"], ["center", "Centralizar", "M3 6h18M6 12h12M4 18h16"], ["right", "Alinhar à direita", "M3 6h18M9 12h12M5 18h16"]] as const).map(([v, t, d]) => (
+        <B key={v} title={t} active={(align ?? "left") === v && !!align} onClick={() => onAlign(v)}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d={d} /></svg>
+        </B>
+      ))}
       {link && (
         <>
           <Sep />
@@ -613,8 +670,8 @@ function ColorBtn({ title, label, swatches, onPick, onClear, underline }: { titl
         <span style={underline ? { borderBottom: `3px solid ${last}`, lineHeight: 1 } : { color: last }}>{label}</span>
       </button>
       {open && (
-        <span className="absolute left-0 top-full z-10 mt-1 grid w-[172px] gap-2 rounded-md bg-white p-2 text-navy shadow-xl" onMouseDown={(e) => e.preventDefault()}>
-          <span className="grid grid-cols-5 gap-1.5">
+        <span className="absolute left-0 top-full z-10 mt-1 grid w-[200px] gap-2 rounded-md bg-white p-2 text-navy shadow-xl" onMouseDown={(e) => e.preventDefault()}>
+          <span className="grid grid-cols-6 gap-1.5">
             {swatches.map((c) => (
               <button
                 key={c}
@@ -862,6 +919,30 @@ export function Img({ k, src, alt, className, style }: { k: string; src: string;
             await save(`img.${k}`, v);
           }}
         />
+      )}
+    </>
+  );
+}
+
+/** Bloco de foto com 1 ou 2 imagens lado a lado (fotos.<k> = 1 | 2); cada metade troca clicando nela */
+export function Fotos({ k, src, alt }: { k: string; src: string; alt: string }) {
+  const { overrides, editable, save } = useContext(EditCtx);
+  const n = overrides[`fotos.${k}`] === 2 ? 2 : 1;
+  return (
+    <>
+      {editable && (
+        <span className="fotos-modo" onClick={(e) => e.stopPropagation()}>
+          <button type="button" className={n === 1 ? "on" : ""} onClick={() => save(`fotos.${k}`, null)} title="Uma foto ocupando o espaço todo">1 foto</button>
+          <button type="button" className={n === 2 ? "on" : ""} onClick={() => save(`fotos.${k}`, 2)} title="Duas fotos, uma em cada metade">2 fotos</button>
+        </span>
+      )}
+      {n === 2 ? (
+        <span className="fotos-duas">
+          <Img k={k} src={src} alt={alt} />
+          <Img k={`${k}2`} src={src} alt={alt} />
+        </span>
+      ) : (
+        <Img k={k} src={src} alt={alt} />
       )}
     </>
   );

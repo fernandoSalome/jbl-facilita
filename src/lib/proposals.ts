@@ -19,14 +19,13 @@ export type ProposalOptions = {
  * criacao = fixa no dia em que a proposta foi criada
  * fixa    = um dia escolhido (dia = "AAAA-MM-DD")
  */
-export type DataProposta = { modo: "auto" | "criacao" | "fixa"; dia?: string };
+export type DataProposta = { modo: "envio" | "fixa" | "auto" | "criacao"; dia?: string };
 
-/** Data que aparece na proposta (assinatura dos profissionais, carta, validade...) */
-export function dataDaProposta(p: { createdAt: Date | string; publishedAt?: Date | string | null; options: ProposalOptions }, agora = new Date()): Date {
+/** Data que aparece na proposta: a escolhida, senão o dia do envio (rascunho: o dia da criação).
+ *  "auto" e "criacao" são de versões antigas e valem como o dia do envio. */
+export function dataDaProposta(p: { createdAt: Date | string; publishedAt?: Date | string | null; options: ProposalOptions }): Date {
   const d = p.options.data;
-  if (d?.modo === "auto") return agora;
   if (d?.modo === "fixa" && d.dia && /^\d{4}-\d{2}-\d{2}$/.test(d.dia)) return new Date(`${d.dia}T12:00:00-03:00`);
-  if (d?.modo === "criacao") return new Date(p.createdAt);
   return new Date(p.publishedAt ?? p.createdAt);
 }
 

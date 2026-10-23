@@ -150,7 +150,7 @@
 .jblt .quote .tech { display: grid; justify-content: end; justify-items: end; text-align: right; }
 .jblt .quote .tech .tech-lbl { display: block; }
 .jblt .quote .tech .tech-nomes { display: block; }
-.jblt .quote .tech .tech-date { display: block; justify-self: center; text-align: center; margin-top: 6px; }
+.jblt .quote .tech .tech-date { display: block; justify-self: end; text-align: right; margin-top: 6px; }
 @media (max-width: 760px) { .jblt .quote .tech { justify-content: start; justify-items: start; text-align: left; } }
 
 /* ---------- tabela de recebimentos: linha entre as colunas ---------- */
@@ -195,3 +195,12 @@
 .jblt .lgpd { display: flex; gap: 12px; align-items: flex-start; margin-top: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
 .jblt .lgpd svg { flex: none; margin-top: 2px; color: var(--gold-deep); }
 .jblt .lgpd strong { color: var(--navy); }
+
+/* Foto da capa em duas metades (opção "2 fotos") */
+.jblt .hero-photo .fotos-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.jblt .hero-photo .fotos-duas img { aspect-ratio: 8/8.4; width: 100%; height: auto; object-fit: cover; }
+@media (max-width: 900px) { .jblt .hero-photo .fotos-duas img { aspect-ratio: 2/3.3; } }
+.jblt .hero-photo { position: relative; }
+.jblt .fotos-modo { position: absolute; top: 10px; right: 10px; z-index: 5; display: flex; gap: 4px; background: rgba(18,42,69,.86); padding: 4px; border-radius: 6px; font-family: var(--body); }
+.jblt .fotos-modo button { color: #fff; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 4px; }
+.jblt .fotos-modo button.on { background: var(--gold); color: var(--navy); }
