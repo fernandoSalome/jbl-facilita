@@ -18,7 +18,7 @@ const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEt
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
   const n = kind === "pct" ? v * 100 : v;
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: kind === "pct" ? 4 : 6 });
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 }
 
 function parse(text: string, kind: Kind): number | null {
@@ -175,7 +175,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="Área Útil (m²)" value={fmtNum(r.areaUtil)} />
             <Out label="Doação de Área + Vias (m²)" value={fmtNum(r.areaDoacao)} />
             <In s={s} k="metragemLote" label="Metragem do Lote (m²)" />
-            <Out label="Total de Lotes" value={fmtNum(r.lotes, 3)} strong />
+            <Out label="Total de Lotes" value={fmtNum(r.lotes, 2)} strong />
           </Box>
           <Box title="Parceria do Parcelamento de Solo">
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
