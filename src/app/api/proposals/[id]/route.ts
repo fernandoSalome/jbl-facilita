@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { parseInputs, parseOptions, STATUS, type Overrides } from "@/lib/proposals";
 import { cleanOverride } from "@/lib/sanitize";
+import { latestVersion } from "@/lib/formato-server";
+import { parseFormato } from "@/lib/formatos";
 
 type Ctx = { params: { id: string } };
 
@@ -31,6 +33,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
       }
       // Expirar agora: o link passa a mostrar "proposta expirada" (reabrir = prorrogar)
       if (b.expire === true) data.expiresAt = new Date(Date.now() - 1000);
+      // passa para a versão atual do template (ao "Atualizar" ou ao "Voltar tudo ao template")
+      if (b.atualizarTemplate === true || b.resetOverrides === true) {
+        const v = await latestVersion(p.templateId, parseFormato(p.formato));
+        if (v) data.formatoVersionId = v.id;
+      }
       if (b.resetOverrides === true) data.overrides = {};
       else if (b.overrides) {
         // Uma chave com valor null volta ao valor calculado
