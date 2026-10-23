@@ -10,9 +10,21 @@ import { db } from "./db";
 
 const W = 1280;
 const PAGE = { w: 338.67, h: 190.5 }; // mm
-/** A4 em pé: a página corrida, como no site, quebrando entre os blocos */
-const A4 = { w: 210, h: 297, margem: { top: 12, bottom: 14, side: 11 } }; // mm
+/**
+ * A4 em pé: folha na proporção do A4, mas na largura do site (338,67 mm, como os slides), para a
+ * proposta sair no layout de computador (numa folha de 210 mm o site cai no layout de celular).
+ * Impressa em A4, a impressora só reduz: 1,6127 × menor, igual.
+ */
+const A4 = { w: 338.67, h: +(338.67 * 297 / 210).toFixed(2), margem: { top: 19, bottom: 23, side: 17.7 } }; // mm
 const A4_SCALE = +(((A4.w - 2 * A4.margem.side) * 3.7795) / W).toFixed(4);
+/** Cada seção começa numa página nova; blocos não se partem no meio */
+const CSS_A4 = `
+  .jblt main > .step, .jblt main > .part, .jblt main > .big-idea, .jblt main > .letter, .jblt .dark-foot { break-before: page; page-break-before: always; }
+  .jblt main > .part + .step { break-before: avoid; page-break-before: avoid; }
+  .jblt .hero-stats, .jblt .quote, .jblt .hero-photo, .jblt .step-head, .jblt .end, .jblt .tiles, .jblt .split, .jblt table tr { break-inside: avoid; page-break-inside: avoid; }
+  .jblt .hero-photo { break-after: avoid; page-break-after: avoid; }
+  .jblt section.step { padding-top: 0 !important; margin-top: 0 !important; border-top: 0 !important; }
+`;
 export type FormatoPdf = "slides" | "a4";
 const MARGIN = { top: 9, bottom: 13, side: 11 }; // mm
 const SCALE = +(((PAGE.w - 2 * MARGIN.side) * 3.7795) / W).toFixed(4);
@@ -92,15 +104,17 @@ async function imprimir(origin: string, token: string, rodape: string, paginas?:
       // A4 em pé: sem montar slides; o navegador quebra as páginas entre os blocos
       await page.evaluate(() => window.dispatchEvent(new Event("resize")));
       await page.waitForTimeout(400);
+      await page.addStyleTag({ content: CSS_A4 });
       const m = A4.margem;
       return await page.pdf({
-        format: "A4",
+        width: `${A4.w}mm`,
+        height: `${A4.h}mm`,
         printBackground: true,
         scale: A4_SCALE,
         margin: { top: `${m.top}mm`, bottom: `${m.bottom}mm`, left: `${m.side}mm`, right: `${m.side}mm` },
         displayHeaderFooter: true,
         headerTemplate: "<div></div>",
-        footerTemplate: `<div style="width:100%;font-family:Arial,sans-serif;font-size:7.5px;color:#8a929b;padding:0 ${m.side}mm;display:flex;justify-content:space-between"><span>${esc}</span><span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span></div>`,
+        footerTemplate: `<div style="width:100%;font-family:Arial,sans-serif;font-size:12px;color:#8a929b;padding:0 ${m.side}mm;display:flex;justify-content:space-between"><span>${esc}</span><span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span></div>`,
       });
     }
     await page.evaluate(montarSlides, { H: SLIDE_H });
