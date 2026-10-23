@@ -9,6 +9,18 @@ describe("tratamento da proposta", () => {
     expect(comCampos(d.saudacao, d)).toEqual({ texto: "Prezada {{familia}},", vars: { familia: "Família Silva" } });
     expect(tratamento({ tipo: "familia", nome: "Família Souza" }).rotulo).toBe("Família Souza");
   });
+  it("família com nome: 'a família' dos textos vira o nome, sem quebrar palavras", () => {
+    const d = tratamento({ tipo: "familia", nome: "Silva" });
+    expect(d.quem).toBe("a Família Silva");
+    expect(d.da).toBe("da Família Silva");
+    expect(comCampos("Prezada Família Silva, a parte da Família Silva", d).texto).toBe("Prezada {{familia}}, a parte {{da}}");
+    const t = "rentabilidade da família. A família recebe e a família escolhe. Carta à família. uma família";
+    let out = t;
+    for (const [c, re] of d.trocas) out = out.replace(re, `{{${c}}}`);
+    expect(out).toBe("rentabilidade {{da}}. {{Quem}} recebe e {{quem}} escolhe. Carta {{aoRotulo}}. uma família");
+    expect(tratamento({ tipo: "pessoa", nome: "João" }).valores.da).toBe("do Sr. João");
+    expect(tratamento({ tipo: "familia" }).trocas).toEqual([]);
+  });
   it("família sem nome não mexe nos textos (edições antigas continuam valendo)", () => {
     const d = tratamento({ tipo: "familia" });
     expect(d.saudacao).toBe("Prezada Família,");

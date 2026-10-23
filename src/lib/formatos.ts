@@ -152,7 +152,7 @@ export function formatoTemDados(c: FormatoContent | undefined) {
 export function qtdTexto(q: Qtd, r: StudyResult, fmtNum: (n: number, d?: number) => string) {
   if (q.kind === "calc") {
     const v = r.infra[q.key];
-    return `${q.key === "arvores" ? String(v) : fmtNum(v)} ${QTD_CALC[q.key].unit}`;
+    return `${fmtNum(v)} ${QTD_CALC[q.key].unit}`;
   }
   if (q.kind === "fixa") return q.text;
   return null;

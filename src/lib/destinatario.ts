@@ -23,12 +23,12 @@ export function tratamento(d?: Destinatario) {
       tipo,
       pick,
       nome,
-      /** "a família" */
-      quem: "a família",
-      /** "A família" */
-      Quem: "A família",
-      /** "da família" (para "a parte da família") */
-      da: "da família",
+      /** "a família" ou "a Família Silva" */
+      quem: nome ? `a ${familia}` : "a família",
+      /** "A família" ou "A Família Silva" */
+      Quem: nome ? `A ${familia}` : "A família",
+      /** "da família" ou "da Família Silva" (para "a parte da família") */
+      da: nome ? `da ${familia}` : "da família",
       /** "à" / "ao" (para "Carta à Família Silva") */
       ao: "à",
       saudacao: `Prezada ${familia},`,
@@ -37,7 +37,8 @@ export function tratamento(d?: Destinatario) {
       /** "recebê-los" / "recebê-lo" / "recebê-la" */
       recebe: "recebê-los",
       /** Partes do texto que viram campos travados (o nome muda de uma proposta para outra) */
-      campos: (nome ? [["familia", familia]] : []) as [string, string][],
+      campos: (nome ? [["da", `da ${familia}`], ["quem", `a ${familia}`], ["Quem", `A ${familia}`], ["familia", familia]] : []) as [string, string][],
+      ...trocasDe(!!nome, { da: `da ${familia}`, quem: `a ${familia}`, Quem: `A ${familia}`, aoRotulo: `à ${familia}` }),
     };
   }
 
@@ -59,7 +60,28 @@ export function tratamento(d?: Destinatario) {
     recebe: fem ? "recebê-la" : "recebê-lo",
     // do mais longo para o mais curto ("do Sr. João" antes de "o Sr. João" e de "Sr. João")
     campos: [["da", da], ["quem", quem], ["Quem", Quem], ["rotulo", rotulo], ["pessoa", pessoa]] as [string, string][],
+    ...trocasDe(true, { da, quem, Quem, aoRotulo: `${fem ? "à" : "ao"} ${pessoa}` }),
   };
+}
+
+const L = "(?<![\\p{L}])";
+const R = "(?![\\p{L}])";
+/**
+ * Textos (também os já editados no template ou na proposta) que falam de "a família" genérica:
+ * com nome escolhido, viram o nome ("da família" → "da Família Silva" / "do Sr. João").
+ * `valores` sempre existe, para um texto salvo com {{da}} continuar certo se o destinatário mudar.
+ */
+function trocasDe(ativa: boolean, v: { da: string; quem: string; Quem: string; aoRotulo: string }) {
+  const trocas: [string, RegExp][] = ativa
+    ? [
+        ["da", new RegExp(`${L}da família${R}`, "gu")],
+        ["aoRotulo", new RegExp(`${L}à família${R}`, "gu")],
+        ["quem", new RegExp(`${L}a família${R}`, "gu")],
+        ["Quem", new RegExp(`${L}A família${R}`, "gu")],
+      ]
+    : [];
+  const valores = ativa ? v : { da: "da família", quem: "a família", Quem: "A família", aoRotulo: "à família" };
+  return { trocas, valores };
 }
 
 export type Tratamento = ReturnType<typeof tratamento>;
@@ -73,7 +95,9 @@ export function comCampos(texto: string, d: Tratamento, vars?: Record<string, st
   const v: Record<string, string> = { ...(vars ?? {}) };
   for (const [campo, valor] of d.campos) {
     if (!valor || !t.includes(valor)) continue;
-    t = t.split(valor).join(`{{${campo}}}`);
+    const re = new RegExp(`(?<![\\p{L}])${valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "gu");
+    if (!re.test(t)) continue;
+    t = t.replace(re, `{{${campo}}}`);
     v[campo] = valor;
   }
   return { texto: t, vars: Object.keys(v).length ? v : undefined };

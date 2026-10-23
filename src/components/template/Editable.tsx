@@ -27,6 +27,9 @@ type Ctx = {
 };
 
 const EditCtx = createContext<Ctx>({ overrides: {}, own: {}, editable: false, save: async () => {}, preview: () => {} });
+/** Nome escolhido para o destinatário: trocas de "a família" nos textos e os valores dos campos */
+export type Trocas = { trocas: [string, RegExp][]; valores: Record<string, string> };
+const TrocasCtx = createContext<Trocas | null>(null);
 const LinkCtx = createContext<{ k: string; href: string; defaultHref: string } | null>(null);
 
 export const useEdit = () => useContext(EditCtx);
@@ -123,7 +126,7 @@ export function E({
   multiline,
   html: isHtml,
   fixo,
-  vars,
+  vars: varsProp,
   limpar,
 }: {
   k: string;
@@ -141,6 +144,7 @@ export function E({
 }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
+  const tr = useContext(TrocasCtx);
   const changed = k in own || `al.${k}` in own;
   const al = overrides[`al.${k}`] as "left" | "center" | "right" | undefined;
   const alStyle: React.CSSProperties | undefined = al ? { display: "block", textAlign: al } : undefined;
@@ -156,8 +160,16 @@ export function E({
       : bruto;
   // Valor em uso: alteração da proposta, senão a do template, senão o padrão
   // texto com números editado antes dos blocos travados existirem: ignora (teria número velho, congelado)
-  const antigo = !!vars && typeof ov === "string" && !ov.includes("{{") && children.includes("{{");
-  const modelo = k in overrides && !antigo ? valueToHtml(ov, children) : defaultHtml;
+  const antigo = !!varsProp && typeof ov === "string" && !ov.includes("{{") && children.includes("{{");
+  let modelo = k in overrides && !antigo ? valueToHtml(ov, children) : defaultHtml;
+  // "a família" / "da família" viram o nome escolhido (campo travado, como os números)
+  let vars = varsProp;
+  if (tr) {
+    for (const [campo, re] of tr.trocas) modelo = modelo.replace(re, `{{${campo}}}`);
+    for (const [campo, valor] of Object.entries(tr.valores)) {
+      if (modelo.includes(`{{${campo}}}`) && !(vars && campo in vars)) vars = { ...(vars ?? {}), [campo]: valor };
+    }
+  }
   const html = vars ? preencher(modelo, vars) : modelo;
   const ref = useRef<HTMLSpanElement>(null);
   const [editing, setEditing] = useState(false);
@@ -1243,8 +1255,10 @@ export function EditProvider({
   base,
   editable,
   onSave,
+  trocas,
   children,
 }: {
+  trocas?: Trocas;
   overrides: Overrides;
   /** Valores vindos do template (aparecem, mas não contam como alterados à mão) */
   base?: Overrides;
@@ -1281,13 +1295,13 @@ export function EditProvider({
   );
 
   return (
-    <EditCtx.Provider value={{ overrides: base ? { ...base, ...overrides } : overrides, own: overrides, editable, save, preview }}>
+    <TrocasCtx.Provider value={trocas ?? null}><EditCtx.Provider value={{ overrides: base ? { ...base, ...overrides } : overrides, own: overrides, editable, save, preview }}>
       {children}
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-[2500] -translate-x-1/2 rounded bg-navy px-4 py-2 font-sans text-sm font-semibold text-white shadow-xl">
           ✓ {toast}
         </div>
       )}
-    </EditCtx.Provider>
+    </EditCtx.Provider></TrocasCtx.Provider>
   );
 }

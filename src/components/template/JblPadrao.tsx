@@ -132,8 +132,8 @@ export function LoteDesenho({ frente, fundo, area }: { frente: number; fundo: nu
       ) : (
         <text x={r1(cx)} y={r1(cy + 5)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize="14" fill="var(--navy)">{area} m²</text>
       )}
-      <text x={r1(cx)} y={r1(y - 4)} textAnchor="middle" fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(frente, 0)} m</text>
-      <text x={r1(x + w + 6)} y={r1(cy + 3)} fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(fundo, 0)} m</text>
+      <text x={r1(cx)} y={r1(y - 4)} textAnchor="middle" fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(frente, 2)} m</text>
+      <text x={r1(x + w + 6)} y={r1(cy + 3)} fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(fundo, 2)} m</text>
     </svg>
   );
 }
@@ -272,13 +272,14 @@ export default function JblPadrao(props: TemplateProps) {
 
   // ----- destinatário: textos que falam com quem recebe a proposta -----
   const d = tratamento(options.destinatario);
+  const trocas = useMemo(() => ({ trocas: d.trocas, valores: d.valores }), [d.trocas, d.valores]);
   /** Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@<tipo>") */
 
   // ----- números usados nos textos -----
   const gleba = project.name;
   const local = `${project.municipio}, ${project.uf}`;
   const ha = inputs.areaTotal / 10000;
-  const ter = fmtPct(r.terrenistaPct, 0);
+  const ter = fmtPct(r.terrenistaPct, 2);
   const terN = Math.round(r.terrenistaPct * 100);
   const n = r.nParcelas;
   const anos = fmtNum(n / 12, n % 12 ? 1 : 0);
@@ -339,8 +340,8 @@ export default function JblPadrao(props: TemplateProps) {
   );
 
   const nv: Record<string, string> = {
-    gleba, ter, terN: String(terN), ha: fmtNum(ha, 4), haUtil: fmtNum(r.areaUtil / 10000, 4), campos: String(campos),
-    aprov: pctTxt(inputs.aproveitamento), frente: fmtNum(inputs.frenteLote, 0), fundo: fmtNum(r.fundoLote, 0), lote: fmtNum(inputs.metragemLote, 0),
+    gleba, ter, terN: fmtNum(r.terrenistaPct * 100, 2), ha: fmtNum(ha, 4), haUtil: fmtNum(r.areaUtil / 10000, 4), campos: fmtNum(inputs.areaTotal / 7140, 2),
+    aprov: pctTxt(inputs.aproveitamento), frente: fmtNum(inputs.frenteLote, 2), fundo: fmtNum(r.fundoLote, 2), lote: fmtNum(inputs.metragemLote, 2),
     lotesMin: String(r.lotesInteiros), lotesMax: String(r.lotesInteiros + 1), lotes2, extenso: ext(r.custoInfra),
     entrada: pctTxt(inputs.entradaPct), n: String(n), anos, reaj, indice, ipca: fmtPct(inputs.ipca), jurosMes: fmtPct(inputs.jurosMes), jurosAnoEq,
     jurosAnoTxt: inputs.jurosAno ? ` + juros de ${fmtPct(inputs.jurosAno)} ao ano` : "",
@@ -371,7 +372,7 @@ export default function JblPadrao(props: TemplateProps) {
   ];
 
   return (
-    <EditProvider overrides={props.overrides} base={formato.overrides} editable={editing} onSave={props.onSave}>
+    <EditProvider overrides={props.overrides} base={formato.overrides} editable={editing} onSave={props.onSave} trocas={trocas}>
       <ThemeRoot className={`jblt ${editing ? "editing" : ""} ${mode !== "public" ? "embedded" : ""}`}>
         <div ref={root}>
           {mode === "public" && !props.printing && <Tracker token={props.token} />}
@@ -437,7 +438,7 @@ export default function JblPadrao(props: TemplateProps) {
               <div className="hero-stats">
                 <div><b><V k="statArea">{`${fmtNum(inputs.areaTotal)} m²`}</V></b><span><T k="statAreaD">área total indicada</T></span></div>
                 <div><b><V k="statUtil">{`${fmtNum(r.areaUtil)} m²`}</V></b><span><T k="statUtilD" vars={nv} limpar={quebraAprov}>{"área aproveitável estimada\n({{aprov}} da área total)"}</T></span></div>
-                <div><b><V k="statLote">{`${fmtNum(inputs.metragemLote, 0)} m²`}</V></b><span><T k="statLoteD" vars={nv}>{"lotes de {{frente}} × {{fundo}} metros"}</T></span></div>
+                <div><b><V k="statLote">{`${fmtNum(inputs.metragemLote, 2)} m²`}</V></b><span><T k="statLoteD" vars={nv}>{"lotes de {{frente}} × {{fundo}} metros"}</T></span></div>
                 <div><b><V k="statMatricula">{project.matricula ?? "a definir"}</V></b><span><T k="statMatriculaD">matrícula do imóvel</T></span></div>
               </div>
               <div className="quote">
@@ -574,7 +575,7 @@ export default function JblPadrao(props: TemplateProps) {
                 </div>
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s1CalcT">De onde vem o número de lotes</T></span>
-                  <span className="f"><span><V k="s1f1">{`${fmtNum(r.areaUtil)} m²`}</V></span><span className="op">÷</span><span><V k="s1f2">{`${fmtNum(inputs.metragemLote, 0)} m² por lote`}</V></span><span className="op">=</span><span className="res"><V k="s1f3b">{`${lotes2} lotes equivalentes`}</V></span></span>
+                  <span className="f"><span><V k="s1f1">{`${fmtNum(r.areaUtil)} m²`}</V></span><span className="op">÷</span><span><V k="s1f2">{`${fmtNum(inputs.metragemLote, 2)} m² por lote`}</V></span><span className="op">=</span><span className="res"><V k="s1f3b">{`${lotes2} lotes equivalentes`}</V></span></span>
                 </div>
                 <p className="note"><T k="s1Nota2">Lotes equivalentes é uma conta para estimar valores. O número exato de lotes depende do projeto aprovado.</T></p>
                 <div className="split" role="img" aria-label="Parte do terreno vira lotes, outra parte vira ruas, calçadas, áreas verdes e lazer">
@@ -582,7 +583,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <div className="s-streets" style={{ flex: (1 - inputs.aproveitamento) * 100 }}><T k="s1Bar2">Outra parte vira ruas, calçadas, áreas verdes e lazer</T></div>
                 </div>
                 <div className="lot">
-                  <LoteDesenho frente={inputs.frenteLote} fundo={r.fundoLote} area={fmtNum(inputs.metragemLote, 0)} />
+                  <LoteDesenho frente={inputs.frenteLote} fundo={r.fundoLote} area={fmtNum(inputs.metragemLote, 2)} />
                   <p><T k="s1Lote" html vars={nv}>{`<strong>Cada lote tem {{lote}} m²</strong>: {{frente}} metros de frente por {{fundo}} metros de fundo, conforme a lei de parcelamento do solo do município. É o tamanho de um terreno comum para construir uma casa.`}</T></p>
                 </div>
               </div>
@@ -681,7 +682,7 @@ export default function JblPadrao(props: TemplateProps) {
                   </svg>
                   <div className="calc num">
                     <span className="n">1</span><span className="t"><T k="v1t">Preço do lote à vista</T></span>
-                    <span className="f"><span><V k="v1a">{`${fmtNum(inputs.metragemLote, 0)} m²`}</V></span><span className="op">×</span><span><V k="v1b">{`${fmtBRL(inputs.valorM2)} por m`}</V><sup className="sq">2</sup><sup className="fn">1</sup></span><span className="op">=</span><span className="res" id="v1" data-id="v1"><V k="v1r">{fmtBRL(r.valorLote)}</V></span></span>
+                    <span className="f"><span><V k="v1a">{`${fmtNum(inputs.metragemLote, 2)} m²`}</V></span><span className="op">×</span><span><V k="v1b">{`${fmtBRL(inputs.valorM2)} por m`}</V><sup className="sq">2</sup><sup className="fn">1</sup></span><span className="op">=</span><span className="res" id="v1" data-id="v1"><V k="v1r">{fmtBRL(r.valorLote)}</V></span></span>
                   </div>
                   <div className="calc num">
                     <span className="n">2</span><span className="t"><T k="v2t" vars={nv}>{"Entrada paga pelo comprador ({{entrada}})"}</T></span>
