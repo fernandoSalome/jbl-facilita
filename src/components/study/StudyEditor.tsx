@@ -18,7 +18,7 @@ const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEt
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
   const n = kind === "pct" ? v * 100 : v;
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  return n.toLocaleString("pt-BR", kind === "brl" ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 2 });
 }
 
 function parse(text: string, kind: Kind): number | null {
@@ -131,6 +131,12 @@ function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: strin
         <input
           inputMode="decimal"
           {...celula}
+          // dinheiro: ao sair do campo fica com 2 casas (350 → 350,00)
+          onBlur={() => {
+            if (kind !== "brl") return;
+            const v = parse(s.texts[k] ?? "", kind);
+            if (v !== null) s.set(k, toText(v, kind));
+          }}
           disabled={disabled}
           value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
@@ -241,7 +247,6 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <In s={s} k="frenteLote" label="Frente do lote" hint="Só para escrever “lotes de 8 × 25 metros”" />
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
-            <In s={s} k="extensaoRede" label="Extensão da rede principal" hint="Vazio = estimativa pela área (base: São Judas Tadeu II)" />
             <In s={s} k="desagio" label="Deságio da antecipação" />
             <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
           </Box>
@@ -370,13 +375,13 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
         <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
-        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="ruasObrigE1" label="Desconto de ruas obrigatórias" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
+        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
         <Out label="Fundo do lote" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
-        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} ${q.cheias === 1 ? "quadra" : "quadras"} × ${fmtNum(q.porQuadra)} lotes` : "")} />
-        <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m · ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
+        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} ${q.cheias === 1 ? "quadra" : "quadras"} × ${fmtNum(q.porQuadra)} lotes = ${fmtNum(q.cheias * q.porQuadra)} lotes` : "")} />
+        <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m = ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
         <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
         <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} ${q.ruasEntre === 1 ? "rua" : "ruas"} × ${fmtNum(q.rua, 0)} metros` : "nenhuma") : "")} />
       </div>
@@ -387,11 +392,11 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           label={`(−) Ruas entre as quadras${q?.ruasEntre ? ` (${q.ruasEntre} × ${fmtNum(q.rua, 0)} m)` : ""}`}
           value={v(q ? (q.ruasEntre ? `−${fmtNum(q.ruasEntre * q.rua)} m` : "—") : "")}
         />
-        <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${fmtNum(q.desconto)} m` : "—") : "")} />
         <Out
           label={`(−) Ruas obrigatórias${q?.ruasObrig ? ` (${q.ruasObrig} × ${fmtNum(q.rua, 0)} m)` : ""}`}
           value={v(q ? (q.obrigM ? `−${fmtNum(q.obrigM)} m` : "—") : "")}
         />
+        <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${fmtNum(q.desconto)} m` : "—") : "")} />
         <Out label="Perímetro que sobra para lotes" value={v(q ? `${fmtNum(Math.max(0, q.linha - q.ruasEntre * q.rua))} m` : "")} strong />
         <Out label="Área total da etapa (perímetro × fundo)" value={v(q ? m2(q.areaTotal) : "")} strong />
         <Titulo>Resultado</Titulo>

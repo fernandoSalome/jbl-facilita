@@ -351,7 +351,7 @@ export default function JblPadrao(props: TemplateProps) {
     data,
     // primeira etapa "a definir": os números do texto ficam "a definir"
     e1Lotes: r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : r.etapa1ADefinir ? "a definir" : "",
-    e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 0) : r.etapa1ADefinir ? "a definir" : "",
+    e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 2) : r.etapa1ADefinir ? "a definir" : "",
     e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
     // área da etapa: perímetro × fundo (pelas medidas das quadras); o % continua o dos lotes sobre a área aproveitável
     e1Area: r.etapa1 ? fmtNum(r.etapa1.quadras?.areaTotal ?? r.etapa1.areaUtil) : r.etapa1ADefinir ? "a definir" : "",
