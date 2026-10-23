@@ -348,12 +348,12 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       <div className="divide-y divide-gold/30">
         <Titulo>Medidas da 1ª etapa</Titulo>
         <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
-        <In s={s} k="areaPerimetralE1" label="Área perimetral da 1ª etapa (m)" hint="Comprimento da linha de quarteirões" disabled={off} />
+        <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quarteirões" disabled={off} />
         <In s={s} k="ruaE1" label="Largura da rua (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
         <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
-        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Sai da área perimetral antes da conta: 2.000 m − 200 m = a conta usa 1.800 m" disabled={off} />
+        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Sai do perímetro antes da conta: 2.000 m − 200 m = a conta usa 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
         <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
@@ -363,7 +363,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo>Área da 1ª etapa</Titulo>
-        <Out label="Área perimetral" value={v(q ? `${fmtNum(q.perimetro)} m` : "")} />
+        <Out label="Perímetro da área da 1ª etapa" value={v(q ? `${fmtNum(q.perimetro)} m` : "")} />
         <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${fmtNum(q.desconto)} m` : "—") : "")} />
         <Out label="Perímetro usado na conta" value={v(q ? `${fmtNum(q.linha)} m` : "")} strong />
         <Out label="Área total da etapa (perímetro × fundo)" value={v(q ? m2(q.areaTotal) : "")} strong />
