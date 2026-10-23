@@ -33,7 +33,7 @@ export default async function Templates() {
                     <span className="rounded bg-gold px-8 py-5 text-2xl font-bold text-navy">Carta de intenção</span>
                   </div>
                   <div className="grid grid-cols-[1.3fr_1fr] items-center gap-10 px-10 py-10">
-                    <div className="font-display text-[80px] leading-none text-navy">Loteamento Exemplo<span className="block text-gold-deep">Loteamento aberto</span></div>
+                    <div className="font-display text-[80px] leading-none text-navy">Exemplo Template 1<span className="block text-gold-deep">Loteamento aberto</span></div>
                     <div className="border-l-4 border-gold pl-8 text-3xl leading-relaxed text-muted">A família entra com a terra. A JBL entra com os projetos, as obras e as vendas.</div>
                   </div>
                   <img src="/demo/sao-judas-tadeu-ii.jpg" alt="" className="mx-10 h-64 w-[calc(100%-80px)] rounded object-cover" />
