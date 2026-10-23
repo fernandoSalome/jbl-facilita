@@ -248,7 +248,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
         </div>
       </div>
 
-      {/* Primeira etapa: uma linha de quarteirões para começar a vender antes */}
+      {/* Primeira etapa: uma linha de quadras para começar a vender antes */}
       <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
           <label className="flex cursor-pointer items-center gap-2">
@@ -355,7 +355,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       <div className="divide-y divide-gold/30">
         <Titulo>Medidas da 1ª etapa</Titulo>
         <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
-        <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quarteirões" disabled={off} />
+        <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quadras" disabled={off} />
         <In s={s} k="ruaE1" label="Largura da rua (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
@@ -366,7 +366,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
         <Out label="Quadras inteiras" value={v(q ? `${q.cheias} × ${q.porQuadra} lotes` : "")} />
         <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto, 0)} m · ${q.lotesResto} lotes` : "não sobra") : "")} />
-        <Out label="Total de quarteirões" value={v(q ? String(q.quarteiroes) : "")} />
+        <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
         <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} × ${fmtNum(q.rua, 0)} m` : "nenhuma") : "")} />
       </div>
       <div className="divide-y divide-gold/30">
@@ -391,7 +391,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   );
 }
 
-/* ---------- desenho da linha de quarteirões (ilustrativo, fora de escala no fundo) ---------- */
+/* ---------- desenho da linha de quadras (ilustrativo, fora de escala no fundo) ---------- */
 
 type Quadras = NonNullable<NonNullable<ReturnType<typeof calcular>["etapa1"]>["quadras"]>;
 
@@ -423,7 +423,7 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
   return (
     <div className="border-t border-gold/30 px-3 py-3">
       <div className="mb-1 text-[11.5px] font-bold uppercase tracking-wider text-navy">Desenho da 1ª etapa (ilustrativo)</div>
-      <svg viewBox={`0 0 ${W} 150`} className="h-auto w-full" role="img" aria-label="Linha de quarteirões da primeira etapa">
+      <svg viewBox={`0 0 ${W} 150`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa">
         <defs>
           <pattern id="e1-hachura" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="#C0392B" strokeWidth="2" opacity="0.45" />
@@ -470,7 +470,7 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
           );
         })}
         <text x={X0} y={142} fontSize="11.5" fill="#122A45">
-          {`${q.quarteiroes} quarteirões · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
+          {`${q.quarteiroes} quadras · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
         </text>
       </svg>
     </div>

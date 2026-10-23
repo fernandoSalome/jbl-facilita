@@ -65,7 +65,7 @@ export type StudyInputs = {
   valorM2Etapa1: number | null;
   /** Primeira etapa existente, mas sem os números: a proposta mostra "a definir" */
   etapaADefinir?: boolean;
-  /** Primeira etapa (uma linha de quarteirões): comprimento da área perimetral (m) */
+  /** Primeira etapa (uma linha de quadras): comprimento da área perimetral (m) */
   areaPerimetralE1: number | null;
   /** Primeira etapa: largura da rua (m) */
   ruaE1: number | null;
@@ -302,7 +302,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     // propostas sem as medidas: lotes salvos; ou a área desmembrada × aproveitamento ÷ lote
     let qtd = i.lotesEtapa1 ?? (i.areaEtapa1 && lote > 0 ? (Math.min(i.areaEtapa1, i.areaTotal) * i.aproveitamento) / lote : 0);
     let quadras: NonNullable<StudyResult["etapa1"]>["quadras"] = null;
-    // Uma linha de quarteirões (área perimetral = comprimento da linha, em metros), com uma fileira
+    // Uma linha de quadras (área perimetral = comprimento da linha, em metros), com uma fileira
     // de lotes de frente para a rua: fundo = m² do lote ÷ frente. Quadras inteiras separadas por
     // ruas; se sobrar espaço no final, entra uma quadra menor. As outras medidas a descontar (m)
     // saem do perímetro só para contar os lotes; a área da etapa continua perímetro × fundo.
