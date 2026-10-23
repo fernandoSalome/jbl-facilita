@@ -252,7 +252,7 @@ export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
   }, [nova, l.itens.length]);
 
   return (
-    <div className="pills">
+    <div className="pills bf-grid">
       {l.itens.map((b) => {
         const emoji = emojiDe(b, overrides);
         return (
