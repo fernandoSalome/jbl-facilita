@@ -158,14 +158,17 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     // o exemplo combinado: linha de 1.000 m, rua 12, quadra 250, frente 8, lote 220 m², R$ 350/m²
     const ex = { ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 1000, ruaE1: 12, compQuadraE1: 250, frenteE1: 8, loteEtapa1: 220, valorM2Etapa1: 350 };
     const g = calcular(ex);
-    expect(g.etapa1!.quadras).toMatchObject({ fundo: 27.5, ruasEntre: 3, cheias: 3, porQuadra: 31, resto: 214, lotesResto: 26, quarteiroes: 4, lotesBrutos: 119 });
-    expect(g.etapa1!.quadras!.areaLotes).toBeCloseTo(26180, 6);
+    expect(g.etapa1!.quadras).toMatchObject({ fundo: 27.5, ruasEntre: 3, cheias: 3, resto: 214, quarteiroes: 4 });
+    // lotes decimais: 250 ÷ 8 = 31,25 por quadra; 214 ÷ 8 = 26,75 na menor; 3 × 31,25 + 26,75 = 120,5
+    expect(g.etapa1!.quadras!.porQuadra).toBeCloseTo(31.25, 9);
+    expect(g.etapa1!.quadras!.lotesResto).toBeCloseTo(26.75, 9);
+    expect(g.etapa1!.quadras!.areaLotes).toBeCloseTo(26510, 6);
     expect(g.etapa1!.quadras!.areaRuas).toBeCloseTo(990, 6);
-    expect(g.etapa1!.quadras!.sobra).toBeCloseTo(330, 6);
+    expect(g.etapa1!.quadras!.sobra).toBeCloseTo(0, 6);
     expect(g.etapa1!.quadras!.areaTotal).toBeCloseTo(27500, 6);
-    expect(g.etapa1!.lotes).toBe(119);
-    expect(g.etapa1!.avista).toBeCloseTo(9163000, 2);
-    expect(g.etapa1!.prazo).toBeCloseTo(9163000 * (g.principal.carteiraEmp / g.vgvAvista), 2);
+    expect(g.etapa1!.lotes).toBeCloseTo(120.5, 9);
+    expect(g.etapa1!.avista).toBeCloseTo(120.5 * 220 * 350, 2);
+    expect(g.etapa1!.prazo).toBeCloseTo(120.5 * 220 * 350 * (g.principal.carteiraEmp / g.vgvAvista), 2);
     // desconto em metros sai do perímetro: 2.000 − 200 = 1.800 m de linha para a conta
     const d2 = calcular({ ...ex, areaPerimetralE1: 2000, descontoE1: 200 });
     const l1800 = calcular({ ...ex, areaPerimetralE1: 1800 });

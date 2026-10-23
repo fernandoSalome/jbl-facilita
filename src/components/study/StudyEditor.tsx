@@ -364,8 +364,8 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
         <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
-        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} × ${q.porQuadra} lotes` : "")} />
-        <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto, 0)} m · ${q.lotesResto} lotes` : "não sobra") : "")} />
+        <Out label="Quadras inteiras" value={v(q ? `${q.cheias} × ${fmtNum(q.porQuadra)} lotes` : "")} />
+        <Out label="Quadra menor no final" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m · ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
         <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
         <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} × ${fmtNum(q.rua, 0)} m` : "nenhuma") : "")} />
       </div>
@@ -382,7 +382,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <Titulo>Resultado</Titulo>
         <Out
           label="Quantidade de lotes da 1ª etapa"
-          value={off ? "a definir" : r.etapa1 ? fmtNum(r.etapa1.lotes, q ? 0 : 2) : "—"}
+          value={off ? "a definir" : r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : "—"}
           strong
         />
         <Out label="Da área aproveitável" value={off ? "a definir" : r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
@@ -467,7 +467,7 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
               {p.w > 70 && (
                 <>
                   <text x={p.x + p.w / 2} y={Y + H + 16} textAnchor="middle" fontSize="11" fontWeight="700" fill="#122A45">{n(p.m)} m</text>
-                  <text x={p.x + p.w / 2} y={Y + H + 30} textAnchor="middle" fontSize="11" fill="#697683">{p.lotes} lotes</text>
+                  <text x={p.x + p.w / 2} y={Y + H + 30} textAnchor="middle" fontSize="11" fill="#697683">{n(p.lotes ?? 0, 2)} lotes</text>
                 </>
               )}
             </g>

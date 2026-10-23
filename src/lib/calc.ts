@@ -314,10 +314,11 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       const rua = i.ruaE1 ?? 0;
       const fundo = lote / frente;
       const comp = Math.max(0, i.compQuadraE1 && i.compQuadraE1 > 0 ? Math.min(i.compQuadraE1, linha) : linha);
-      const porQuadra = Math.floor(comp / frente + 1e-9);
+      // lotes decimais, como na planilha (sem arredondar): 250 m ÷ 8 m = 31,25 lotes
+      const porQuadra = comp / frente;
       const cheias = comp > 0 ? Math.floor((linha + rua) / (comp + rua) + 1e-9) : 0;
       const sobraLinha = Math.max(0, linha - cheias * (comp + rua));
-      const lotesResto = Math.floor(sobraLinha / frente + 1e-9);
+      const lotesResto = sobraLinha > 0.01 ? sobraLinha / frente : 0;
       const resto = lotesResto > 0 ? sobraLinha : 0;
       const quarteiroes = cheias + (lotesResto > 0 ? 1 : 0);
       const ruasEntre = Math.max(0, quarteiroes - 1);
