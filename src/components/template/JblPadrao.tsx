@@ -247,6 +247,9 @@ function useCenterExtenso(root: React.RefObject<HTMLDivElement>, deps: unknown[]
 }
 
 const OBS_VAZIA = "Clique aqui para escrever as observações deste projeto.";
+const OBS_DIV_VAZIA = "Clique aqui para escrever uma observação sobre a divisão (só aparece para o cliente quando tiver texto).";
+/** Texto salvo de verdade (não a dica de quando está vazio) */
+const temTexto = (v: unknown, dica: string) => typeof v === "string" && v.replace(/^html:/, "").replace(/<[^>]+>/g, "").trim() !== "" && !v.includes(dica);
 
 export default function JblPadrao(props: TemplateProps) {
   const { project, inputs, options, mode, formato } = props;
@@ -276,7 +279,8 @@ export default function JblPadrao(props: TemplateProps) {
   const d = tratamento(options.destinatario);
   // observação escrita na proposta ou no template (o texto padrão é só a dica para escrever)
   const obsSalva = props.overrides["txt.obsTexto"] ?? formato.overrides?.["txt.obsTexto"];
-  const temObs = typeof obsSalva === "string" && obsSalva.replace(/^html:/, "").replace(/<[^>]+>/g, "").trim() !== "" && !obsSalva.includes(OBS_VAZIA);
+  const temObs = temTexto(obsSalva, OBS_VAZIA);
+  const temObsDiv = temTexto(props.overrides["txt.obsDivisao"] ?? formato.overrides?.["txt.obsDivisao"], OBS_DIV_VAZIA);
   const trocas = useMemo(() => ({ trocas: d.trocas, valores: d.valores }), [d.trocas, d.valores]);
   /** Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@<tipo>") */
 
@@ -785,6 +789,10 @@ export default function JblPadrao(props: TemplateProps) {
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
                 </div>
+                {/* observação logo abaixo da divisão: só aparece para o cliente quando tem texto */}
+                {(editing || temObsDiv) && (
+                  <p className={`tip tip-full obs-div ${temObsDiv ? "" : "obs-vazio"}`}><T k="obsDivisao" multiline>{OBS_DIV_VAZIA}</T></p>
+                )}
                 <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick(fam ? `Parte da ${fam}` : "Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter2}</em>{r.etapa1 && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>

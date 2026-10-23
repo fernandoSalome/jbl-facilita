@@ -218,3 +218,4 @@
 /* Observações do projeto (sem texto: dica apagada, só na edição) */
 .jblt .obs-sec .faq > div { padding-block: 14px; }
 .jblt .obs-vazio { color: var(--muted); font-style: italic; opacity: .75; }
+.jblt .obs-div { margin: 18px 0 26px; }
