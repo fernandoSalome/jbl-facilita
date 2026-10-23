@@ -226,6 +226,11 @@ function useChainArrows(ref: React.RefObject<HTMLDivElement>, deps: unknown[]) {
   }, deps);
 }
 
+/** O valor por extenso das obras foi para baixo do resultado: sai da nota (também dos textos já salvos) */
+function semExtenso(t: string) {
+  return t.replace(/(<[^>]+>)*\s*\{\{extenso\}\}\s*(<\/[^>]+>)*\s*\.?\s*/, "").replace(/^\s*(<br>)+/, "");
+}
+
 /** Centraliza o valor por extenso embaixo do resultado (mesma lógica do site: .v-ext[data-center]) */
 function useCenterExtenso(root: React.RefObject<HTMLDivElement>, deps: unknown[]) {
   useEffect(() => {
@@ -640,9 +645,9 @@ export default function JblPadrao(props: TemplateProps) {
               <div className="content">
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s3CalcT">A conta</T></span>
-                  <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big pulsa"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span></span>
+                  <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big pulsa" id="v3r"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span><span className="v-ext" data-center="v3r"><span><V k="s3ext">{ext(r.custoInfra)}</V></span></span></span>
                 </div>
-                <p className="note note-lg"><T k="s3Extenso2" html vars={nv}>{`<span class="extenso">{{extenso}}</span>. Orçamento preliminar.`}</T></p>
+                <p className="note note-lg"><T k="s3Extenso2" html vars={nv} limpar={semExtenso}>{"Orçamento preliminar."}</T></p>
                 <div className="tiles two">
                   <div className="tile gold"><div className="k"><T k="s3k1">Quem paga as obras</T></div><div className="v"><T k="s3v1">A JBL</T></div><div className="d"><T k="s3d1">A JBL financia e executa toda a infraestrutura.</T></div></div>
                   <div className="tile hl"><div className="k"><DT d={d} k="s3k2">{`Quanto ${d.quem} paga`}</DT></div><div className="v num" style={{ color: "var(--good)" }}><T k="s3v2">R$ 0</T></div><div className="d"><T k="s3d2b">Em nenhuma hipótese será solicitado aos proprietários dinheiro para essas obras.</T></div></div>
