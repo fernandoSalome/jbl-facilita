@@ -346,7 +346,8 @@ export default function JblPadrao(props: TemplateProps) {
     e1Lotes: r.etapa1 ? String(Math.floor(r.etapa1.lotes)) : r.etapa1ADefinir ? "a definir" : "",
     e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 0) : r.etapa1ADefinir ? "a definir" : "",
     e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
-    e1Area: r.etapa1 ? fmtNum(r.etapa1.areaUtil) : r.etapa1ADefinir ? "a definir" : "",
+    // área da etapa: perímetro × fundo (pelas medidas das quadras); o % continua o dos lotes sobre a área aproveitável
+    e1Area: r.etapa1 ? fmtNum(r.etapa1.quadras?.areaTotal ?? r.etapa1.areaUtil) : r.etapa1ADefinir ? "a definir" : "",
   };
 
   // Primeira etapa só aparece quando a planilha tem a opção ligada; sem ela, as seções seguintes sobem um número
