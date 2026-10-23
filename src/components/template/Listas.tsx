@@ -313,8 +313,7 @@ export function ListaContatos({ base, padrao }: { base: { id: string }[]; padrao
         <span key={c.id} className={l.editable ? "ct-row ct-ed" : "ct-row"}>
           {i > 0 && <br />}
           Nome: <span className="blank"><E k={`li.${c.id}.nome`}>{def(i, "nome")}</E></span> · Telefone:{" "}
-          <span className="blank"><E k={`li.${c.id}.tel`}>{def(i, "telefone")}</E></span> · E-mail:{" "}
-          <span className="blank"><E k={`li.${c.id}.email`}>a definir</E></span>
+          <span className="blank"><E k={`li.${c.id}.tel`}>{def(i, "telefone")}</E></span>
           {l.editable && <button type="button" className="pill-del ct-del" title="Remover contato" onClick={() => l.remover(c.id)}>✕</button>}
         </span>
       ))}

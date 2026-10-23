@@ -246,6 +246,8 @@ function useCenterExtenso(root: React.RefObject<HTMLDivElement>, deps: unknown[]
   }, deps);
 }
 
+const OBS_VAZIA = "Clique aqui para escrever as observações deste projeto.";
+
 export default function JblPadrao(props: TemplateProps) {
   const { project, inputs, options, mode, formato } = props;
   const r = useMemo(() => calcular(inputs), [inputs]);
@@ -272,6 +274,9 @@ export default function JblPadrao(props: TemplateProps) {
 
   // ----- destinatário: textos que falam com quem recebe a proposta -----
   const d = tratamento(options.destinatario);
+  // observação escrita na proposta ou no template (o texto padrão é só a dica para escrever)
+  const obsSalva = props.overrides["txt.obsTexto"] ?? formato.overrides?.["txt.obsTexto"];
+  const temObs = typeof obsSalva === "string" && obsSalva.replace(/^html:/, "").replace(/<[^>]+>/g, "").trim() !== "" && !obsSalva.includes(OBS_VAZIA);
   const trocas = useMemo(() => ({ trocas: d.trocas, valores: d.valores }), [d.trocas, d.valores]);
   /** Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@<tipo>") */
 
@@ -938,6 +943,20 @@ export default function JblPadrao(props: TemplateProps) {
             </Sec>
 
             {/* 12 */}
+            {/* Observações: campo livre do projeto. No template fica vazio; para o cliente só aparece com texto */}
+            {(editing || temObs) && (
+              <Sec k="observacoes" className="step obs-sec" id="observacoes">
+                <div className="step-head"><div className="badge">i</div><div>
+                  <h2><T k="obsTitulo">Observações</T></h2>
+                </div></div>
+                <div className="content faq">
+                  <div>
+                    <p className={temObs ? undefined : "obs-vazio"}><T k="obsTexto" multiline>{OBS_VAZIA}</T></p>
+                  </div>
+                </div>
+              </Sec>
+            )}
+
             <Sec k="aviso" className="step" id="aviso-legal">
               <div className="step-head"><div className="badge">{passo(12)}</div><div>
                 <h2><T k="s12Titulo">Aviso legal</T></h2>
