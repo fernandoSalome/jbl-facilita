@@ -399,14 +399,11 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
 
 type Quadras = NonNullable<NonNullable<ReturnType<typeof calcular>["etapa1"]>["quadras"]>;
 
-const COR = { navy: "#122A45", ouro: "#C1943D", ouroClaro: "#E7D3A6", lote1: "#FBF6EA", lote2: "#F3E8CF", calcada: "#E4E1DA", asfalto: "#4B5563", grama: "#E3EEDC", muted: "#697683", vermelho: "#C0392B" };
-
-export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
-  const W = 1000, X0 = 46, LARG = W - X0 - 20;
-  // quadra vista de cima: lotes entre a grama do fundo e a calçada da frente
-  const YQ = 46, HQ = 84, BORDA = 5, YL = YQ + BORDA, HL = HQ - 2 * BORDA;
+function Desenho({ q, lote }: { q: Quadras; lote: number }) {
+  const W = 1000, X0 = 40, LARG = W - 2 * X0, Y = 46, H = 46;
   const esc = q.perimetro > 0 ? LARG / q.perimetro : 0;
   const n = (x: number, d = 0) => fmtNum(x, d);
+  // trechos ao longo da linha: quadras inteiras, ruas, quadra menor, sobra e desconto
   type Trecho = { tipo: "quadra" | "rua" | "sobra" | "desconto"; m: number; lotes?: number };
   const t: Trecho[] = [];
   for (let k = 0; k < q.cheias; k++) {
@@ -421,139 +418,63 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
   if (q.linha - usado > 0.01) t.push({ tipo: "sobra", m: q.linha - usado });
   if (q.desconto > 0) t.push({ tipo: "desconto", m: q.desconto });
   let x = X0;
-  const pecas = t.map((tr) => {
+  const peças = t.map((tr) => {
     const w = tr.m * esc;
     const p = { ...tr, x, w };
     x += w;
     return p;
   });
-  const passo = q.frente * esc;
-
   return (
     <div className="border-t border-gold/30 px-3 py-3">
-      <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px]">
-        <span className="font-bold uppercase tracking-wider text-navy">Desenho da 1ª etapa</span>
-        <span className="text-muted">ilustrativo · comprimentos em escala, fundo fora de escala</span>
-      </div>
-      <svg viewBox={`0 0 ${W} 212`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa vista de cima">
+      <div className="mb-1 text-[11.5px] font-bold uppercase tracking-wider text-navy">Desenho da 1ª etapa (ilustrativo)</div>
+      <svg viewBox={`0 0 ${W} 150`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa">
         <defs>
-          <pattern id="e1-hachura" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="7" height="7" fill="#FBEDEB" />
-            <line x1="0" y1="0" x2="0" y2="7" stroke={COR.vermelho} strokeWidth="2" opacity="0.4" />
-          </pattern>
-          <pattern id="e1-lotes" width="4" height="10" patternUnits="userSpaceOnUse">
-            <rect width="4" height="10" fill={COR.lote1} />
-            <line x1="3.5" y1="0" x2="3.5" y2="10" stroke={COR.ouroClaro} strokeWidth="0.8" />
+          <pattern id="e1-hachura" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#C0392B" strokeWidth="2" opacity="0.45" />
           </pattern>
         </defs>
-
         {/* cota do perímetro */}
-        <g stroke={COR.navy} strokeWidth="1">
-          <line x1={X0} x2={X0 + LARG} y1={22} y2={22} />
-          <line x1={X0} x2={X0} y1={16} y2={28} />
-          <line x1={X0 + LARG} x2={X0 + LARG} y1={16} y2={28} />
-        </g>
-        <rect x={W / 2 - 92} y={12} width={184} height={18} rx={9} fill="#fff" />
-        <text x={W / 2} y={25} textAnchor="middle" fontSize="13" fontWeight="700" fill={COR.navy}>Perímetro {n(q.perimetro)} m</text>
-
-        {/* grama do fundo e calçada da frente, ao longo da linha */}
-        <rect x={X0} y={YQ - 8} width={LARG} height={8} fill={COR.grama} rx={2} />
-        <rect x={X0} y={YQ + HQ} width={LARG} height={9} fill={COR.calcada} />
-        <line x1={X0} x2={X0 + LARG} y1={YQ + HQ + 9} y2={YQ + HQ + 9} stroke="#B9B4A8" strokeWidth="1.2" />
-        <text x={X0 + 4} y={YQ + HQ + 22} fontSize="10" fill={COR.muted}>▲ frente dos lotes</text>
-
+        <line x1={X0} x2={X0 + LARG} y1={18} y2={18} stroke="#122A45" strokeWidth="1" />
+        <line x1={X0} x2={X0} y1={12} y2={24} stroke="#122A45" />
+        <line x1={X0 + LARG} x2={X0 + LARG} y1={12} y2={24} stroke="#122A45" />
+        <text x={W / 2} y={13} textAnchor="middle" fontSize="13" fontWeight="700" fill="#122A45">Perímetro {n(q.perimetro)} m</text>
         {/* cota do fundo */}
-        <g stroke={COR.navy} strokeWidth="1">
-          <line x1={X0 - 16} x2={X0 - 16} y1={YL} y2={YL + HL} />
-          <line x1={X0 - 21} x2={X0 - 11} y1={YL} y2={YL} />
-          <line x1={X0 - 21} x2={X0 - 11} y1={YL + HL} y2={YL + HL} />
-        </g>
-        <text x={X0 - 26} y={YL + HL / 2} textAnchor="middle" fontSize="10.5" fill={COR.navy} transform={`rotate(-90 ${X0 - 26} ${YL + HL / 2})`}>fundo {n(q.fundo, 1)} m</text>
-
-        {pecas.map((p, k) => {
-          const meio = p.x + p.w / 2;
+        <line x1={X0 - 14} x2={X0 - 14} y1={Y} y2={Y + H} stroke="#122A45" />
+        <text x={X0 - 18} y={Y + H / 2} textAnchor="middle" fontSize="11" fill="#122A45" transform={`rotate(-90 ${X0 - 18} ${Y + H / 2})`}>fundo {n(q.fundo, 1)} m</text>
+        {peças.map((p, k) => {
           if (p.tipo === "rua")
             return (
               <g key={k}>
-                <rect x={p.x} y={YQ - 10} width={p.w} height={HQ + 21} fill={COR.asfalto} />
-                {p.w >= 13 ? (
-                  <>
-                    <line x1={meio} x2={meio} y1={YQ - 6} y2={YQ + 6} stroke="#fff" strokeWidth="1.2" strokeDasharray="5 4" opacity="0.85" />
-                    <line x1={meio} x2={meio} y1={YQ + HQ - 6} y2={YQ + HQ + 8} stroke="#fff" strokeWidth="1.2" strokeDasharray="5 4" opacity="0.85" />
-                  </>
-                ) : (
-                  <line x1={meio} x2={meio} y1={YQ - 6} y2={YQ + HQ + 8} stroke="#fff" strokeWidth="1.2" strokeDasharray="5 4" opacity="0.85" />
-                )}
-                {p.w >= 13 && (
-                  <text x={meio} y={YQ + HQ / 2} textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#fff" transform={`rotate(-90 ${meio} ${YQ + HQ / 2})`} dy={3.5}>
-                    rua {n(p.m)} m
-                  </text>
-                )}
+                <rect x={p.x} y={Y} width={p.w} height={H} fill="#DDE3E9" />
+                {p.w > 26 && <text x={p.x + p.w / 2} y={Y + H / 2 + 4} textAnchor="middle" fontSize="10" fill="#697683">rua</text>}
               </g>
             );
-          if (p.tipo === "desconto")
+          if (p.tipo === "desconto" || p.tipo === "sobra")
             return (
               <g key={k}>
-                <rect x={p.x} y={YQ} width={p.w} height={HQ} fill="url(#e1-hachura)" stroke={COR.vermelho} strokeDasharray="4 3" rx={4} />
-                {p.w >= 16 && (
-                  <g transform={`translate(${meio} ${YQ + HQ / 2})`}>
-                    <rect x={-1.5} y={4} width={3} height={9} fill="#7A5A35" />
-                    <circle r={9} fill="#5E9A55" opacity="0.9" />
-                  </g>
-                )}
-                <text x={p.x + p.w} y={YQ + HQ + 52} textAnchor="end" fontSize="11" fill={COR.vermelho}>desconto {n(p.m)} m</text>
+                <rect x={p.x} y={Y} width={p.w} height={H} fill={p.tipo === "desconto" ? "url(#e1-hachura)" : "#F7F2E7"} stroke={p.tipo === "desconto" ? "#C0392B" : "#ECE1C4"} strokeDasharray="4 3" />
+                {p.w > 40 && <text x={p.x + p.w / 2} y={Y + H + 16} textAnchor="middle" fontSize="11" fill={p.tipo === "desconto" ? "#C0392B" : "#697683"}>{p.tipo === "desconto" ? `desconto ${n(p.m)} m` : `sobra ${n(p.m, 1)} m`}</text>}
               </g>
             );
-          if (p.tipo === "sobra")
-            return (
-              <g key={k}>
-                <rect x={p.x} y={YQ} width={p.w} height={HQ} fill="none" stroke="#C9BFA6" strokeDasharray="4 3" rx={4} />
-                {p.w > 30 && <text x={meio} y={YQ + HQ + 38} textAnchor="middle" fontSize="11" fill={COR.muted}>sobra {n(p.m, 1)} m</text>}
-              </g>
-            );
-          const nl = p.lotes ?? 0;
+          const passo = q.frente * esc;
           return (
             <g key={k}>
-              {/* quadra: calçada em volta e os lotes dentro */}
-              <rect x={p.x} y={YQ} width={p.w} height={HQ} rx={5} fill={COR.calcada} stroke={COR.ouro} strokeWidth="1.5" />
-              {passo >= 5
-                ? Array.from({ length: nl }, (_, j) => {
-                    const lx = p.x + j * passo;
-                    const lw = Math.min(passo, p.x + p.w - lx) - 1;
-                    return (
-                      <g key={j}>
-                        <rect x={lx + 0.5} y={YL} width={Math.max(0, lw)} height={HL} fill={j % 2 ? COR.lote2 : COR.lote1} stroke={COR.ouroClaro} strokeWidth="0.6" />
-                        {passo >= 16 && (
-                          <path
-                            d={`M${lx + passo / 2 - 5} ${YL + HL - 12} v-8 l5 -5 l5 5 v8 z`}
-                            fill={COR.ouro}
-                            opacity="0.55"
-                          />
-                        )}
-                      </g>
-                    );
-                  })
-                : <rect x={p.x + 2} y={YL} width={Math.max(0, p.w - 4)} height={HL} fill="url(#e1-lotes)" />}
-              {/* cota da quadra */}
-              <g stroke={COR.navy} strokeWidth="0.8" opacity="0.7">
-                <line x1={p.x} x2={p.x + p.w} y1={YQ + HQ + 30} y2={YQ + HQ + 30} />
-                <line x1={p.x} x2={p.x} y1={YQ + HQ + 26} y2={YQ + HQ + 34} />
-                <line x1={p.x + p.w} x2={p.x + p.w} y1={YQ + HQ + 26} y2={YQ + HQ + 34} />
-              </g>
-              {p.w > 64 && (
+              <rect x={p.x} y={Y} width={p.w} height={H} fill="#F7F2E7" stroke="#C1943D" strokeWidth="1.5" />
+              {passo >= 3 &&
+                Array.from({ length: Math.max(0, (p.lotes ?? 0) - 1) }, (_, j) => (
+                  <line key={j} x1={p.x + (j + 1) * passo} x2={p.x + (j + 1) * passo} y1={Y} y2={Y + H} stroke="#C1943D" strokeWidth="0.7" opacity="0.7" />
+                ))}
+              {p.w > 70 && (
                 <>
-                  <rect x={meio - 30} y={YQ + HQ + 23} width={60} height={14} fill="#fff" />
-                  <text x={meio} y={YQ + HQ + 34} textAnchor="middle" fontSize="11" fontWeight="700" fill={COR.navy}>{n(p.m)} m</text>
-                  <text x={meio} y={YQ + HQ + 50} textAnchor="middle" fontSize="11" fill={COR.muted}>{nl} lotes</text>
+                  <text x={p.x + p.w / 2} y={Y + H + 16} textAnchor="middle" fontSize="11" fontWeight="700" fill="#122A45">{n(p.m)} m</text>
+                  <text x={p.x + p.w / 2} y={Y + H + 30} textAnchor="middle" fontSize="11" fill="#697683">{p.lotes} lotes</text>
                 </>
               )}
             </g>
           );
         })}
-
-        <text x={X0} y={204} fontSize="11.5" fill={COR.navy}>
-          <tspan fontWeight="700">{q.quarteiroes} quadras</tspan>
-          {` · ${q.ruasEntre} ruas de ${n(q.rua)} m · lote ${n(q.frente)} m de frente × ${n(q.fundo, 1)} m de fundo = ${n(lote)} m²`}
+        <text x={X0} y={142} fontSize="11.5" fill="#122A45">
+          {`${q.quarteiroes} quadras · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
         </text>
       </svg>
     </div>
