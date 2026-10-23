@@ -1,5 +1,4 @@
 import { db } from "./db";
-import { versaoAtualId } from "./formato-server";
 
 /**
  * PDF da proposta em slides: página deitada 16:9 (13,333 × 7,5 pol., como um slide de
@@ -399,7 +398,7 @@ const emAndamento = new Map<string, Promise<{ data: Buffer; pages: number }>>();
 export async function pdfDaProposta(origin: string, token: string) {
   const p = await db.proposal.findFirst({ where: { publicToken: token, deletedAt: null }, include: { project: true } });
   if (!p) return null;
-  const key = pdfKeyOf({ ...p, formatoVersionId: await versaoAtualId(p) });
+  const key = pdfKeyOf(p);
   if (p.pdfData && p.pdfKey === key && p.pdfPages) return { data: Buffer.from(p.pdfData), pages: p.pdfPages, name: p.project.name };
 
   let job = emAndamento.get(token);

@@ -121,16 +121,21 @@ export function LoteDesenho({ frente, fundo, area }: { frente: number; fundo: nu
   const cy = y + h / 2;
   const sans = "Helvetica Neue, Helvetica, Arial, sans-serif";
   const r1 = (n: number) => Math.round(n * 10) / 10;
+  // a área cabe dentro do lote (lote estreito: letra menor), sem encostar na medida do fundo
+  const fs = r1(Math.max(9, Math.min(16, (w - 8) / (area.length * 0.6))));
   return (
-    <svg width="120" height="150" viewBox="0 0 120 150" aria-hidden="true">
+    <svg width="140" height="150" viewBox="0 0 140 150" aria-hidden="true">
       <rect x={r1(x)} y={r1(y)} width={r1(w)} height={r1(h)} rx={r1(Math.min(4, w / 4, h / 4))} fill="#EFDDB3" stroke="var(--gold-deep)" strokeWidth="3" />
-      {h >= 44 ? (
+      {w < 52 && h >= 80 ? (
+        // lote estreito e comprido: a área em pé, ao longo do lote
+        <text x={r1(cx)} y={r1(cy)} textAnchor="middle" dominantBaseline="central" transform={`rotate(-90 ${r1(cx)} ${r1(cy)})`} fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize={r1(Math.min(15, (h - 12) / ((area.length + 3) * 0.6), w * 0.55))} fill="var(--navy)">{area} m²</text>
+      ) : h >= 44 ? (
         <>
-          <text x={r1(cx)} y={r1(cy + 3)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize="16" fill="var(--navy)">{area}</text>
+          <text x={r1(cx)} y={r1(cy + 3)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize={fs} fill="var(--navy)">{area}</text>
           <text x={r1(cx)} y={r1(cy + 19)} textAnchor="middle" fontFamily={sans} fontSize="12" fill="var(--muted)">m²</text>
         </>
       ) : (
-        <text x={r1(cx)} y={r1(cy + 5)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize="14" fill="var(--navy)">{area} m²</text>
+        <text x={r1(cx)} y={r1(cy + 5)} textAnchor="middle" fontFamily="'JBL Numeros', Georgia, serif" fontWeight="400" fontSize={Math.min(14, fs)} fill="var(--navy)">{area} m²</text>
       )}
       <text x={r1(cx)} y={r1(y - 4)} textAnchor="middle" fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(frente, 2)} m</text>
       <text x={r1(x + w + 6)} y={r1(cy + 3)} fontFamily={sans} fontSize="12" fontWeight="700" fill="var(--muted)">{fmtNum(fundo, 2)} m</text>
