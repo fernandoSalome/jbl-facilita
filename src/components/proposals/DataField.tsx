@@ -4,7 +4,6 @@ import type { DataProposta } from "@/lib/proposals";
 
 const OPCOES: [DataProposta["modo"], string, string][] = [
   ["criacao", "Dia da criação", "fixa no dia em que a proposta foi criada"],
-  ["auto", "Automática", "o dia em que a pessoa abre a proposta"],
   ["fixa", "Escolher", "uma data definida por você"],
 ];
 
