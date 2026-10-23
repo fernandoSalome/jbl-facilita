@@ -75,14 +75,14 @@ const CSS = `
 
 /** Chave que muda sempre que a proposta (ou o template aplicado a ela) muda */
 export function pdfKeyOf(p: { updatedAt: Date; formatoVersionId: string | null; options?: unknown }) {
-  return `slides:${p.updatedAt.getTime()}:${p.formatoVersionId ?? ""}`;
+  return `a4:${p.updatedAt.getTime()}:${p.formatoVersionId ?? ""}`;
 }
 
 export function contarPaginas(pdf: Buffer) {
   return (pdf.toString("latin1").match(/\/Type\s*\/Page(?![a-zA-Z])/g) ?? []).length;
 }
 
-async function imprimir(origin: string, token: string, rodape: string, paginas?: number, formato: FormatoPdf = "slides") {
+async function imprimir(origin: string, token: string, rodape: string, paginas?: number, formato: FormatoPdf = "a4") {
   const { chromium } = await import("playwright-core");
   // Na Vercel não há Chromium instalado: usa a versão compactada para funções sem servidor.
   // As funções da Vercel rodam no Amazon Linux 2023; a variável faz o pacote extrair as bibliotecas certas (libnss3...).
@@ -395,15 +395,6 @@ function montarSlides({ H }: { H: number }) {
 const emAndamento = new Map<string, Promise<{ data: Buffer; pages: number }>>();
 
 /** Devolve o PDF da proposta (do cache, ou gera agora). O número de páginas entra no próprio texto da proposta. */
-/** A4 em pé: gerado na hora (o arquivo guardado na proposta é o de slides) */
-export async function pdfA4DaProposta(origin: string, token: string) {
-  const p = await db.proposal.findFirst({ where: { publicToken: token, deletedAt: null }, include: { project: true } });
-  if (!p) return null;
-  const rodape = `Grupo JBL Incorporadora · Proposta de parceria ${p.project.name} · ${p.project.municipio}, ${p.project.uf}`;
-  const data = await imprimir(origin, token, rodape, undefined, "a4");
-  return { data, pages: contarPaginas(data), name: p.project.name };
-}
-
 export async function pdfDaProposta(origin: string, token: string) {
   const p = await db.proposal.findFirst({ where: { publicToken: token, deletedAt: null }, include: { project: true } });
   if (!p) return null;

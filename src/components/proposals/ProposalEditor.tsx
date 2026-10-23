@@ -219,7 +219,15 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
         )}.\n\n`) +
     `Colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários em uma próxima reunião, para que possamos avançar com as tratativas.\n\n` +
     publicUrl;
-  const waLink = `https://wa.me/${data.meta.ownerPhone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(message)}`;
+  // mensagem escrita à mão (salva na proposta) ou a sugerida
+  const salva = data.meta.options.mensagemEnvio?.trim() ? data.meta.options.mensagemEnvio : null;
+  const [msgEdit, setMsgEdit] = useState<string | null>(null);
+  const texto = msgEdit ?? salva ?? message;
+  const salvarMensagem = (v: string) => {
+    changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, mensagemEnvio: v } } });
+    setMsgEdit(null);
+  };
+  const waLink = `https://wa.me/${data.meta.ownerPhone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(texto)}`;
 
   async function publish() {
     await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
@@ -350,13 +358,25 @@ export default function ProposalEditor({ formato, proposal: p, project }: Props)
             {data.meta.ownerPhone ? (
               <a className="btn-gold" href={waLink} target="_blank" rel="noreferrer">Abrir WhatsApp</a>
             ) : (
-              <button className="btn-gold" onClick={() => { navigator.clipboard.writeText(message); setCopied(true); }}>Copiar mensagem</button>
+              <button className="btn-gold" onClick={() => { navigator.clipboard.writeText(texto); setCopied(true); }}>Copiar mensagem</button>
             )}
           </>
         }
       >
-        <p className="text-sm text-muted">{data.meta.options.semValidade ? "O link já está ativo e não expira." : `O link já está ativo por ${data.meta.options.validadeDias} dias.`} Mensagem sugerida:</p>
-        <div className="mt-3 whitespace-pre-line rounded border-l-[3px] border-gold bg-alt px-4 py-3 text-[14px]">{message}</div>
+        <p className="text-sm text-muted">{data.meta.options.semValidade ? "O link já está ativo e não expira." : `O link já está ativo por ${data.meta.options.validadeDias} dias.`} {salva ? "Mensagem (editada):" : "Mensagem sugerida (dá para alterar):"}</p>
+        <textarea
+          className="mt-3 block w-full resize-y rounded border-0 border-l-[3px] border-gold bg-alt px-4 py-3 text-[14px] leading-relaxed outline-none focus:ring-2 focus:ring-gold-soft"
+          rows={12}
+          value={texto}
+          onChange={(e) => setMsgEdit(e.target.value)}
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {msgEdit !== null && msgEdit !== (salva ?? message) && (
+            <button className="btn-gold px-3 py-1.5 text-[13px]" onClick={() => salvarMensagem(msgEdit)}>Salvar texto</button>
+          )}
+          {msgEdit !== null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => setMsgEdit(null)}>Descartar alteração</button>}
+          {salva && msgEdit === null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => salvarMensagem("")}>Voltar à mensagem sugerida</button>}
+        </div>
         {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar dados da planilha” para abrir a conversa direto.</p>}
       </Modal>
     </div>
