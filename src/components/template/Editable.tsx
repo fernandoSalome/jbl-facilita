@@ -500,13 +500,26 @@ function Toolbar({
     comNumeros(() => {
       document.execCommand("styleWithCSS", false, "false");
       document.execCommand("fontSize", false, "7");
+      const novos: HTMLElement[] = [];
       target.querySelectorAll('font[size="7"], span[style*="xxx-large"]').forEach((f) => {
         const s = document.createElement("span");
         s.style.fontSize = `${px}px`;
         s.innerHTML = f.innerHTML;
         f.replaceWith(s);
+        novos.push(s);
       });
       document.execCommand("styleWithCSS", false, "true");
+      // o trecho continua selecionado: dá para aumentar/diminuir de novo ou aplicar outra formatação
+      if (novos.length) {
+        const r = document.createRange();
+        r.setStart(novos[0], 0);
+        const ult = novos[novos.length - 1];
+        r.setEnd(ult, ult.childNodes.length);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(r);
+        range.current = r.cloneRange();
+      }
     });
   }
 
