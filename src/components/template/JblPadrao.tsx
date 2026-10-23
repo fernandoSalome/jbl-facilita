@@ -296,6 +296,8 @@ export default function JblPadrao(props: TemplateProps) {
   const ter2 = pctTxt(r.terrenistaPct);
   // família com nome: "Família Silva" no lugar de "a família" nos rótulos da carteira
   const fam = d.tipo === "familia" && d.nome ? d.rotulo : null;
+  // rótulo curto do leitor nas tabelas: "Família Silva", "Sr. João", "Família" ou "Proprietário"
+  const dono = d.nome ? d.rotulo : d.tipo === "familia" ? "Família" : d.rotulo;
   const ext = (v: number) => `(${extensoReais(v)})`;
   const sim = r.cenarios[pick] ?? r.principal;
   const maxTot = Math.max(...r.cenarios.map((c) => c.carteiraTer), 1);
@@ -822,25 +824,25 @@ export default function JblPadrao(props: TemplateProps) {
                   <thead><tr>
                     <th>Prazo de venda</th>
                     <th>Parcela do comprador<br />com desconto por pontualidade</th>
-                    <th>Proprietário por mês<br />primeiros 12 meses¹</th>
-                    <th>Proprietário<br />última parcela</th>
-                    <th>Total Proprietário<br />Arrecadação final (VGV)</th>
+                    <th>{dono} por mês<br />primeiros 12 meses¹</th>
+                    <th>{dono}<br />última parcela</th>
+                    <th>Total {dono}<br />Arrecadação final (VGV)</th>
                   </tr></thead>
                   <tbody>
                     <tr>
                       <td data-label="Prazo de venda"><T k="tbAvista">À vista</T></td>
                       <td data-label="Parcela do comprador">Não se aplica</td>
-                      <td data-label="Proprietário por mês">Não se aplica</td>
-                      <td data-label="Proprietário">Não se aplica</td>
-                      <td data-label="Total Proprietário"><E fixo k="t.avista">{fmtBRL(r.vgvAvistaTer)}</E></td>
+                      <td data-label={`${dono} por mês`}>Não se aplica</td>
+                      <td data-label={dono}>Não se aplica</td>
+                      <td data-label={`Total ${dono}`}><E fixo k="t.avista">{fmtBRL(r.vgvAvistaTer)}</E></td>
                     </tr>
                     {r.cenarios.map((c) => (
                       <tr key={c.meses} className={c.meses === n ? "you" : ""}>
                         <td data-label="Prazo de venda"><E fixo k={`t.${c.meses}.prazo`}>{`${fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos · ${c.meses} parcelas`}</E></td>
                         <td data-label="Parcela do comprador"><E fixo k={`t.${c.meses}.parcela`}>{fmtBRL(c.parcela)}</E></td>
-                        <td data-label="Proprietário por mês"><E fixo k={`t.${c.meses}.mensal`}>{fmtBRL(c.mensalTer)}</E></td>
-                        <td data-label="Proprietário"><E fixo k={`t.${c.meses}.final`}>{fmtBRL(c.mensalTerFinal)}</E></td>
-                        <td data-label="Total Proprietário"><E fixo k={`t.${c.meses}.total`}>{fmtBRL(c.carteiraTer)}</E></td>
+                        <td data-label={`${dono} por mês`}><E fixo k={`t.${c.meses}.mensal`}>{fmtBRL(c.mensalTer)}</E></td>
+                        <td data-label={dono}><E fixo k={`t.${c.meses}.final`}>{fmtBRL(c.mensalTerFinal)}</E></td>
+                        <td data-label={`Total ${dono}`}><E fixo k={`t.${c.meses}.total`}>{fmtBRL(c.carteiraTer)}</E></td>
                       </tr>
                     ))}
                   </tbody>

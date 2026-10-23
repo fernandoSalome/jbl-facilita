@@ -38,7 +38,9 @@ export function tratamento(d?: Destinatario) {
       recebe: "recebê-los",
       /** Partes do texto que viram campos travados (o nome muda de uma proposta para outra) */
       campos: (nome ? [["da", `da ${familia}`], ["quem", `a ${familia}`], ["Quem", `A ${familia}`], ["familia", familia]] : []) as [string, string][],
-      ...trocasDe(!!nome, { da: `da ${familia}`, quem: `a ${familia}`, Quem: `A ${familia}`, aoRotulo: `à ${familia}` }),
+      ...trocasDe(!!nome, nome
+        ? { da: `da ${familia}`, quem: `a ${familia}`, Quem: `A ${familia}`, aoRotulo: `à ${familia}` }
+        : { da: "da família", quem: "a família", Quem: "A família", aoRotulo: "à família" }),
     };
   }
 
@@ -67,21 +69,24 @@ export function tratamento(d?: Destinatario) {
 const L = "(?<![\\p{L}])";
 const R = "(?![\\p{L}])";
 /**
- * Textos (também os já editados no template ou na proposta) que falam de "a família" genérica:
- * com nome escolhido, viram o nome ("da família" → "da Família Silva" / "do Sr. João").
+ * Textos (também os já editados no template ou na proposta) que falam do leitor de forma genérica
+ * ("a família", "o proprietário", "dos proprietários", "o terrenista") passam a usar o destinatário
+ * escolhido: "da Família Silva", "do Sr. João"... Viram campos travados, como os números.
+ *   familiaGenerica: "a família" também é trocada (pessoa, ou família com sobrenome)
  * `valores` sempre existe, para um texto salvo com {{da}} continuar certo se o destinatário mudar.
  */
-function trocasDe(ativa: boolean, v: { da: string; quem: string; Quem: string; aoRotulo: string }) {
-  const trocas: [string, RegExp][] = ativa
-    ? [
-        ["da", new RegExp(`${L}da família${R}`, "gu")],
-        ["aoRotulo", new RegExp(`${L}à família${R}`, "gu")],
-        ["quem", new RegExp(`${L}a família${R}`, "gu")],
-        ["Quem", new RegExp(`${L}A família${R}`, "gu")],
-      ]
-    : [];
-  const valores = ativa ? v : { da: "da família", quem: "a família", Quem: "A família", aoRotulo: "à família" };
-  return { trocas, valores };
+function trocasDe(familiaGenerica: boolean, v: { da: string; quem: string; Quem: string; aoRotulo: string }) {
+  const re = (t: string) => new RegExp(`${L}(?:${t})${R}`, "gu");
+  const trocas: [string, RegExp][] = [
+    // proprietário / terrenista: sempre (família sem sobrenome vira "a família")
+    ["da", re("do proprietário|da proprietária|dos proprietários|do terrenista")],
+    ["aoRotulo", re("ao proprietário|à proprietária|aos proprietários|ao terrenista")],
+    ["quem", re("o proprietário|a proprietária|os proprietários|o terrenista")],
+    ["Quem", re("O proprietário|A proprietária|Os proprietários|O terrenista")],
+  ];
+  if (familiaGenerica)
+    trocas.push(["da", re("da família")], ["aoRotulo", re("à família")], ["quem", re("a família")], ["Quem", re("A família")]);
+  return { trocas, valores: v };
 }
 
 export type Tratamento = ReturnType<typeof tratamento>;

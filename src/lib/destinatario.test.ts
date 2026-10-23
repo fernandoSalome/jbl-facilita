@@ -19,7 +19,16 @@ describe("tratamento da proposta", () => {
     for (const [c, re] of d.trocas) out = out.replace(re, `{{${c}}}`);
     expect(out).toBe("rentabilidade {{da}}. {{Quem}} recebe e {{quem}} escolhe. Carta {{aoRotulo}}. uma família");
     expect(tratamento({ tipo: "pessoa", nome: "João" }).valores.da).toBe("do Sr. João");
-    expect(tratamento({ tipo: "familia" }).trocas).toEqual([]);
+    // proprietário vira o destinatário escolhido (família sem sobrenome: "a família")
+    const troca = (d2: ReturnType<typeof tratamento>, t2: string) => {
+      let o = t2;
+      for (const [c, re] of d2.trocas) o = o.replace(re, `{{${c}}}`);
+      return o.replace(/\{\{(\w+)\}\}/g, (_, c: string) => (d2.valores as Record<string, string>)[c]);
+    };
+    expect(troca(tratamento({ tipo: "familia" }), "Veja quanto está projetado para o proprietário. Capital do proprietário. Aos proprietários. A família recebe."))
+      .toBe("Veja quanto está projetado para a família. Capital da família. Aos proprietários. A família recebe.");
+    expect(troca(d, "Participação do terrenista; aos proprietários; O proprietário cede")).toBe("Participação da Família Silva; à Família Silva; A Família Silva cede");
+    expect(troca(tratamento({ tipo: "pessoa", nome: "Fernando" }), "para o proprietário e a família")).toBe("para o Sr. Fernando e o Sr. Fernando");
   });
   it("família sem nome não mexe nos textos (edições antigas continuam valendo)", () => {
     const d = tratamento({ tipo: "familia" });
