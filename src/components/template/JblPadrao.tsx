@@ -308,15 +308,25 @@ export default function JblPadrao(props: TemplateProps) {
     if (mode !== "public" || props.printing || props.pdfPages || !props.pdfUrl) return;
     fetch(`${props.pdfUrl}?info=1`).then((r) => (r.ok ? r.json() : null)).then((j) => j?.pages && setPdfPages(j.pages)).catch(() => {});
   }, [mode, props.printing, props.pdfPages, props.pdfUrl]);
-  async function abrirPdf() {
+  // "Baixar PDF" abre a escolha: A4 em pé ou slides deitados
+  const [escolhaPdf, setEscolhaPdf] = useState(false);
+  function abrirPdf() {
     if (!props.pdfUrl || mode !== "public") return window.print();
+    setEscolhaPdf(true);
+  }
+  async function baixarPdf(formato: "a4" | "slides") {
+    setEscolhaPdf(false);
+    if (!props.pdfUrl) return;
     const w = window.open("", "_blank");
     setGerando(true);
     try {
-      const r = await fetch(`${props.pdfUrl}?info=1`);
-      if (!r.ok) throw new Error();
-      if (w) w.location.href = props.pdfUrl;
-      else window.location.href = props.pdfUrl;
+      const destino = formato === "a4" ? `${props.pdfUrl}?formato=a4` : props.pdfUrl;
+      if (formato === "slides") {
+        const r = await fetch(`${props.pdfUrl}?info=1`);
+        if (!r.ok) throw new Error();
+      }
+      if (w) w.location.href = destino;
+      else window.location.href = destino;
     } catch {
       w?.close();
       window.print();
@@ -373,6 +383,33 @@ export default function JblPadrao(props: TemplateProps) {
 
   return (
     <EditProvider overrides={props.overrides} base={formato.overrides} editable={editing} onSave={props.onSave} trocas={trocas}>
+      {escolhaPdf && (
+        <div
+          role="dialog"
+          aria-label="Baixar proposta em PDF"
+          onClick={() => setEscolhaPdf(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(18,42,69,.45)", display: "grid", placeItems: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 8, padding: 20, width: "min(380px, 100%)", boxShadow: "0 20px 50px -12px rgba(0,0,0,.45)", fontFamily: "Helvetica Neue, Arial, sans-serif", color: "#122A45" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Baixar proposta em PDF</div>
+            {([
+              ["a4", "A4 (em pé)", "Página corrida, como o site, em folhas A4 verticais."],
+              ["slides", "Slides (deitado)", "Uma seção por página, como uma apresentação."],
+            ] as const).map(([f, t, d]) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => baixarPdf(f)}
+                style={{ display: "block", width: "100%", textAlign: "left", border: "1.5px solid #ECE1C4", borderRadius: 6, padding: "10px 12px", marginBottom: 8, background: "#F7F2E7", cursor: "pointer" }}
+              >
+                <b style={{ display: "block", fontSize: 14.5 }}>{t}</b>
+                <span style={{ fontSize: 12.5, color: "#697683" }}>{d}</span>
+              </button>
+            ))}
+            <button type="button" onClick={() => setEscolhaPdf(false)} style={{ marginTop: 4, fontSize: 13, color: "#697683", background: "none", border: 0, cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </div>
+      )}
       <ThemeRoot className={`jblt ${editing ? "editing" : ""} ${mode !== "public" ? "embedded" : ""}`}>
         <div ref={root}>
           {mode === "public" && !props.printing && <Tracker token={props.token} />}
@@ -973,9 +1010,9 @@ export default function JblPadrao(props: TemplateProps) {
                   {gerando ? (
                     <>Gerando o PDF da proposta…</>
                   ) : pdfPages ? (
-                    <>Esta proposta completa contém <strong>{pdfPages} páginas</strong>, em PDF tamanho A4</>
+                    <>Esta proposta completa em PDF: A4 em pé ou slides (<strong>{pdfPages} páginas</strong>)</>
                   ) : (
-                    <>Esta proposta completa, em PDF tamanho A4</>
+                    <>Esta proposta completa em PDF: A4 em pé ou slides</>
                   )}
                 </span>
               </div>

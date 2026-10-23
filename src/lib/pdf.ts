@@ -10,6 +10,10 @@ import { db } from "./db";
 
 const W = 1280;
 const PAGE = { w: 338.67, h: 190.5 }; // mm
+/** A4 em pé: a página corrida, como no site, quebrando entre os blocos */
+const A4 = { w: 210, h: 297, margem: { top: 12, bottom: 14, side: 11 } }; // mm
+const A4_SCALE = +(((A4.w - 2 * A4.margem.side) * 3.7795) / W).toFixed(4);
+export type FormatoPdf = "slides" | "a4";
 const MARGIN = { top: 9, bottom: 13, side: 11 }; // mm
 const SCALE = +(((PAGE.w - 2 * MARGIN.side) * 3.7795) / W).toFixed(4);
 /** Altura útil de um slide em px da página (antes da escala), com folga para arredondamentos */
@@ -64,7 +68,7 @@ export function contarPaginas(pdf: Buffer) {
   return (pdf.toString("latin1").match(/\/Type\s*\/Page(?![a-zA-Z])/g) ?? []).length;
 }
 
-async function imprimir(origin: string, token: string, rodape: string, paginas?: number) {
+async function imprimir(origin: string, token: string, rodape: string, paginas?: number, formato: FormatoPdf = "slides") {
   const { chromium } = await import("playwright-core");
   // Na Vercel não há Chromium instalado: usa a versão compactada para funções sem servidor.
   // As funções da Vercel rodam no Amazon Linux 2023; a variável faz o pacote extrair as bibliotecas certas (libnss3...).
@@ -83,10 +87,25 @@ async function imprimir(origin: string, token: string, rodape: string, paginas?:
     await page.evaluate(() => document.fonts.load('16px "Noto Color Emoji"', "🌳🏊").catch(() => null));
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(600);
+    const esc = rodape.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+    if (formato === "a4") {
+      // A4 em pé: sem montar slides; o navegador quebra as páginas entre os blocos
+      await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+      await page.waitForTimeout(400);
+      const m = A4.margem;
+      return await page.pdf({
+        format: "A4",
+        printBackground: true,
+        scale: A4_SCALE,
+        margin: { top: `${m.top}mm`, bottom: `${m.bottom}mm`, left: `${m.side}mm`, right: `${m.side}mm` },
+        displayHeaderFooter: true,
+        headerTemplate: "<div></div>",
+        footerTemplate: `<div style="width:100%;font-family:Arial,sans-serif;font-size:7.5px;color:#8a929b;padding:0 ${m.side}mm;display:flex;justify-content:space-between"><span>${esc}</span><span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span></div>`,
+      });
+    }
     await page.evaluate(montarSlides, { H: SLIDE_H });
     await page.evaluate(() => window.dispatchEvent(new Event("resize")));
     await page.waitForTimeout(400);
-    const esc = rodape.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
     return await page.pdf({
       width: `${PAGE.w}mm`,
       height: `${PAGE.h}mm`,
@@ -360,6 +379,15 @@ function montarSlides({ H }: { H: number }) {
 const emAndamento = new Map<string, Promise<{ data: Buffer; pages: number }>>();
 
 /** Devolve o PDF da proposta (do cache, ou gera agora). O número de páginas entra no próprio texto da proposta. */
+/** A4 em pé: gerado na hora (o arquivo guardado na proposta é o de slides) */
+export async function pdfA4DaProposta(origin: string, token: string) {
+  const p = await db.proposal.findFirst({ where: { publicToken: token, deletedAt: null }, include: { project: true } });
+  if (!p) return null;
+  const rodape = `Grupo JBL Incorporadora · Proposta de parceria ${p.project.name} · ${p.project.municipio}, ${p.project.uf}`;
+  const data = await imprimir(origin, token, rodape, undefined, "a4");
+  return { data, pages: contarPaginas(data), name: p.project.name };
+}
+
 export async function pdfDaProposta(origin: string, token: string) {
   const p = await db.proposal.findFirst({ where: { publicToken: token, deletedAt: null }, include: { project: true } });
   if (!p) return null;
