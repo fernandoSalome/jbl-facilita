@@ -25,8 +25,6 @@ type Hist = { kind: "ov"; k: string; prev: unknown; next: unknown } | { kind: "d
 
 type Props = {
   formato: FormatoContent;
-  /** a proposta usa uma versão anterior do template */
-  templateDesatualizado?: boolean;
   proposal: {
     id: string; name: string; ownerName: string; ownerPhone: string | null; status: string; rawStatus: string; publicToken: string;
     publishedAt: string | null; expiresAt: string | null; createdAt: string; template: string;
@@ -74,7 +72,7 @@ function NumbersPanel({ value, onChange }: { value: Data; onChange: (d: Data) =>
 
 /* ------------------------------------------------------------ tela */
 
-export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado }: Props) {
+export default function ProposalEditor({ formato, proposal: p, project }: Props) {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [numbersOpen, setNumbersOpen] = useState(false);
   const [numbersKey, setNumbersKey] = useState(0);
@@ -312,21 +310,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
           {mode === "edit" && (
             <span className="basis-full text-[12.5px] text-muted">
               Clique em qualquer texto para editar, numa imagem para trocar, ou passe o mouse numa seção ou tabela.
-              {templateDesatualizado && (
-                <span className="mt-1.5 flex flex-wrap items-center gap-2 rounded bg-sky-50 px-2.5 py-1.5 text-sky-900 ring-1 ring-sky-200">
-                  Esta proposta está numa versão anterior do template (os textos podem estar diferentes).
-                  <button
-                    className="font-semibold text-navy underline"
-                    onClick={async () => {
-                      await patch({ atualizarTemplate: true });
-                      window.location.reload();
-                    }}
-                  >
-                    Atualizar para o template atual
-                  </button>
-                  <span className="text-[12px] text-sky-800/80">Os ajustes feitos só nesta proposta continuam.</span>
-                </span>
-              )}
               {ownCount > 0 && (
                 <>
                   {" "}<span className="ml-1 rounded-sm bg-[#fff6d6] px-1.5 py-0.5 font-semibold text-amber-800 ring-1 ring-[#e0a800]">✎ {ownCount} ajuste(s) só nesta proposta</span>

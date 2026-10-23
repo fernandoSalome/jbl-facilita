@@ -7,9 +7,8 @@ import { limparConteudo } from "@/lib/template-salvar";
 /**
  * Salva o template inteiro: a parte compartilhada (vale para os 4 tipos de loteamento)
  * e a parte de cada tipo. Cada tipo que mudou ganha uma versão nova.
- *   aplicar = "todas":    todas as propostas do template passam para as versões novas
- *                         (textos personalizados em cada proposta continuam valendo)
- *   aplicar = "proximas": as propostas existentes ficam nas versões anteriores
+ * Vale sempre para todas as propostas do template, as que existem e as novas
+ * (textos personalizados em cada proposta continuam valendo).
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async (s) => {
@@ -19,7 +18,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const b = await req.json().catch(() => null);
     const comum = b?.comum as ComumContent | undefined;
     const tipos = b?.tipos as Record<FormatoKey, TipoContent> | undefined;
-    if (!comum?.overrides || !tipos || FORMATOS.some((f) => !tipos[f]) || (b.aplicar !== "todas" && b.aplicar !== "proximas")) {
+    if (!comum?.overrides || !tipos || FORMATOS.some((f) => !tipos[f]) || false) {
       return json({ error: "Dados inválidos" }, 400);
     }
 
@@ -38,7 +37,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         atual && !(atual.content as { conflitos?: unknown }).conflitos && estavel(atual.content) === estavel(content)
           ? atual
           : await db.formatoVersion.create({ data: { templateId: tpl.id, formato, content: content as object, createdById: s.sub } });
-      if (b.aplicar === "todas") {
+      {
+        // vale sempre para todas as propostas do template (as que existem e as novas)
         // inclui as excluídas, para que fiquem certas se forem reativadas; a contagem mostra só as ativas
         await db.proposal.updateMany({ where: { templateId: tpl.id, formato }, data: { formatoVersionId: v.id } });
         atualizadas += await db.proposal.count({ where: { templateId: tpl.id, formato, deletedAt: null } });

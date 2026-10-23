@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
-import { contentForProposal } from "@/lib/formato-server";
+import { contentForProposal, versaoAtualId } from "@/lib/formato-server";
 import { pdfKeyOf } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
   const formato = await contentForProposal(p);
   const printing = searchParams.print === "1";
   // número de páginas do PDF: o da impressão em andamento, ou o do último PDF (se ainda vale)
-  const pdfPages = printing ? Number(searchParams.pages) || null : p.pdfKey === pdfKeyOf(p) ? p.pdfPages : null;
+  const pdfPages = printing ? Number(searchParams.pages) || null : p.pdfKey === pdfKeyOf({ ...p, formatoVersionId: await versaoAtualId(p) }) ? p.pdfPages : null;
   return (
     <JblPadrao
       mode="public"

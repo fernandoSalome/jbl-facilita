@@ -87,7 +87,7 @@ export default function TemplateEditor({
 
   const [leaving, setLeaving] = useState<null | (() => void)>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [aplicar, setAplicar] = useState<"todas" | "proximas" | null>(null);
+  const aplicar = "todas" as const;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -149,8 +149,6 @@ export default function TemplateEditor({
   const nomeTipo = (f: FormatoKey) => draft.tipos[f].label;
 
   async function salvar() {
-    // nenhuma opção vem marcada: precisa escolher onde o template vai valer
-    if (!aplicar) return setMsg("Escolha onde o template vai valer: só nas propostas novas ou em todas.");
     setBusy(true);
     setMsg("");
     const r = await fetch(`/api/templates/${templateId}/salvar`, {
@@ -162,7 +160,7 @@ export default function TemplateEditor({
     setBusy(false);
     if (!r.ok) return setMsg(d.error ?? "Não foi possível salvar.");
     setSaveOpen(false);
-    setMsg(aplicar === "todas" ? `✓ Template salvo e aplicado em ${d.atualizadas} proposta(s)` : "✓ Template salvo. Vale para as próximas propostas");
+    setMsg(`✓ Template salvo e aplicado em ${d.atualizadas} proposta(s)`);
     router.refresh();
   }
 
@@ -216,7 +214,7 @@ export default function TemplateEditor({
             {msg && <span className="text-[12.5px] font-semibold text-emerald-700">{msg}</span>}
             {dirty && <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Alterações não salvas</span>}
             {dirty && <button className="btn-ghost" onClick={() => setDraft(clone(salvo.draft))}>Descartar</button>}
-            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setAplicar(null); setSaveOpen(true); }}>Salvar</button>
+            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setSaveOpen(true); }}>Salvar</button>
           </div>
         </div>
       </div>
@@ -336,23 +334,10 @@ export default function TemplateEditor({
             ))}
             {!dirty && conflitos.length > 0 && <li>• Confirma os textos unificados (o aviso de conferência some).</li>}
           </ul>
-          <p className="text-[14px] font-semibold text-navy">Onde este template vai valer?</p>
-          <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "proximas" ? "border-gold bg-gold-soft" : "border-line"}`}>
-            <input type="radio" checked={aplicar === "proximas"} onChange={() => { setAplicar("proximas"); setMsg(""); }} className="mt-1 accent-[#A2782F]" />
-            <span>
-              <b className="block text-navy">Só nas propostas novas</b>
-              <span className="text-[13px] text-muted">O template muda só nas propostas criadas daqui para frente. As que já existem ficam como estão.</span>
-            </span>
-          </label>
-          <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "todas" ? "border-gold bg-gold-soft" : "border-line"}`}>
-            <input type="radio" checked={aplicar === "todas"} onChange={() => { setAplicar("todas"); setMsg(""); }} className="mt-1 accent-[#A2782F]" />
-            <span>
-              <b className="block text-navy">Em todas as propostas (as que já existem e as novas)</b>
-              <span className="text-[13px] text-muted">
-                As {total} proposta(s) que usam este template{enviadas ? ` (${enviadas} já enviadas)` : ""} ficam iguais ao template. Só continua diferente o que foi mudado dentro de cada proposta e os números da planilha dela.
-              </span>
-            </span>
-          </label>
+          <p className="rounded border-[1.5px] border-gold bg-gold-soft p-3 text-[13.5px] text-navy">
+            Vale para <b>todas as propostas</b> deste template: as {total} que já existem{enviadas ? ` (${enviadas} já enviadas)` : ""} e as novas.
+            Só continua diferente o que foi mudado dentro de cada proposta e os números da planilha dela.
+          </p>
           {msg && <p className="text-sm font-semibold text-rose-700">{msg}</p>}
         </div>
       </Modal>

@@ -6,13 +6,19 @@ export async function latestVersion(templateId: string, formato: FormatoKey) {
   return db.formatoVersion.findFirst({ where: { templateId, formato }, orderBy: { createdAt: "desc" } });
 }
 
-/** Conteúdo do formato usado por uma proposta (a versão em que ela está, ou a mais recente) */
-export async function contentForProposal(p: { templateId: string; formato: string; formatoVersionId: string | null }): Promise<FormatoContent> {
+/**
+ * Conteúdo do template usado por uma proposta: sempre a versão atual do template.
+ * O que foi alterado dentro da proposta (overrides) continua por cima.
+ */
+export async function contentForProposal(p: { templateId: string; formato: string }): Promise<FormatoContent> {
   const formato = parseFormato(p.formato);
-  const v = p.formatoVersionId
-    ? await db.formatoVersion.findUnique({ where: { id: p.formatoVersionId } })
-    : await latestVersion(p.templateId, formato);
+  const v = await latestVersion(p.templateId, formato);
   return parseContent(v?.content, formato);
+}
+
+/** Id da versão atual do template da proposta (entra na chave do PDF: o template mudou, o PDF é refeito) */
+export async function versaoAtualId(p: { templateId: string; formato: string }) {
+  return (await latestVersion(p.templateId, parseFormato(p.formato)))?.id ?? null;
 }
 
 export type FormatoResumo = { key: FormatoKey; content: FormatoContent; versionId: string | null; createdAt: string; disponivel: boolean };

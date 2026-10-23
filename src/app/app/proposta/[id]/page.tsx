@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
-import { contentForProposal, latestVersion } from "@/lib/formato-server";
-import { parseFormato } from "@/lib/formatos";
+import { contentForProposal } from "@/lib/formato-server";
 import ProposalEditor from "@/components/proposals/ProposalEditor";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +16,10 @@ export default async function PropostaPage({ params }: { params: { id: string } 
   });
   if (!p) notFound();
   const formato = await contentForProposal(p);
-  // proposta presa numa versão anterior do template (salvo com "só nas propostas novas")
-  const ultima = await latestVersion(p.templateId, parseFormato(p.formato));
-  const templateDesatualizado = !!(p.formatoVersionId && ultima && ultima.id !== p.formatoVersionId);
 
   return (
     <ProposalEditor
       formato={formato}
-      templateDesatualizado={templateDesatualizado}
       proposal={{
         id: p.id,
         name: p.name,
