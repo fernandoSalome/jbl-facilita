@@ -71,6 +71,8 @@ export type StudyInputs = {
   ruaE1: number | null;
   /** Primeira etapa: outras medidas a descontar do perímetro (m): tiram lotes, a área da etapa não muda */
   descontoE1: number | null;
+  /** Primeira etapa: quantidade de ruas obrigatórias (× largura da rua, sai do perímetro como o desconto) */
+  ruasObrigE1: number | null;
   /** Primeira etapa: comprimento da quadra (m) */
   compQuadraE1: number | null;
   /** Primeira etapa: frente do lote (m) */
@@ -115,6 +117,7 @@ export const DEFAULT_INPUTS: StudyInputs = {
   areaPerimetralE1: null,
   ruaE1: null,
   descontoE1: null,
+  ruasObrigE1: null,
   compQuadraE1: null,
   frenteE1: null,
   desagio: 0.66667,
@@ -208,6 +211,8 @@ export type StudyResult = {
       cheias: number; porQuadra: number; resto: number; lotesResto: number; quarteiroes: number; lotesBrutos: number;
       /** perímetro digitado, desconto (m) e a linha onde cabem os lotes: linha = perímetro − desconto */
       perimetro: number; desconto: number; ruasEntre: number;
+      /** ruas obrigatórias: quantidade e metros (quantidade × largura da rua), tirados do perímetro */
+      ruasObrig: number; obrigM: number;
       /** áreas (m²): a área da etapa é perímetro × fundo (o desconto não muda a área, só os lotes) */
       areaLotes: number; areaRuas: number; sobra: number; areaTotal: number;
     } | null;
@@ -310,7 +315,10 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     if (i.areaPerimetralE1 && i.areaPerimetralE1 > 0 && frente > 0 && lote > 0) {
       const perimetro = i.areaPerimetralE1;
       const desconto = Math.min(perimetro, Math.max(0, i.descontoE1 ?? 0));
-      const linha = perimetro - desconto;
+      const rua0 = i.ruaE1 ?? 0;
+      const ruasObrig = Math.max(0, Math.floor(i.ruasObrigE1 ?? 0));
+      const obrigM = Math.min(perimetro - desconto, ruasObrig * rua0);
+      const linha = perimetro - desconto - obrigM;
       const rua = i.ruaE1 ?? 0;
       const fundo = lote / frente;
       const comp = Math.max(0, i.compQuadraE1 && i.compQuadraE1 > 0 ? Math.min(i.compQuadraE1, linha) : linha);
@@ -329,7 +337,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       const areaTotal = perimetro * fundo;
       quadras = {
         linha, rua, fundo, frente, comp, cheias, porQuadra, resto, lotesResto, quarteiroes, lotesBrutos,
-        perimetro, desconto, ruasEntre, areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal,
+        perimetro, desconto, ruasEntre, ruasObrig, obrigM, areaLotes, areaRuas, sobra: areaTotal - areaLotes - areaRuas, areaTotal,
       };
       qtd = lotesBrutos;
     }

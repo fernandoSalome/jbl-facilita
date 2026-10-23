@@ -166,13 +166,16 @@ function semNumeroSecao(t: string) {
 
 /** Primeira etapa: os "a definir" das versões antigas viram os números da planilha */
 function etapaComNumeros(t: string, html: boolean) {
-  if (!html) return t;
   const ordem = ["e1Lotes", "e1Lote", "e1Pct"];
   let i = 0;
-  return t
-    .replace(/<span[^>]*>\s*a definir\s*<\/span>/g, (m) => (i < ordem.length ? `<strong>{{${ordem[i++]}}}</strong>` : m))
-    // textos salvos antes da área em m²: "utilizando 31,51% da área" → "utilizando 23.800 m² (31,51%) da área"
-    .replace(/(utilizando\s*)(<strong>\{\{e1Pct\}\}<\/strong>)\s*%(\s*da área)/, "$1<strong>{{e1Area}}</strong> m² ($2%)$3");
+  return (html ? t.replace(/<span[^>]*>\s*a definir\s*<\/span>/g, (m) => (i < ordem.length ? `<strong>{{${ordem[i++]}}}</strong>` : m)) : t)
+    // textos salvos antes da área em m²: "utilizando 31,51% da área" → "utilizando 25.000 m² (31,51%) da área",
+    // com a mesma formatação que o número tinha (negrito, sublinhado...)
+    .replace(/((?:<[^>/][^>]*>)*)\{\{e1Pct\}\}(?:\s|<[^>]+>)*?%(?:<\/[^>]+>)*/, (m, abre: string) => {
+      if (t.includes("{{e1Area}}")) return m;
+      const fecha = (abre.match(/<([a-z0-9]+)/gi) ?? []).map((x) => `</${x.slice(1)}>`).reverse().join("");
+      return `${abre}{{e1Area}}${fecha} m² (${m})`;
+    });
 }
 
 /** Setas douradas entre as contas do VGV (mesma lógica do site) */

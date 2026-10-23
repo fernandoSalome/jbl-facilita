@@ -9,11 +9,11 @@ import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
  * as células azuis são as que se digita; as brancas o sistema calcula na hora.
  */
 
-type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes";
+type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
-const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes" };
-const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "compQuadraE1", "frenteE1", "reajusteManual"];
+const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
+const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -361,6 +361,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
         <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
+        <In s={s} k="ruasObrigE1" label="Desconto de ruas obrigatórias" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
         <Titulo>Quadras</Titulo>
         <Out label="Fundo do lote (m² ÷ frente)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
@@ -377,6 +378,10 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           value={v(q ? (q.ruasEntre ? `−${fmtNum(q.ruasEntre * q.rua)} m` : "—") : "")}
         />
         <Out label="(−) Outras medidas a descontar" value={v(q ? (q.desconto ? `−${fmtNum(q.desconto)} m` : "—") : "")} />
+        <Out
+          label={`(−) Ruas obrigatórias${q?.ruasObrig ? ` (${q.ruasObrig} × ${fmtNum(q.rua, 0)} m)` : ""}`}
+          value={v(q ? (q.obrigM ? `−${fmtNum(q.obrigM)} m` : "—") : "")}
+        />
         <Out label="Perímetro que sobra para lotes" value={v(q ? `${fmtNum(Math.max(0, q.linha - q.ruasEntre * q.rua))} m` : "")} strong />
         <Out label="Área total da etapa (perímetro × fundo)" value={v(q ? m2(q.areaTotal) : "")} strong />
         <Titulo>Resultado</Titulo>
@@ -404,7 +409,7 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
   const esc = q.perimetro > 0 ? LARG / q.perimetro : 0;
   const n = (x: number, d = 0) => fmtNum(x, d);
   // trechos ao longo da linha: quadras inteiras, ruas, quadra menor, sobra e desconto
-  type Trecho = { tipo: "quadra" | "rua" | "sobra" | "desconto"; m: number; lotes?: number };
+  type Trecho = { tipo: "quadra" | "rua" | "sobra" | "desconto" | "obrig"; m: number; lotes?: number };
   const t: Trecho[] = [];
   for (let k = 0; k < q.cheias; k++) {
     if (k > 0) t.push({ tipo: "rua", m: q.rua });
@@ -416,6 +421,7 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
   }
   const usado = t.reduce((a, x) => a + x.m, 0);
   if (q.linha - usado > 0.01) t.push({ tipo: "sobra", m: q.linha - usado });
+  if (q.obrigM > 0) t.push({ tipo: "obrig", m: q.obrigM });
   if (q.desconto > 0) t.push({ tipo: "desconto", m: q.desconto });
   let x = X0;
   const peças = t.map((tr) => {
@@ -431,6 +437,10 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
         <defs>
           <pattern id="e1-hachura" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="#C0392B" strokeWidth="2" opacity="0.45" />
+          </pattern>
+          <pattern id="e1-obrig" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+            <rect width="6" height="6" fill="#EAF1FB" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#2E6DB4" strokeWidth="2" opacity="0.45" />
           </pattern>
         </defs>
         {/* cota do perímetro */}
@@ -449,6 +459,14 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
                 {p.w > 26 && <text x={p.x + p.w / 2} y={Y + H / 2 + 4} textAnchor="middle" fontSize="10" fill="#697683">rua</text>}
                 {/* largura da rua */}
                 <text x={p.x + p.w / 2} y={Y - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#697683">{n(p.m)} m</text>
+              </g>
+            );
+          if (p.tipo === "obrig")
+            return (
+              <g key={k}>
+                <rect x={p.x} y={Y} width={p.w} height={H} fill="url(#e1-obrig)" stroke="#2E6DB4" strokeDasharray="4 3" />
+                <text x={p.x + p.w / 2} y={Y - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#2E6DB4">{n(p.m)} m</text>
+                <text x={p.x + p.w / 2} y={Y + H + 30} textAnchor="middle" fontSize="11" fill="#2E6DB4">{`ruas obrigatórias ${q.ruasObrig} × ${n(q.rua)} m`}</text>
               </g>
             );
           if (p.tipo === "desconto" || p.tipo === "sobra")
