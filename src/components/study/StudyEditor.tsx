@@ -447,6 +447,8 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
               <g key={k}>
                 <rect x={p.x} y={Y} width={p.w} height={H} fill="#DDE3E9" />
                 {p.w > 26 && <text x={p.x + p.w / 2} y={Y + H / 2 + 4} textAnchor="middle" fontSize="10" fill="#697683">rua</text>}
+                {/* largura da rua */}
+                <text x={p.x + p.w / 2} y={Y - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#697683">{n(p.m)} m</text>
               </g>
             );
           if (p.tipo === "desconto" || p.tipo === "sobra")
@@ -459,7 +461,7 @@ function Desenho({ q, lote }: { q: Quadras; lote: number }) {
           const passo = q.frente * esc;
           return (
             <g key={k}>
-              <rect x={p.x} y={Y} width={p.w} height={H} fill="#F7F2E7" stroke="#C1943D" strokeWidth="1.5" />
+              <rect x={p.x} y={Y} width={p.w} height={H} rx={Math.min(7, p.w / 4)} fill="#F7F2E7" stroke="#C1943D" strokeWidth="1.5" />
               {passo >= 3 &&
                 Array.from({ length: Math.max(0, (p.lotes ?? 0) - 1) }, (_, j) => (
                   <line key={j} x1={p.x + (j + 1) * passo} x2={p.x + (j + 1) * passo} y1={Y} y2={Y + H} stroke="#C1943D" strokeWidth="0.7" opacity="0.7" />
