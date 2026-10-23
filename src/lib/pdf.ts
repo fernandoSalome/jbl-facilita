@@ -17,13 +17,15 @@ const PAGE = { w: 338.67, h: 190.5 }; // mm
  */
 const A4 = { w: 338.67, h: +(338.67 * 297 / 210).toFixed(2), margem: { top: 19, bottom: 23, side: 17.7 } }; // mm
 const A4_SCALE = +(((A4.w - 2 * A4.margem.side) * 3.7795) / W).toFixed(4);
-/** Cada seção começa numa página nova; blocos não se partem no meio */
+/**
+ * Página corrida, sem espaço em branco: a seção seguinte continua logo abaixo da anterior.
+ * O título de uma seção nunca fica sozinho no pé da página e os blocos não se partem no meio.
+ */
 const CSS_A4 = `
-  .jblt main > .step, .jblt main > .part, .jblt main > .big-idea, .jblt main > .letter, .jblt .dark-foot { break-before: page; page-break-before: always; }
-  .jblt main > .part + .step { break-before: avoid; page-break-before: avoid; }
-  .jblt .hero-stats, .jblt .quote, .jblt .hero-photo, .jblt .step-head, .jblt .end, .jblt .tiles, .jblt .split, .jblt table tr { break-inside: avoid; page-break-inside: avoid; }
+  .jblt .step-head, .jblt h2, .jblt h3, .jblt .part { break-after: avoid; page-break-after: avoid; }
+  .jblt .hero-stats, .jblt .quote, .jblt .hero-photo, .jblt .step-head, .jblt .end, .jblt .tiles, .jblt .split, .jblt table tr, .jblt .tile, .jblt .card { break-inside: avoid; page-break-inside: avoid; }
   .jblt .hero-photo { break-after: avoid; page-break-after: avoid; }
-  .jblt section.step { padding-top: 0 !important; margin-top: 0 !important; border-top: 0 !important; }
+  .jblt #carta { break-before: auto; page-break-before: auto; }
 `;
 export type FormatoPdf = "slides" | "a4";
 const MARGIN = { top: 9, bottom: 13, side: 11 }; // mm
