@@ -290,7 +290,11 @@ export default function JblPadrao(props: TemplateProps) {
   const data = fmtLongDate(props.date);
   const dataCurta = new Date(props.date).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const mi = (v: number) => `R$ ${fmtNum(v / 1e6, 1)} mi`;
-  const pctTxt = (v: number) => fmtPct(v, 0);
+  // divisão (pizza e partes): sempre com 2 casas, ex.: 36,27%
+  const pctTxt = (v: number) => fmtPct(v, 2);
+  const ter2 = pctTxt(r.terrenistaPct);
+  // família com nome: "Família Silva" no lugar de "a família" nos rótulos da carteira
+  const fam = d.tipo === "familia" && d.nome ? d.rotulo : null;
   const ext = (v: number) => `(${extensoReais(v)})`;
   const sim = r.cenarios[pick] ?? r.principal;
   const maxTot = Math.max(...r.cenarios.map((c) => c.carteiraTer), 1);
@@ -740,7 +744,7 @@ export default function JblPadrao(props: TemplateProps) {
               </div></div>
               <div className="content">
                 <div className="pie-row">
-                  <svg viewBox="0 0 200 200" role="img" aria-label={`Gráfico de pizza: ${ter} proprietários, ${pctTxt(r.jblPct)} JBL, ${pctTxt(r.infraPct)} obras`}>
+                  <svg viewBox="0 0 200 200" role="img" aria-label={`Gráfico de pizza: ${ter2} proprietários, ${pctTxt(r.jblPct)} JBL, ${pctTxt(r.infraPct)} obras`}>
                     <g transform="translate(100 100) rotate(-90)">
                       <circle r="70" fill="none" stroke="var(--gold)" strokeWidth="56" strokeDasharray={`${pie[0]} ${circ.toFixed(2)}`} />
                       <circle r="70" fill="none" stroke="var(--sky-strong)" strokeWidth="56" strokeDasharray={`${pie[1]} ${circ.toFixed(2)}`} strokeDashoffset={`-${pie[0]}`} />
@@ -754,7 +758,7 @@ export default function JblPadrao(props: TemplateProps) {
                       if ((frac as number) < 0.04) return null;
                       const a = ((ini as number) + (frac as number) / 2) * 2 * Math.PI;
                       return (
-                        <text key={i} x={(100 + 70 * Math.sin(a)).toFixed(1)} y={(100 - 70 * Math.cos(a) + 5).toFixed(1)} textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontWeight="700" fontSize="14" fill={cor as string}>
+                        <text key={i} x={(100 + 70 * Math.sin(a)).toFixed(1)} y={(100 - 70 * Math.cos(a) + 5).toFixed(1)} textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontWeight="700" fontSize="12.5" fill={cor as string}>
                           {pctTxt(frac as number)}
                         </text>
                       );
@@ -763,7 +767,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>
                   <div className="shares">
-                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick("Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvistaTer)} · Em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}</V></small></div><span className="pct"><V k="sh1p">{ter}</V></span></div>
+                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick(fam ? `Proprietários (${fam})` : "Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvistaTer)} · Em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}</V></small></div><span className="pct"><V k="sh1p">{ter2}</V></span></div>
                     <div className="share-group"><span className="brace" aria-hidden="true" /><span className="brace-lbl">{pctTxt(1 - r.terrenistaPct)}</span>
                       <div className="share"><span className="dot" style={{ background: "var(--sky-strong)" }} /><div><b><T k="sh2">JBL Incorporadora</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh2v">{`À vista: ${fmtBRL(r.vgvAvista * r.jblPct)}`}</V></small></div><span className="pct"><V k="sh2p">{pctTxt(r.jblPct)}</V></span></div>
                       <div className="share"><span className="dot" style={{ background: "var(--line)" }} /><div><b><T k="sh3">Infraestrutura (obras)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh3v">{`À vista: ${fmtBRL(r.custoInfra)}`}</V></small></div><span className="pct"><V k="sh3p">{pctTxt(r.infraPct)}</V></span></div>
@@ -771,7 +775,7 @@ export default function JblPadrao(props: TemplateProps) {
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
                 </div>
-                <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick("Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter}</em>{etapa && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
+                <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick(fam ? `Parte da ${fam}` : "Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter2}</em>{etapa && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>
                   <span className="vs-or" aria-hidden="true">ou</span>
@@ -798,7 +802,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <div className="tile"><div className="k"><T k="simK1">Parcela do cliente</T></div><div className="v num">{fmtBRL(sim.parcela)}</div><div className="d"><T k="simD1">por mês, por lote, pagando em dia</T></div></div>
                   <div className="tile gold"><div className="k"><DT d={d} k="simK2">{d.pick("Família no 1º ano", `${d.rotulo} no 1º ano`, "Você no 1º ano")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTer)}</div><div className="d"><T k="simD2">por mês, nos primeiros 12 meses</T></div></div>
                   <div className="tile gold"><div className="k"><DT d={d} k="simK3">{d.pick("Família última parcela", `${d.rotulo} última parcela`, "Sua última parcela")}</DT></div><div className="v num">{fmtBRL0(sim.mensalTerFinal)}</div><div className="d"><T k="simD3b">por mês, no último ano</T></div></div>
-                  <div className="tile gold"><div className="k"><DT d={d} k="simK4">{d.pick("Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num pulsa">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
+                  <div className="tile gold"><div className="k"><DT d={d} k="simK4">{d.pick(fam ? `Total carteira da ${fam}` : "Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num pulsa">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
                 </div>
                 <div className="bars" aria-label="Total recebido em cada prazo">
                   {r.cenarios.map((c, i) => (
