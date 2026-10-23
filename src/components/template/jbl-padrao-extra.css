@@ -220,3 +220,6 @@
 .jblt .obs-vazio { color: var(--muted); font-style: italic; opacity: .75; }
 .jblt .obs-div { margin: 18px 0 26px; }
 .jblt .calc .f .idx-res small { margin-top: 8px; }
+
+/* títulos de bloco: a linha vai até o fim; se quebrar, descem só as últimas palavras (sem "equilibrar" em duas linhas iguais) */
+.jblt h3 { text-wrap: pretty; }
