@@ -52,7 +52,8 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
         {q.unit && ` ${q.unit}`}
       </>
     ) : q.kind === "fixa" ? (
-      <E k={`li.${item.id}.qtd`}>{q.text}</E>
+      // texto sem número ("Na entrega", "A definir"...): etiqueta dourada como "A projetar"; quantidade digitada fica normal
+      /\d/.test(q.text) ? <E k={`li.${item.id}.qtd`}>{q.text}</E> : <span className="tag pend"><E k={`li.${item.id}.qtd`}>{q.text}</E></span>
     ) : (
       // calculada pela área e pelos lotes: o valor não muda à mão, só o visual
       <Fixo k={`li.${item.id}.calc`}>{txt}</Fixo>
