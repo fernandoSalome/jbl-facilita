@@ -308,13 +308,20 @@ export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
 export function ListaContatos({ base, padrao }: { base: { id: string }[]; padrao: { nome?: string; telefone?: string } }) {
   const l = useLista("contatos", base);
   const def = (i: number, campo: "nome" | "telefone") => (i === 0 && padrao[campo]) || "a definir";
+  const { overrides } = useEdit();
+  // para o cliente, "a definir" vira só o campo em branco (na edição continua aparecendo)
+  const campo = (k: string, padraoTxt: string) => {
+    const v = overrides[k];
+    const txt = (typeof v === "string" ? v.replace(/^html:/, "").replace(/<[^>]+>/g, "") : padraoTxt).trim();
+    return !l.editable && /^a definir$/i.test(txt) ? <span className="blank blank-vazio" /> : <span className="blank"><E k={k}>{padraoTxt}</E></span>;
+  };
   return (
     <>
       {l.itens.map((c, i) => (
         <span key={c.id} className={l.editable ? "ct-row ct-ed" : "ct-row"}>
           {i > 0 && <br />}
-          Nome: <span className="blank"><E k={`li.${c.id}.nome`}>{def(i, "nome")}</E></span> · Telefone:{" "}
-          <span className="blank"><E k={`li.${c.id}.tel`}>{def(i, "telefone")}</E></span>
+          Nome: {campo(`li.${c.id}.nome`, def(i, "nome"))} · Telefone:{" "}
+          {campo(`li.${c.id}.tel`, def(i, "telefone"))}
           {l.editable && <button type="button" className="pill-del ct-del" title="Remover contato" onClick={() => l.remover(c.id)}>✕</button>}
         </span>
       ))}
