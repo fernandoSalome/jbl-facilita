@@ -448,7 +448,7 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
   return (
     <div className="border-t border-gold/30 px-3 py-3">
       <div className="mb-1 text-[11.5px] font-bold uppercase tracking-wider text-navy">Desenho da 1ª etapa (ilustrativo)</div>
-      <svg viewBox={`0 0 ${W} 166`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa">
+      <svg viewBox={`0 0 ${W} ${q.obrigM > 0 ? 186 : 166}`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa">
         <defs>
           <pattern id="e1-hachura" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="#C0392B" strokeWidth="2" opacity="0.45" />
@@ -481,7 +481,6 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
               <g key={k}>
                 <rect x={p.x} y={Y} width={p.w} height={H} fill="url(#e1-obrig)" stroke="#2E6DB4" strokeDasharray="4 3" />
                 <text x={p.x + p.w / 2} y={Y - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#2E6DB4">{n(p.m)} m</text>
-                <text x={Math.min(W - 4, p.x + p.w)} y={Y + H + 44} textAnchor="end" fontSize="11" fill="#2E6DB4">{`ruas contínuas vindas de fora ${q.ruasObrig} × ${n(q.rua)} m`}</text>
               </g>
             );
           if (p.tipo === "desconto" || p.tipo === "sobra")
@@ -511,6 +510,13 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
         <text x={X0} y={160} fontSize="11.5" fill="#122A45">
           {`${q.quarteiroes} quadras · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
         </text>
+        {/* legenda dos descontos, embaixo do resumo */}
+        {q.obrigM > 0 && (
+          <g>
+            <rect x={X0} y={170} width={12} height={10} fill="url(#e1-obrig)" stroke="#2E6DB4" />
+            <text x={X0 + 18} y={179} fontSize="11" fill="#2E6DB4">{`Ruas contínuas vindas de fora: ${q.ruasObrig} × ${n(q.rua)} m = ${n(q.obrigM)} m`}</text>
+          </g>
+        )}
       </svg>
     </div>
   );

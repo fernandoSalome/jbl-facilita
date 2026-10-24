@@ -80,7 +80,7 @@ export default function NewProposalForm({
   const [semValidade, setSemValidade] = useState(false);
   const [corretorNome, setCorretorNome] = useState("");
   const [destinatario, setDestinatario] = useState<Destinatario>({ tipo: "familia" });
-  const [data, setData] = useState<DataProposta>({ modo: "envio" });
+  const [data, setData] = useState<DataProposta>(() => ({ modo: "fixa", dia: new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) }));
   const [corretorTelefone, setCorretorTelefone] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);

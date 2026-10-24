@@ -37,7 +37,7 @@ type Props = {
 
 /* ---------------- painel de números (salva sozinho) ---------------- */
 
-function NumbersPanel({ value, onChange }: { value: Data; onChange: (d: Data) => void }) {
+function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (d: Data) => void; dataAtual?: string }) {
   const study = useStudyState(value.inputs);
   const first = useRef(true);
   const latest = useRef(value);
@@ -66,7 +66,7 @@ function NumbersPanel({ value, onChange }: { value: Data; onChange: (d: Data) =>
           Carta de intenção
         </label>
       </div>
-      <DataField value={m.options.data} onChange={(v) => setMeta({ options: { ...m.options, data: v } })} />
+      <DataField value={m.options.data} atual={dataAtual} onChange={(v) => setMeta({ options: { ...m.options, data: v } })} />
       <StudyEditor state={study} />
     </div>
   );
@@ -298,7 +298,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             <div className="eyebrow">Dados da planilha</div>
             <span className="text-[12.5px] text-muted">Salva sozinho. A proposta logo abaixo muda enquanto você digita.</span>
           </div>
-          <NumbersPanel key={numbersKey} value={data} onChange={changeData} />
+          <NumbersPanel key={numbersKey} value={data} onChange={changeData} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
         </div>
       )}
 
