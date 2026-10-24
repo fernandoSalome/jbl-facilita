@@ -228,3 +228,5 @@
 .jblt .tel-wrap { display: flex; gap: 6px; }
 .jblt .tel-wrap select { flex: none; width: auto; }
 .jblt .tel-wrap input { flex: 1; min-width: 0; }
+.jblt .obs-sec .step-head { margin-bottom: 0; }
+.jblt .obs-sec .content { margin-top: 10px; padding-top: 0; }

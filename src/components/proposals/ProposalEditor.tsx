@@ -8,6 +8,7 @@ import type { FormatoContent } from "@/lib/formatos";
 import { dataDaProposta, type Overrides, type ProposalOptions } from "@/lib/proposals";
 import DataField from "./DataField";
 import { fmtDate } from "@/lib/format";
+import { tratamento } from "@/lib/destinatario";
 import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
@@ -211,15 +212,22 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   const publicUrl = `${origin}/p/${p.publicToken}`;
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  // mensagem base do WhatsApp: nome escolhido em "Proposta para", tipo de loteamento e gleba da proposta
+  const trat = tratamento(data.meta.options.destinatario);
+  const nomeMsg = trat.nome ? trat.rotulo : data.meta.ownerName;
   const message =
-    `${saudacao}, estimo que estejam todos bem!\n\n` +
-    `${data.meta.ownerName}, segue nossa Proposta Técnica e Comercial de parceria (${formato.label.toLowerCase()}) para a gleba ${project.name}, para vossa análise e apreciação.\n\n` +
-    (data.meta.options.semValidade
-      ? ""
-      : `A proposta é válida por ${data.meta.options.validadeDias} dias, até ${fmtDate(
-          p.expiresAt && p.rawStatus !== "rascunho" ? p.expiresAt : new Date(Date.now() + data.meta.options.validadeDias * 864e5).toISOString(),
-        )}.\n\n`) +
-    `Colocamo-nos à disposição para dirimir quaisquer dúvidas ou esclarecimentos que se façam necessários em uma próxima reunião, para que possamos avançar com as tratativas.\n\n` +
+    `${saudacao} a todos!
+
+` +
+    `${nomeMsg}, segue nossa *Proposta Técnica e Comercial* de Parceria para implantação de *${formato.label} na Gleba ${project.name}*.
+
+` +
+    `A proposta foi desenvolvida em formato *Digital Interativo*, com apresentação e conceito de *Site Personalizado*, proporcionando uma *experiência de visualização mais dinâmica e organizada*. Para melhor aproveitamento do conteúdo e dos recursos interativos, *recomendamos a visualização preferencialmente pelo computador*.
+
+` +
+    `Colocamo-nos à disposição para esclarecimentos e reunião.
+
+` +
     publicUrl;
   // mensagem escrita à mão (salva na proposta) ou a sugerida
   const salva = data.meta.options.mensagemEnvio?.trim() ? data.meta.options.mensagemEnvio : null;
