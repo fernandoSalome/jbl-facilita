@@ -225,3 +225,6 @@
 .jblt h3 { text-wrap: pretty; }
 .jblt .obs-add { display: block; margin: 18px 0; }
 .jblt .blank.blank-vazio { min-width: 140px; height: 1.1em; vertical-align: baseline; }
+.jblt .tel-wrap { display: flex; gap: 6px; }
+.jblt .tel-wrap select { flex: none; width: auto; }
+.jblt .tel-wrap input { flex: 1; min-width: 0; }

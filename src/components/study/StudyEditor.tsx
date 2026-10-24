@@ -448,7 +448,7 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
   return (
     <div className="border-t border-gold/30 px-3 py-3">
       <div className="mb-1 text-[11.5px] font-bold uppercase tracking-wider text-navy">Desenho da 1ª etapa (ilustrativo)</div>
-      <svg viewBox={`0 0 ${W} ${q.obrigM > 0 ? 250 : 166}`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa">
+      <svg viewBox={`0 0 ${W} 166`} className="h-auto w-full" role="img" aria-label="Linha de quadras da primeira etapa">
         <defs>
           <pattern id="e1-hachura" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="#C0392B" strokeWidth="2" opacity="0.45" />
@@ -482,8 +482,14 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
                 <rect x={p.x} y={Y} width={p.w} height={H} fill="url(#e1-obrig)" stroke="#2E6DB4" strokeDasharray="4 3" />
                 <text x={p.x + p.w / 2} y={Y - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#2E6DB4">{n(p.m)} m</text>
                 {/* em pé, logo abaixo do trecho azul */}
-                <line x1={p.x + p.w / 2} x2={p.x + p.w / 2} y1={Y + H + 2} y2={Y + H + 8} stroke="#2E6DB4" />
-                <text x={p.x + p.w / 2} y={Y + H + 12} transform={`rotate(90 ${p.x + p.w / 2} ${Y + H + 12})`} dominantBaseline="central" fontSize="11" fontWeight="700" fill="#2E6DB4">{`ruas contínuas ${q.ruasObrig} × ${n(q.rua)} m`}</text>
+                {/* numa linha abaixo das outras, centralizado no trecho azul (sem passar da borda) */}
+                <line x1={p.x + p.w / 2} x2={p.x + p.w / 2} y1={Y + H + 2} y2={Y + H + 36} stroke="#2E6DB4" strokeDasharray="2 2" />
+                {(() => {
+                  const t = `ruas contínuas ${q.ruasObrig} × ${n(q.rua)} m`;
+                  const meia = t.length * 3.2;
+                  const cx = Math.min(W - 4 - meia, Math.max(meia + 4, p.x + p.w / 2));
+                  return <text x={cx} y={Y + H + 48} textAnchor="middle" fontSize="11" fontWeight="700" fill="#2E6DB4">{t}</text>;
+                })()}
               </g>
             );
           if (p.tipo === "desconto" || p.tipo === "sobra")
