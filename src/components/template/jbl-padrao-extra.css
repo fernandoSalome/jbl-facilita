@@ -223,3 +223,4 @@
 
 /* títulos de bloco: a linha vai até o fim; se quebrar, descem só as últimas palavras (sem "equilibrar" em duas linhas iguais) */
 .jblt h3 { text-wrap: pretty; }
+.jblt .obs-add { display: block; margin: 18px 0; }

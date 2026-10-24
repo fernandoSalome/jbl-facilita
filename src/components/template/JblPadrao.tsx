@@ -288,9 +288,22 @@ export default function JblPadrao(props: TemplateProps) {
   // ----- destinatário: textos que falam com quem recebe a proposta -----
   const d = tratamento(options.destinatario);
   // observação escrita na proposta ou no template (o texto padrão é só a dica para escrever)
-  const obsSalva = props.overrides["txt.obsTexto"] ?? formato.overrides?.["txt.obsTexto"];
-  const temObs = temTexto(obsSalva, OBS_VAZIA);
-  const temObsDiv = temTexto(props.overrides["txt.obsDivisao"] ?? formato.overrides?.["txt.obsDivisao"], OBS_DIV_VAZIA);
+  // Observações são de cada proposta: não existem no template e só aparecem quando preenchidas.
+  // Na edição da proposta, vazias, viram um botão "+ Adicionar observações".
+  const ehTemplate = props.token === "modelo";
+  const temObs = !ehTemplate && temTexto(props.overrides["txt.obsTexto"], OBS_VAZIA);
+  const temObsDiv = !ehTemplate && temTexto(props.overrides["txt.obsDivisao"], OBS_DIV_VAZIA);
+  const [abrirObs, setAbrirObs] = useState(false);
+  const [abrirObsDiv, setAbrirObsDiv] = useState(false);
+  const verObs = temObs || (editing && !ehTemplate && abrirObs);
+  const verObsDiv = temObsDiv || (editing && !ehTemplate && abrirObsDiv);
+  // texto do template nesses campos não vale para as propostas
+  const baseSemObs = useMemo(() => {
+    const o = { ...(formato.overrides ?? {}) };
+    delete o["txt.obsTexto"];
+    delete o["txt.obsDivisao"];
+    return o;
+  }, [formato.overrides]);
   const trocas = useMemo(() => ({ trocas: d.trocas, valores: d.valores }), [d.trocas, d.valores]);
   /** Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@<tipo>") */
 
@@ -397,7 +410,7 @@ export default function JblPadrao(props: TemplateProps) {
   ];
 
   return (
-    <EditProvider overrides={props.overrides} base={formato.overrides} editable={editing} onSave={props.onSave} trocas={trocas}>
+    <EditProvider overrides={props.overrides} base={baseSemObs} editable={editing} onSave={props.onSave} trocas={trocas}>
       <ThemeRoot className={`jblt ${editing ? "editing" : ""} ${mode !== "public" ? "embedded" : ""}`}>
         <div ref={root}>
           {mode === "public" && !props.printing && <Tracker token={props.token} />}
@@ -802,9 +815,11 @@ export default function JblPadrao(props: TemplateProps) {
                   </div>
                 </div>
                 {/* observação logo abaixo da divisão: só aparece para o cliente quando tem texto */}
-                {(editing || temObsDiv) && (
+                {verObsDiv ? (
                   <p className={`tip tip-full obs-div ${temObsDiv ? "" : "obs-vazio"}`}><T k="obsDivisao" multiline>{OBS_DIV_VAZIA}</T></p>
-                )}
+                ) : editing && !ehTemplate ? (
+                  <button type="button" className="add-pill obs-add" onClick={() => setAbrirObsDiv(true)}>+ Observação sobre a divisão</button>
+                ) : null}
                 <h3 className="vgv-title"><span><DT d={d} k="vtParte">{d.pick(fam ? `Parte da ${fam}` : "Parte da família", `Parte ${d.da}`, "Sua parte")}</DT></span><em>{ter2}</em>{r.etapa1 && <><i className="vt-sep" aria-hidden="true">|</i><span><T k="vtInc">Incluindo a primeira etapa</T></span></>}</h3>
                 <div className="split vgv-split" role="img" aria-label={`Se todos os lotes forem vendidos à vista: ${fmtBRL(r.vgvAvistaTer)}; a prazo em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}>
                   <div className="s-lots" style={{ flex: 50 }}><span className="vs-k"><T k="vs1k2" html>{"Se todos os lotes forem vendidos <b>à vista</b>"}</T></span><span className="vs-v num"><V k="vs1v">{fmtBRL(r.vgvAvistaTer)}</V></span></div>
@@ -964,7 +979,10 @@ export default function JblPadrao(props: TemplateProps) {
 
             {/* 12 */}
             {/* Observações: campo livre do projeto. No template fica vazio; para o cliente só aparece com texto */}
-            {(editing || temObs) && (
+            {editing && !ehTemplate && !verObs && (
+              <button type="button" className="add-pill obs-add" onClick={() => setAbrirObs(true)}>+ Adicionar observações</button>
+            )}
+            {verObs && (
               <Sec k="observacoes" className="step obs-sec" id="observacoes">
                 <div className="step-head"><div className="badge">i</div><div>
                   <h2><T k="obsTitulo">Observações</T></h2>
