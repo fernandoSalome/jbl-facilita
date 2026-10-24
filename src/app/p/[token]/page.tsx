@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
@@ -14,10 +15,18 @@ async function load(token: string) {
 export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
   const p = await load(params.token);
   if (!p) return { title: "Proposta indisponível" };
+  // prévia do link (WhatsApp): logo inteira, centralizada num quadrado
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const base = host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : undefined;
+  const titulo = `Proposta de parceria · ${p.project.name}`;
+  const descricao = `Proposta da JBL Incorporadora para a gleba ${p.project.name}, ${p.project.municipio} - ${p.project.uf}.`;
   return {
-    title: `Proposta de parceria · ${p.project.name}`,
-    description: `Proposta da JBL Incorporadora para a gleba ${p.project.name}, ${p.project.municipio} - ${p.project.uf}.`,
+    title: titulo,
+    description: descricao,
     robots: { index: false, follow: false },
+    ...(base ? { metadataBase: new URL(base) } : {}),
+    openGraph: { title: titulo, description: descricao, type: "website", images: [{ url: "/brand/og-proposta.png", width: 600, height: 600, alt: "Grupo JBL Incorporadora" }] },
   };
 }
 
