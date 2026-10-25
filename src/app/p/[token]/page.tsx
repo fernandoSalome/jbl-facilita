@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: { token: string } }
     description: descricao,
     robots: { index: false, follow: false },
     ...(base ? { metadataBase: new URL(base) } : {}),
-    openGraph: { title: titulo, description: descricao, type: "website", images: [{ url: "/brand/og-proposta.png", width: 600, height: 600, alt: "Grupo JBL Incorporadora" }] },
+    openGraph: { title: titulo, description: descricao, type: "website", images: [{ url: "/brand/og-proposta-2.png", width: 600, height: 600, alt: "Grupo JBL Incorporadora" }] },
   };
 }
 
