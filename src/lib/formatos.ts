@@ -12,10 +12,10 @@ export type FormatoKey = (typeof FORMATOS)[number];
 /** Medidas que o sistema sabe calcular pela área e pelos lotes (ver calc.ts → infra) */
 export const QTD_CALC = {
   logradouros: { label: "Área das ruas", unit: "m²" },
-  rede: { label: "Extensão da rede principal", unit: "ml" },
-  ligacoes: { label: "Ligações de água e esgoto (por lote)", unit: "ml" },
-  eletrica: { label: "Rede elétrica", unit: "ml" },
-  guias: { label: "Guias e sarjetas", unit: "ml" },
+  rede: { label: "Extensão da rede principal", unit: "m" },
+  ligacoes: { label: "Ligações de água e esgoto (por lote)", unit: "m" },
+  eletrica: { label: "Rede elétrica", unit: "m" },
+  guias: { label: "Guias e sarjetas", unit: "m" },
   calcadas: { label: "Calçadas", unit: "m²" },
   arvores: { label: "Uma por lote", unit: "un." },
 } as const;
@@ -149,12 +149,17 @@ export function formatoTemDados(c: FormatoContent | undefined) {
   return !!c && c.infra.length + c.complementar.length + c.benfeitorias.length > 0;
 }
 
+/** Nas tabelas a unidade de comprimento é "m" (itens antigos guardam "ml") */
+export const unidade = (u?: string) => (u === "ml" ? "m" : u);
+/** "3.000 ml" escrito à mão → "3.000 m" */
+export const semMl = (t: string) => t.replace(/(\d[\d.,]*\s*)ml\b/gi, "$1m");
+
 export function qtdTexto(q: Qtd, r: StudyResult, fmtNum: (n: number, d?: number) => string) {
   if (q.kind === "calc") {
     const v = r.infra[q.key];
     return `${fmtNum(v)} ${QTD_CALC[q.key].unit}`;
   }
-  if (q.kind === "fixa") return q.text;
+  if (q.kind === "fixa") return semMl(q.text);
   return null;
 }
 

@@ -639,7 +639,7 @@ export default function JblPadrao(props: TemplateProps) {
                 )}
                 <h3><T k="s2h1">Infraestrutura principal</T></h3>
                 <TabelaObras secao="infra" base={formato.infra} r={r} colunas={3} className="tbl tbl-infra tbl-infra1" />
-                <p className="note"><T k="s2Unid">ml = metros lineares (comprimento) · m² = metros quadrados (área) · un. = unidades</T></p>
+                <p className="note"><T k="s2Unid" limpar={(t) => t.replace(/ml = metros lineares \(comprimento\)/, "m = metros (comprimento)")}>m = metros (comprimento) · m² = metros quadrados (área) · un. = unidades</T></p>
 
                 <h3><T k="s2h2">Infraestrutura complementar</T></h3>
                 <TabelaObras secao="complementar" base={formato.complementar} r={r} colunas={2} className="tbl tbl-infra tbl-infra2" />

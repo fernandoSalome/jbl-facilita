@@ -50,6 +50,52 @@ async function main() {
 
   await unificarTextos();
   await muroDoChacreamentoCondominio();
+  await infraPelaPlanilha();
+}
+
+/**
+ * Itens de obra que estavam "A projetar", mas que a aba Custo da planilha calcula pelos dados
+ * do parcelamento: passam a ser calculados (em todos os tipos de loteamento). Os outros itens
+ * (poço, reservatório, drenagem, construção civil…) continuam "A projetar": a planilha não tem
+ * conta para eles. Cria uma versão nova do template de cada tipo que mudou e leva todas as
+ * propostas desse tipo para ela (o que foi ajustado em cada proposta continua por cima).
+ * Roda uma vez só: depois de convertidos, não há mais o que trocar.
+ */
+async function infraPelaPlanilha() {
+  const sem = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/<[^>]+>/g, " ");
+  const REGRAS: [RegExp, "logradouros" | "rede" | "ligacoes" | "eletrica" | "arvores"][] = [
+    [/abertura de logradouros/, "logradouros"], // F57: área das ruas
+    [/pavimentac/, "logradouros"], // F57
+    [/rede principal de (agua|esgoto)/, "rede"], // F58: comprimento das vias
+    [/ligac(ao|oes)( de)?( rede)?( de)? (agua|esgoto)/, "ligacoes"], // F59
+    [/rede eletrica/, "eletrica"], // F60
+    [/plantio de arvores/, "arvores"], // O40: um por lote
+  ];
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    for (const f of FORMATOS) {
+      const atual = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!atual) continue;
+      const c = parseContent(atual.content, f);
+      const trocados: string[] = [];
+      const ajustar = <T extends { id: string; obra: string; qtd: { kind: string; label?: string } }>(itens: T[]) =>
+        itens.map((it) => {
+          if (it.qtd.kind !== "projetar" || it.qtd.label) return it;
+          const ov = c.overrides[`li.${it.id}.obra`];
+          const nome = sem(typeof ov === "string" ? ov.replace(/^html:/, "") : it.obra);
+          const regra = REGRAS.find(([re]) => re.test(nome));
+          if (!regra) return it;
+          trocados.push(`${it.obra} → ${regra[1]}`);
+          return { ...it, qtd: { kind: "calc", key: regra[1] } };
+        });
+      const infra = ajustar(c.infra);
+      const complementar = ajustar(c.complementar);
+      if (!trocados.length) continue;
+      const v = await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, infra, complementar } as object } });
+      const n = await db.proposal.updateMany({ where: { templateId: t.id, formato: f }, data: { formatoVersionId: v.id } });
+      console.log(`Obras pela planilha (${f}): ${trocados.join("; ")} · ${n.count} proposta(s)`);
+    }
+  }
 }
 
 /**

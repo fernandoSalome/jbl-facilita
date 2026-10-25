@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StudyResult } from "@/lib/calc";
 import { fmtNum } from "@/lib/format";
-import { aplicarDiff, QTD_CALC, qtdTexto, semEmojiHtml, separarEmoji, type Benfeitoria, type ListaDiff, type ObraItem, type Qtd, type QtdCalcKey } from "@/lib/formatos";
+import { aplicarDiff, QTD_CALC, qtdTexto, semMl, unidade, semEmojiHtml, separarEmoji, type Benfeitoria, type ListaDiff, type ObraItem, type Qtd, type QtdCalcKey } from "@/lib/formatos";
 import type { Overrides } from "@/lib/proposals";
 import { HTML_PREFIX } from "@/lib/sanitize";
 import { E, Fixo, useEdit } from "./Editable";
@@ -44,6 +44,9 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
   const q = (overrides[`liq.${item.id}`] as Qtd | undefined) ?? item.qtd;
   // texto digitado na etiqueta ("Na entrega", "Na conclusão"...): tarja dourada igual à do "A projetar"
   const digitado = `li.${item.id}.tag` in overrides;
+  // quantidade "Fixa": vale o texto que aparece (o digitado por cima, se houver)
+  const ovFixa = overrides[`li.${item.id}.qtd`];
+  const fixaMostrada = typeof ovFixa === "string" ? ovFixa.replace(/^html:/, "").replace(/<[^>]+>/g, "") : q.kind === "fixa" ? q.text : "";
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const txt = qtdTexto(q, r, fmtNum);
 
@@ -51,11 +54,15 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
     q.kind === "projetar" ? (
       <>
         <span className={`tag ${q.label && !digitado ? "" : "pend"}`}><E k={`li.${item.id}.tag`}>{q.label || "A projetar"}</E></span>
-        {q.unit && ` ${q.unit}`}
+        {q.unit && ` ${unidade(q.unit)}`}
       </>
     ) : q.kind === "fixa" ? (
       // texto sem número ("Na entrega", "A definir"...): etiqueta dourada como "A projetar"; quantidade digitada fica normal
-      /\d/.test(q.text) ? <E k={`li.${item.id}.qtd`}>{q.text}</E> : <span className="tag pend"><E k={`li.${item.id}.qtd`}>{q.text}</E></span>
+      /\d/.test(fixaMostrada) ? (
+        <E k={`li.${item.id}.qtd`} limpar={semMl}>{semMl(q.text)}</E>
+      ) : (
+        <span className="tag pend"><E k={`li.${item.id}.qtd`}>{q.text}</E></span>
+      )
     ) : (
       // calculada pela área e pelos lotes: o valor não muda à mão, só o visual
       <Fixo k={`li.${item.id}.calc`}>{txt}</Fixo>
@@ -110,10 +117,10 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
               {q.kind === "projetar" && (
                 <label className="ml-6 flex items-center gap-2 text-[12px] text-muted">
                   Unidade ao lado
-                  <select className="input w-24 py-1 text-[12.5px]" value={q.unit ?? ""} onChange={(e) => set({ ...q, unit: e.target.value || undefined })}>
+                  <select className="input w-24 py-1 text-[12.5px]" value={unidade(q.unit) ?? ""} onChange={(e) => set({ ...q, unit: e.target.value || undefined })}>
                     <option value="">nenhuma</option>
                     <option>m²</option>
-                    <option>ml</option>
+                    <option>m</option>
                     <option>un.</option>
                   </select>
                 </label>
