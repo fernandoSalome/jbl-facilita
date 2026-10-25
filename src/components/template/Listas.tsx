@@ -42,13 +42,15 @@ function useLista<T extends { id: string }>(secao: string, base: T[]) {
 function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
   const { overrides, editable, save } = useEdit();
   const q = (overrides[`liq.${item.id}`] as Qtd | undefined) ?? item.qtd;
+  // texto digitado na etiqueta ("Na entrega", "Na conclusão"...): tarja dourada igual à do "A projetar"
+  const digitado = `li.${item.id}.tag` in overrides;
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const txt = qtdTexto(q, r, fmtNum);
 
   const conteudo =
     q.kind === "projetar" ? (
       <>
-        <span className={`tag ${q.label ? "" : "pend"}`}><E k={`li.${item.id}.tag`}>{q.label || "A projetar"}</E></span>
+        <span className={`tag ${q.label && !digitado ? "" : "pend"}`}><E k={`li.${item.id}.tag`}>{q.label || "A projetar"}</E></span>
         {q.unit && ` ${q.unit}`}
       </>
     ) : q.kind === "fixa" ? (
