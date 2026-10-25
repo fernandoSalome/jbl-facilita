@@ -15,3 +15,6 @@ backup-*.sql
 *.dump
 .vercel
 .env*
+
+# Planilhas e arquivos de referência do cliente: ficam só neste computador
+base/

@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["viasPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -32,7 +32,7 @@ function parse(text: string, kind: Kind): number | null {
 const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
-  entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", custoInfraM2: "brl", extensaoRede: "m",
+  entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", custoInfraM2: "brl", extensaoRede: "m",
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
@@ -244,7 +244,10 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           </Box>
           {/* Dados que a planilha não tem, usados no site da proposta */}
           <Box title="Para o site da proposta" right="não está na planilha">
-            <In s={s} k="frenteLote" label="Frente do lote" hint="Só para escrever “lotes de 8 × 25 metros”" />
+            <In s={s} k="frenteLote" label="Frente do lote" hint="Escreve “lotes de 8 × 25 metros” e entra na rede de energia (aba Custo, F50)" />
+            <In s={s} k="viasPct" label="Vias (%)" hint={`Aba Custo, F48. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável`} />
+            <In s={s} k="larguraVia" label="Largura da via (m)" hint="Aba Custo, F54: rua + calçadas" />
+            <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Aba Custo, F55: cada lado" />
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
             <In s={s} k="desagio" label="Deságio da antecipação" />

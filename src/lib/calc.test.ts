@@ -199,14 +199,26 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(r.antecipacao.ultimaBase).toBeCloseTo(3020619.92, 0);
   });
 
-  it("quantidades de infraestrutura do PDF", () => {
-    expect(r.infra.rede).toBeCloseTo(2977.96, 2);
-    expect(r.infra.logradouros).toBeCloseTo(23823.64, 2);
-    expect(r.infra.eletrica).toBeCloseTo(3275.75, 2);
+  it("quantidades de infraestrutura pela aba Custo (vias vazias = metade do não aproveitável)", () => {
+    // vias 25% de 137.338,46 = 34.334,62 m² ÷ via de 12 m = 2.861,22 m; rua de 8 m
+    expect(r.infra.rede).toBeCloseTo(2861.22, 2);
+    expect(r.infra.logradouros).toBeCloseTo(22889.74, 2);
+    expect(r.infra.ligacoes).toBeCloseTo(343.34615 * 6, 2);
+    expect(r.infra.eletrica).toBeCloseTo(343.34615 * 8 * 1.1, 2);
+    // guias e calçadas: a planilha não calcula; continuam pela proporção com o São Judas (PDF)
     expect(r.infra.guias).toBeCloseTo(5955.91, 2);
     expect(r.infra.calcadas).toBeCloseTo(11911.82, 2);
-    expect(r.infra.ligacoes).toBeCloseTo(2060, 2);
     expect(r.infra.arvores).toBe(343);
+  });
+
+  it("quantidades iguais às da aba Custo da planilha Chacreamento Condomínio (Fazenda Rancho Fundo)", () => {
+    const c = calcular({ areaTotal: 382894, aproveitamento: 0.5616, metragemLote: 1000, frenteLote: 15, viasPct: 0.221282, larguraVia: 12, larguraCalcada: 2 });
+    expect(c.lotes).toBeCloseTo(215.03327, 5); // F53
+    expect(c.infra.logradouros).toBeCloseTo(56485.03340533333, 6); // F57
+    expect(c.infra.rede).toBeCloseTo(7060.629175666666, 6); // F58
+    expect(c.infra.ligacoes).toBeCloseTo(1290.1996224, 6); // F59
+    expect(c.infra.eletrica).toBeCloseTo(3548.0489616, 6); // F60
+    expect(c.infra.arvores).toBe(215); // O40 (215,03)
   });
 
   it("Plano de Venda 02 do print", () => {

@@ -47,8 +47,14 @@ export type StudyInputs = {
   balaoPct: number;
 
   // ----- Não estão na planilha; usados na proposta -----
-  /** Frente do lote (m), para exibir "8 × 25" */
+  /** Frente do lote (m), para exibir "8 × 25". Aba "Custo" F50: entra na rede de energia */
   frenteLote: number;
+  /** Aba "Custo" F48: vias (% da área total). Vazio = metade da área que não é aproveitável */
+  viasPct: number | null;
+  /** Aba "Custo" F54: largura da via, média em metros (rua + calçadas) */
+  larguraVia: number;
+  /** Aba "Custo" F55: largura de cada calçada, média em metros */
+  larguraCalcada: number;
   /** Custo de infraestrutura por m² de área aproveitável (R$) */
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
@@ -107,6 +113,9 @@ export const DEFAULT_INPUTS: StudyInputs = {
   parcelaEntregaPct: 0.27,
   balaoPct: 0.05,
   frenteLote: 8,
+  viasPct: null,
+  larguraVia: 12,
+  larguraCalcada: 2,
   custoInfraM2: 145,
   extensaoRede: null,
   lotesEtapa1: null,
@@ -197,6 +206,7 @@ export type StudyResult = {
   /** Velocidade de vendas: 45% / 35% / 20% dos lotes nos 3 primeiros meses */
   vendas: { mes1: number; mes2: number; mes3: number; total: number };
   /** Quantidades médias de infraestrutura, a partir da extensão da rede principal */
+  /** Quantidades de obra: rede, ligações, ruas, energia e árvores pela aba "Custo" da planilha; guias e calçadas pela proporção com o São Judas */
   infra: { rede: number; ligacoes: number; logradouros: number; eletrica: number; guias: number; calcadas: number; arvores: number };
   /**
    * Primeira etapa (desmembramento): lotes digitados; pct = lotes × lote ÷ área aproveitável;
@@ -298,8 +308,14 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const mes1 = Math.round(total * 0.45);
   const mes2 = Math.round(total * 0.35);
 
-  // Proporção pela área (ou pela extensão da rede, quando informada)
+  // Proporção pela área (ou pela extensão da rede, quando informada): só guias e calçadas, que a planilha não calcula
   const escala = i.extensaoRede ? i.extensaoRede / BASE.rede : i.areaTotal / BASE.area;
+
+  // Aba "Custo" da planilha (F48 a F60)
+  const viasPct = i.viasPct ?? Math.max(0, 1 - i.aproveitamento) / 2; // F48
+  const areaVias = viasPct * i.areaTotal; // F49 = F48 × F43
+  const compVias = i.larguraVia > 0 ? areaVias / i.larguraVia : 0; // F58 = F49 ÷ F54 (rede de água e esgoto, em metros)
+  const larguraRua = Math.max(0, i.larguraVia - 2 * i.larguraCalcada); // F56 = F54 − (F55 + F55)
   let etapa1: StudyResult["etapa1"] = null;
   const etapa1ADefinir = !!i.etapaADefinir;
   if ((i.primeiraEtapa || i.lotesEtapa1) && !etapa1ADefinir && areaUtil > 0) {
@@ -408,10 +424,10 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     cenarios,
     vendas: { mes1, mes2, mes3: total - mes1 - mes2, total },
     infra: {
-      rede: BASE.rede * escala,
-      ligacoes: (BASE.ligacoes / BASE.lotes) * lotes,
-      logradouros: BASE.logradouros * escala,
-      eletrica: BASE.eletrica * escala,
+      rede: i.extensaoRede ?? compVias, // F58
+      ligacoes: lotes * (larguraRua / 2 + 2), // F59 = F53 × (F56 ÷ 2 + 2)
+      logradouros: compVias * larguraRua, // F57 = F49 ÷ F54 × F56
+      eletrica: lotes * i.frenteLote * 1.1, // F60 = F53 × F50 + 10%
       guias: BASE.guias * escala,
       calcadas: BASE.calcadas * escala,
       arvores: Math.floor(lotes),

@@ -13,7 +13,7 @@ export type FormatoKey = (typeof FORMATOS)[number];
 export const QTD_CALC = {
   logradouros: { label: "Área das ruas", unit: "m²" },
   rede: { label: "Extensão da rede principal", unit: "ml" },
-  ligacoes: { label: "Ligações (6 m por lote)", unit: "ml" },
+  ligacoes: { label: "Ligações de água e esgoto (por lote)", unit: "ml" },
   eletrica: { label: "Rede elétrica", unit: "ml" },
   guias: { label: "Guias e sarjetas", unit: "ml" },
   calcadas: { label: "Calçadas", unit: "m²" },
