@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent } from "../src/lib/formatos";
+import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, separarEmoji } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -49,6 +49,41 @@ async function main() {
   }
 
   await unificarTextos();
+  await muroDoChacreamentoCondominio();
+}
+
+/**
+ * Chacreamento em condomínio: o item do muro passa a ter o texto do documento oficial,
+ * em versão compacta. Só neste tipo de loteamento. Cria uma versão nova do template e
+ * leva para ela as propostas que estavam na versão atual (as que estavam numa versão
+ * anterior continuam nela, com o aviso de template desatualizado). Roda uma vez só:
+ * se o texto novo já estiver lá, não faz nada.
+ */
+async function muroDoChacreamentoCondominio() {
+  const NOVO = "Muro frontal imponente de alvenaria (pilares em relevo e chapéus de concreto) e portões de ferro estilo colonial";
+  const sem = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/<[^>]+>/g, " ");
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    const atual = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: "chacreamento_condominio" }, orderBy: { createdAt: "desc" } });
+    if (!atual) continue;
+    const c = parseContent(atual.content, "chacreamento_condominio");
+    const textoDe = (b: { id: string; texto: string }) => {
+      const ov = c.overrides[`li.${b.id}.texto`];
+      return typeof ov === "string" ? ov.replace(/^html:/, "") : b.texto;
+    };
+    const item = c.benfeitorias.find((b) => /muro frontal/.test(sem(textoDe(b))));
+    if (!item || /pilares em relevo/.test(sem(textoDe(item)))) continue;
+    // o emoji continua o do item (fica à parte do texto)
+    const emoji = item.emoji ?? separarEmoji(item.texto).emoji ?? undefined;
+    const content = {
+      ...c,
+      benfeitorias: c.benfeitorias.map((b) => (b.id === item.id ? { ...b, texto: NOVO, ...(emoji ? { emoji } : {}) } : b)),
+      overrides: { ...c.overrides, [`li.${item.id}.texto`]: NOVO },
+    };
+    const v = await db.formatoVersion.create({ data: { templateId: t.id, formato: "chacreamento_condominio", content: content as object } });
+    const n = await db.proposal.updateMany({ where: { templateId: t.id, formato: "chacreamento_condominio", formatoVersionId: atual.id }, data: { formatoVersionId: v.id } });
+    console.log(`Chacreamento condomínio: texto do muro atualizado (versão ${v.id}, ${n.count} proposta(s))`);
+  }
 }
 
 /**

@@ -290,7 +290,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     infra: infraUrbana("cc", ["Pavimentação em paver", "Piso intertravado nas ruas"]),
     complementar: complementarUrbana("ccc", "Construção civil"),
     benfeitorias: [
-      "🏛️ Portaria colonial de acesso (90 a 120 m²)", "🧱 Muro frontal de alvenaria com portões de ferro estilo colonial",
+      "🏛️ Portaria colonial de acesso (90 a 120 m²)", "🧱 Muro frontal imponente de alvenaria (pilares em relevo e chapéus de concreto) e portões de ferro estilo colonial",
       "🌿 Alambrado e cerca viva nas laterais e no fundo", "⚽ Espaço gourmet integrado com campo society (25×45, grama natural) e vestiários",
       "🏊 Piscina", "🍖 Quiosque com churrasqueira e toaletes", "📹 Sistema de segurança", "🌐 Internet a cabo", "🎉 Salão de festas e eventos",
       "🌳 Praças equipadas", "🥾 Trilha", "🧘 Espaço zen", "🌄 Mirante (deck panorâmico)", "🛶 Lago artificial com pista de caminhada",
