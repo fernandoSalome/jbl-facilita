@@ -1002,11 +1002,24 @@ function ImagePicker({ original, current, onClose, onSave }: { original: string;
   const [sel, setSel] = useState<ImgOv>(current);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // imagem a apagar (pede confirmação antes)
+  const [apagando, setApagando] = useState<{ url: string; name: string } | null>(null);
   const shown = sel.src === "default" ? original : sel.src;
 
   const load = useCallback(() => {
     fetch("/api/assets").then((r) => r.json()).then((d) => Array.isArray(d) && setList(d)).catch(() => {});
   }, []);
+
+  /** Apagar = arquivar: some do banco de imagens, mas nunca é apagada do sistema */
+  async function apagar(img: { url: string; name: string }) {
+    setApagando(null);
+    setErr("");
+    const r = await fetch(img.url, { method: "DELETE" });
+    if (!r.ok) return setErr("Não foi possível apagar a imagem.");
+    load();
+    if (current.src === img.url) return onSave(null); // era a imagem desta proposta: volta à original
+    if (sel.src === img.url) setSel({ src: "default", x: 50, y: 50, zoom: 1 });
+  }
   useEffect(load, [load]);
 
   async function upload(f: File) {
@@ -1056,7 +1069,19 @@ function ImagePicker({ original, current, onClose, onSave }: { original: string;
             {err && <p className="mb-2 text-[12.5px] font-semibold text-rose-700">{err}</p>}
             <div className="grid max-h-[340px] grid-cols-3 gap-2 overflow-auto pr-1">
               <Thumb url={original} name="Original da proposta" value="default" />
-              {list.map((a) => <Thumb key={a.url} url={a.url} name={a.name} value={a.url} />)}
+              {list.map((a) => (
+                <div key={a.url} className="group relative">
+                  <Thumb url={a.url} name={a.name} value={a.url} />
+                  <button
+                    type="button"
+                    title="Apagar esta imagem"
+                    onClick={() => setApagando(a)}
+                    className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-[13px] text-rose-700 opacity-0 shadow ring-1 ring-rose-200 transition hover:bg-rose-50 group-hover:opacity-100 focus:opacity-100"
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
               {BUILTIN.filter((b) => b.url !== original).map((b) => <Thumb key={b.url} url={b.url} name={b.name} value={b.url} />)}
             </div>
           </div>
@@ -1098,6 +1123,24 @@ function ImagePicker({ original, current, onClose, onSave }: { original: string;
           <button className="btn-gold" onClick={() => onSave(sel.src === "default" && sel.x === 50 && sel.y === 50 && sel.zoom === 1 ? null : sel)}>Aplicar</button>
         </div>
       </div>
+      {apagando && (
+        <div className="fixed inset-0 z-[3100] grid place-items-center bg-navy/50 p-4" onMouseDown={(e) => { e.stopPropagation(); setApagando(null); }}>
+          <div className="w-full max-w-md rounded-md border-t-[3px] border-rose-500 bg-white p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+            <h3 className="h-display text-xl">Apagar esta imagem?</h3>
+            <div className="mt-3 flex items-center gap-3">
+              <img src={apagando.url} alt="" className="h-16 w-24 rounded border border-line object-cover" />
+              <span className="truncate text-[13px] text-muted">{apagando.name}</span>
+            </div>
+            <p className="mt-3 text-[13.5px] text-ink">
+              Ela sai do banco de imagens{current.src === apagando.url ? " e desta proposta (volta a imagem original)" : ""}. Propostas que já a usam continuam mostrando.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button className="btn-ghost" onClick={() => setApagando(null)}>Cancelar</button>
+              <button className="btn-danger" onClick={() => apagar(apagando)}>Apagar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );

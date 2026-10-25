@@ -192,7 +192,10 @@ export default function TemplateEditor({
           </button>
           <span className="h-6 w-px bg-line" />
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-deep">Template</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-gold-deep">
+              Template ·{" "}
+              {mode === "edit" ? <span className="text-navy">✎ visto como editor</span> : <span className="text-emerald-700">👁 visto como cliente</span>}
+            </div>
             <h1 className="h-display text-lg leading-tight">{templateName}</h1>
           </div>
           <label className="ml-4 flex items-center gap-2 text-[13px] font-semibold text-navy">
