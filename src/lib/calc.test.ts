@@ -103,7 +103,7 @@ describe("proposta São Judas Tadeu II", () => {
 describe("site São Judas Tadeu II (planilha atual)", () => {
   const r = calcular({
     areaTotal: 137338.46, aproveitamento: 0.5, metragemLote: 200, incorporadorPct: 0.6, valorM2: 500, corretorPct: 0.05,
-    ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, entradaPct: 0.06, multiplicador: 1.68, anos: 20, lotesEtapa1: 106.38, custoInfraM2: 145,
+    ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, entradaPct: 0.06, multiplicador: 1.68, anos: 20, lotesEtapa1: 106.38, valorM2Etapa1: 500, custoInfraM2: 145,
   });
   const cen = (m: number) => r.cenarios.find((c) => c.meses === m)!;
 
@@ -188,6 +188,11 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(ad.etapa1ADefinir).toBe(true);
     // desligada: não existe primeira etapa
     expect(calcular({ ...r.inputs, lotesEtapa1: null, primeiraEtapa: false, areaEtapa1: 40000 }).etapa1).toBe(null);
+    // sem o valor do m² do lote da 1ª etapa não calcula (não usa o m² do estudo): "a definir"
+    const sem = calcular({ ...r.inputs, primeiraEtapa: true, areaPerimetralE1: 1000, ruaE1: 12, frenteE1: 8, loteEtapa1: 220, valorM2Etapa1: null });
+    expect(sem.etapa1).toBe(null);
+    expect(sem.etapa1FaltaValor).toBe(true);
+    expect(sem.etapa1ADefinir).toBe(true);
     // proposta antiga (só lotes) abre com a opção ligada e os mesmos números
     const antiga = parseInputs({ ...r.inputs });
     expect(antiga.primeiraEtapa).toBe(true);

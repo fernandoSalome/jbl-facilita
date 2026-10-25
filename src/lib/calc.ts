@@ -67,7 +67,7 @@ export type StudyInputs = {
   areaEtapa1: number | null;
   /** Primeira etapa: metragem do lote (m²). Vazio = a mesma do estudo */
   loteEtapa1: number | null;
-  /** Primeira etapa: valor do m² do lote (R$). Vazio = o do estudo */
+  /** Primeira etapa: valor do m² do lote (R$). Obrigatório: vazio = a etapa não é calculada (não usa o do estudo) */
   valorM2Etapa1: number | null;
   /** Primeira etapa existente, mas sem os números: a proposta mostra "a definir" */
   etapaADefinir?: boolean;
@@ -229,6 +229,8 @@ export type StudyResult = {
   } | null;
   /** Primeira etapa marcada como existente, mas a definir (sem números) */
   etapa1ADefinir: boolean;
+  /** 1ª etapa ligada, mas sem o valor do m² do lote da etapa: não é calculada */
+  etapa1FaltaValor: boolean;
   /** Antecipação de recebíveis da carteira do terrenista no prazo escolhido */
   antecipacao: { carteira: number; valor: number; jurosMes1: number; multiplicador: number; rentabilidade: number; ultimaBase: number };
   /** Plano de Venda 02 (linhas 29–40 da planilha) */
@@ -317,7 +319,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const compVias = i.larguraVia > 0 ? areaVias / i.larguraVia : 0; // F58 = F49 ÷ F54 (rede de água e esgoto, em metros)
   const larguraRua = Math.max(0, i.larguraVia - 2 * i.larguraCalcada); // F56 = F54 − (F55 + F55)
   let etapa1: StudyResult["etapa1"] = null;
-  const etapa1ADefinir = !!i.etapaADefinir;
+  // 1ª etapa sem o valor do m² do lote dela: não calcula (não usa o m² do estudo); a proposta mostra "a definir"
+  const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
+  const etapa1ADefinir = !!i.etapaADefinir || etapa1FaltaValor;
   if ((i.primeiraEtapa || i.lotesEtapa1) && !etapa1ADefinir && areaUtil > 0) {
     let lote = i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
     // propostas sem as medidas: lotes salvos; ou a área desmembrada × aproveitamento ÷ lote
@@ -357,7 +361,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       };
       qtd = lotesBrutos;
     }
-    const valorM2E = i.valorM2Etapa1 ?? i.valorM2;
+    const valorM2E = i.valorM2Etapa1!;
     const avista = qtd * lote * valorM2E;
     if (qtd > 0 || quadras) {
       etapa1 = {
@@ -434,6 +438,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     },
     etapa1,
     etapa1ADefinir,
+    etapa1FaltaValor,
     antecipacao: {
       carteira: principal.carteiraTer,
       valor: valorAntecipado,

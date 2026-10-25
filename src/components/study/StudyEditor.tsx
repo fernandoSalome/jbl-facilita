@@ -140,7 +140,7 @@ function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: strin
           disabled={disabled}
           value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
-          placeholder={disabled ? "a definir" : OPTIONAL.includes(k) ? "opcional" : ""}
+          placeholder={disabled ? "a definir" : k === "valorM2Etapa1" ? "obrigatório" : OPTIONAL.includes(k) ? "opcional" : ""}
           className={`tabular w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 pl-2 ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
         />
         {SUFFIX[kind] && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-navy/60">{SUFFIX[kind]}</span>}
@@ -380,7 +380,12 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
         <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
-        <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint={`Vazio = ${fmtBRL(i.valorM2)}, o m² do estudo`} disabled={off} />
+        <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
+        {r.etapa1FaltaValor && (
+          <p className="bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
+            Preencha o valor do m² do lote da 1ª etapa. Sem ele a etapa não é calculada, e na proposta aparece “a definir”.
+          </p>
+        )}
         <Titulo>Quadras</Titulo>
         <Out label="Fundo do lote (metragem do lote / frente do lote)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
         <Out label="Quadras inteiras" value={v(q ? `${q.cheias} ${q.cheias === 1 ? "quadra" : "quadras"} × ${fmtNum(q.porQuadra)} lotes = ${fmtNum(q.cheias * q.porQuadra)} lotes` : "")} />
