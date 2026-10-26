@@ -271,12 +271,13 @@ describe("corretor da parceria (intermediação)", () => {
     expect(r.intermediacaoPct).toBe(0);
     expect(r.jblPct).toBeCloseTo(0.6 - r.infraPct, 10);
   });
-  it("2% da parte do incorporador sai da parte da JBL", () => {
+  it("corretor com 2% do total: sai da parte da JBL", () => {
     const r = calcular({ ...base, intermediacaoPct: 0.02 });
-    expect(r.intermediacaoPct).toBeCloseTo(0.012, 10);
-    expect(r.jblPct).toBeCloseTo(0.6 - r.infraPct - 0.012, 10);
+    expect(r.intermediacaoPct).toBeCloseTo(0.02, 10);
     expect(r.terrenistaPct + r.jblPct + r.intermediacaoPct + r.infraPct).toBeCloseTo(1, 10);
-    expect(r.vgvAvista * r.intermediacaoPct).toBeCloseTo(r.vgvAvistaInc * 0.02, 6);
+    expect(r.vgvAvista * r.intermediacaoPct).toBeCloseTo(r.vgvAvista * 0.02, 6);
+    // sai só da JBL: incorporador 60%, obras e corretor 2% → JBL = 60% − obras − 2%
+    expect(r.jblPct).toBeCloseTo(r.inputs.incorporadorPct - r.infraPct - 0.02, 10);
   });
 });
 

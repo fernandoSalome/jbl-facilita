@@ -328,7 +328,8 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const areaObras = Math.floor(areaUtil);
   const custoInfra = areaObras * i.custoInfraM2;
   const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
-  const intermediacaoPct = i.intermediacaoPct && i.intermediacaoPct > 0 ? inc * i.intermediacaoPct : 0;
+  // corretor da parceria: o percentual digitado é do total (VGV) e sai da parte do incorporador
+  const intermediacaoPct = i.intermediacaoPct && i.intermediacaoPct > 0 ? i.intermediacaoPct : 0;
 
   const prazos = Array.from(new Set<number>([...PRAZOS_MESES, nParcelas])).sort((a, b) => a - b);
   const cenarios = nParcelas > 0 ? prazos.map((m) => cenario(m, saldoLote, i.multiplicador, lotes, reajuste, inc, nova2026 ? entrada * lotes : 0)) : [];

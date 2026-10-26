@@ -150,11 +150,19 @@ function In({ s, k, label, hint, disabled, nota }: { s: State; k: NumKey; label:
   );
 }
 
-function Out({ label, value, strong, navy, nota }: { label: string; value: string; strong?: boolean; navy?: boolean; nota?: string }) {
+function Out({ label, value, strong, navy, nota, sufixo }: { label: string; value: string; strong?: boolean; navy?: boolean; nota?: string; sufixo?: string }) {
   return (
     <div className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
       <span className="text-[13px] font-semibold text-navy">{label}</span>
-      <span className={`tabular px-2 py-1 text-right text-[13.5px] ${strong ? "font-bold text-navy" : navy ? "text-navy" : "text-ink"}`}>{value}</span>
+      {sufixo ? (
+        // mesmo alinhamento dos campos azuis (número no mesmo lugar e a unidade ao lado)
+        <span className={`tabular relative border border-transparent py-1 pl-2 pr-10 text-right text-[13.5px] ${strong ? "font-bold text-navy" : navy ? "text-navy" : "text-ink"}`}>
+          {value}
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-normal text-navy/60">{sufixo}</span>
+        </span>
+      ) : (
+        <span className={`tabular px-2 py-1 text-right text-[13.5px] ${strong ? "font-bold text-navy" : navy ? "text-navy" : "text-ink"}`}>{value}</span>
+      )}
       {nota && <span className="col-start-2 -mt-1.5 px-2 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
     </div>
   );
@@ -194,9 +202,9 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
-            <Out label="Terrenista (%)" value={fmtPct(r.terrenistaPct)} strong />
+            <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100, Number.isInteger(Math.round(r.terrenistaPct * 1e4) / 100) ? 0 : 2)} sufixo="%" strong />
             <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
-            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. Corretor que intermediou a parceria: o percentual é sobre a parte do incorporador e sai dela (geralmente 2%). Vazio = sem corretagem" />
+            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. Corretor que intermediou a parceria: o percentual é do total e sai da parte do incorporador (ex.: incorporador 60%, corretor 2% → JBL fica 60% − obras − 2%). Vazio = sem corretagem" />
             {r.intermediacaoPct > 0 && <Out label="VGV Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />}
           </Box>
         </div>
@@ -346,9 +354,11 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct, 0) * 100}%` }}>{fmtPct(r.terrenistaPct, 0)}</div>
             <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct, 0)}</div>
             <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct, 0)}</div>
-            {r.intermediacaoPct > 0 && <div className="bg-[#6F86A3]" style={{ width: `${r.intermediacaoPct * 100}%` }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`} />}
+            {r.intermediacaoPct > 0 && (
+              <div className="grid place-items-center bg-[#6F86A3] text-white" style={{ width: `${r.intermediacaoPct * 100}%`, minWidth: 30 }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`}>{fmtPct(r.intermediacaoPct, 0)}</div>
+            )}
           </div>
-          <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span></div>
+          <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span>{r.intermediacaoPct > 0 && <span>Corretor</span>}</div>
           {invalid && <p className="mt-2 rounded border-l-[3px] border-rose-500 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-700">O custo das obras passa da parte do incorporador.</p>}
         </div>
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded border border-line bg-line lg:grid-cols-4">
