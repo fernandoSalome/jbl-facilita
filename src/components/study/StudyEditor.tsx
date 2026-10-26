@@ -341,8 +341,8 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <div className="flex h-9 overflow-hidden rounded text-[11.5px] font-bold">
             <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct, 0) * 100}%` }}>{fmtPct(r.terrenistaPct, 0)}</div>
             <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct, 0)}</div>
-            {r.intermediacaoPct > 0 && <div className="bg-[#6F86A3]" style={{ width: `${r.intermediacaoPct * 100}%` }} title={`Corretor ${fmtPct(i.intermediacaoPct ?? 0)} da parte do incorporador`} />}
             <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct, 0)}</div>
+            {r.intermediacaoPct > 0 && <div className="bg-[#6F86A3]" style={{ width: `${r.intermediacaoPct * 100}%` }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`} />}
           </div>
           <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span></div>
           {invalid && <p className="mt-2 rounded border-l-[3px] border-rose-500 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-700">O custo das obras passa da parte do incorporador.</p>}
