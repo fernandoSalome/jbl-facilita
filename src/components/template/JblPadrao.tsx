@@ -1058,6 +1058,8 @@ export default function JblPadrao(props: TemplateProps) {
                     <div className="eyebrow"><T k="intentEyebrow3" limpar={semNumeroSecao}>Vamos avançar na análise</T></div>
                     <h2 className="intent-h2"><T k="intentTitulo3" html>{"Carta de intenção.<br><em>Comece por aqui.</em>"}</T></h2>
                   </div></div>
+                  {/* texto de abertura, de um lado a outro, logo abaixo do título */}
+                  <p className="intent-lead-full"><T k="intentLead2" html>{"Preencha os campos e a carta ao lado se monta sozinha. Ao enviar, você registra o interesse em continuar os estudos e a elaboração da carta de intenção. Isso <strong>não</strong> transfere o imóvel, não substitui a assinatura de contrato e não garante os valores projetados. Campos com * são obrigatórios."}</T></p>
                   <aside className="intent-aside">
                     <p className="intent-aside-sm"><T k="intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</T></p>
                   </aside>

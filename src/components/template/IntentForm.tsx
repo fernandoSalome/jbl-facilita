@@ -32,8 +32,6 @@ const MASCARAS: Record<string, string | ((digitos: string) => string)> = {
   j_cpf: CPF,
   p_rg: RG,
   j_rg: RG,
-  // celular com 9 dígitos ou fixo com 8 (Brasil); o formato dos EUA vem da bandeira escolhida
-  p_tel: (d) => (d.length > 10 ? "00 00000-0000" : "00 0000-0000"),
 };
 
 function readFile(file: File): Promise<{ name: string; type: string; data: string }> {
@@ -70,13 +68,8 @@ export default function IntentForm({
   const [protocolo, setProtocolo] = useState("");
   const [aceite, setAceite] = useState(false);
   const g = (k: string) => (v[k] ?? "").trim();
-  // telefone: bandeira 🇧🇷 (00 00000-0000) ou 🇺🇸 (+0 000 000 0000)
-  const paisTel = v.p_tel_pais === "us" ? "us" : "br";
-  const MASC_US = "+0 000 000 0000";
-  const trocarPais = (p: "br" | "us") =>
-    setV((o) => ({ ...o, p_tel_pais: p, p_tel: o.p_tel ? mascarar(o.p_tel, p === "us" ? MASC_US : MASCARAS.p_tel) : "" }));
   const on = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const m = k === "p_tel" && paisTel === "us" ? MASC_US : MASCARAS[k];
+    const m = MASCARAS[k];
     const val = m ? mascarar(e.target.value, m) : e.target.value;
     setV((o) => ({ ...o, [k]: val }));
   };
@@ -87,7 +80,7 @@ export default function IntentForm({
   const I = ({ k, label, req, type = "text", ph, mode }: { k: string; label: string; req?: boolean; type?: string; ph?: string; mode?: "numeric" | "decimal" }) => (
     <div className="field">
       <L k={k} req={req}>{label}</L>
-      <input id={`ci-${k}`} type={type} placeholder={ph} inputMode={mode} value={v[k] ?? ""} onChange={on(k)} />
+      <input id={`ci-${k}`} type={type} inputMode={mode} value={v[k] ?? ""} onChange={on(k)} />
     </div>
   );
   const S = ({ k, label, opts }: { k: string; label: string; opts: [string, string][] }) => (
@@ -141,18 +134,12 @@ export default function IntentForm({
       <form noValidate onSubmit={(e) => { e.preventDefault(); enviar(); }}>
         <fieldset className="group"><legend><i>01</i><E k="form.grupo1b">Dados do proprietário</E></legend>
           {I({ k: "p_nome", label: "Nome completo", req: true })}
-          <div className="row2">{I({ k: "p_cpf", label: "CPF", req: true, ph: "000.000.000-00", mode: "numeric" })}{I({ k: "p_rg", label: "RG", ph: RG })}</div>
-          <div className="row2">{I({ k: "p_nac", label: "Nacionalidade", ph: "Brasileira" })}{I({ k: "p_prof", label: "Profissão" })}</div>
+          <div className="row2">{I({ k: "p_cpf", label: "CPF", req: true, mode: "numeric" })}{I({ k: "p_rg", label: "RG" })}</div>
+          <div className="row2">{I({ k: "p_nac", label: "Nacionalidade" })}{I({ k: "p_prof", label: "Profissão" })}</div>
           {I({ k: "p_end", label: "Endereço residencial (rua, número, bairro, cidade/UF)" })}
           <div className="row2">{I({ k: "p_email", label: "E-mail", type: "email" })}<div className="field">
             <L k="p_tel">Telefone com DDD</L>
-            <div className="tel-wrap">
-              <select aria-label="País do telefone" value={paisTel} onChange={(e) => trocarPais(e.target.value as "br" | "us")}>
-                <option value="br">🇧🇷 Brasil</option>
-                <option value="us">🇺🇸 EUA</option>
-              </select>
-              <input id="ci-p_tel" type="tel" inputMode="numeric" placeholder={paisTel === "us" ? "+1 555 123 4567" : "18 99999-9999"} value={v.p_tel ?? ""} onChange={on("p_tel")} />
-            </div>
+            <input id="ci-p_tel" type="tel" value={v.p_tel ?? ""} onChange={on("p_tel")} />
           </div></div>
           <div className="row2">
             {S({ k: "estado_civil", label: "Estado civil", opts: [["", "Selecione"], ...["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"].map((x) => [x, x] as [string, string])] })}
@@ -170,7 +157,7 @@ export default function IntentForm({
           <div className="row2">{I({ k: "c_matricula", label: "Matrícula da certidão de casamento" })}{I({ k: "c_rcpn", label: "RCPN / cartório do registro civil" })}</div>
           {I({ k: "c_municipio", label: "Município / comarca do casamento" })}
           {I({ k: "j_nome", label: "Nome completo do cônjuge" })}
-          <div className="row2">{I({ k: "j_cpf", label: "CPF do cônjuge", ph: CPF, mode: "numeric" })}{I({ k: "j_rg", label: "RG do cônjuge", ph: RG })}</div>
+          <div className="row2">{I({ k: "j_cpf", label: "CPF do cônjuge", mode: "numeric" })}{I({ k: "j_rg", label: "RG do cônjuge" })}</div>
           <div className="row2">{I({ k: "j_nac", label: "Nacionalidade do cônjuge" })}{I({ k: "j_prof", label: "Profissão do cônjuge" })}</div>
         </fieldset>
 
