@@ -256,3 +256,19 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(p.remanescente.ter).toBeCloseTo(22000, 6);
   });
 });
+
+describe("corretor da parceria (intermediação)", () => {
+  const base = { areaTotal: 100000, metragemLote: 360, frenteLote: 12, aproveitamento: 0.5, valorM2Etapa1: 500, incorporadorPct: 0.6 };
+  it("sem corretor: nada muda", () => {
+    const r = calcular(base);
+    expect(r.intermediacaoPct).toBe(0);
+    expect(r.jblPct).toBeCloseTo(0.6 - r.infraPct, 10);
+  });
+  it("2% da parte do incorporador sai da parte da JBL", () => {
+    const r = calcular({ ...base, intermediacaoPct: 0.02 });
+    expect(r.intermediacaoPct).toBeCloseTo(0.012, 10);
+    expect(r.jblPct).toBeCloseTo(0.6 - r.infraPct - 0.012, 10);
+    expect(r.terrenistaPct + r.jblPct + r.intermediacaoPct + r.infraPct).toBeCloseTo(1, 10);
+    expect(r.vgvAvista * r.intermediacaoPct).toBeCloseTo(r.vgvAvistaInc * 0.02, 6);
+  });
+});

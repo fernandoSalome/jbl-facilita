@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -32,7 +32,7 @@ function parse(text: string, kind: Kind): number | null {
 const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
-  entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", custoInfraM2: "brl", extensaoRede: "m",
+  entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", intermediacaoPct: "pct", custoInfraM2: "brl", extensaoRede: "m",
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
@@ -188,6 +188,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <Box title="Parceria do Parcelamento de Solo">
             <In s={s} k="incorporadorPct" label="Incorporador (%)" nota={`VGV à vista: ${fmtBRL(r.vgvAvistaInc)}`} />
             <Out label="Terrenista (%)" value={fmtPct(r.terrenistaPct)} strong nota={`VGV à vista: ${fmtBRL(r.vgvAvistaTer)}`} />
+            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. Corretor que intermediou a parceria: sai da parte do incorporador (geralmente 2%). Vazio = sem corretagem" nota={r.intermediacaoPct > 0 ? `VGV à vista: ${fmtBRL(r.vgvAvista * r.intermediacaoPct)} (${fmtPct(r.intermediacaoPct)})` : undefined} />
           </Box>
         </div>
 
@@ -336,6 +337,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <div className="flex h-9 overflow-hidden rounded text-[11.5px] font-bold">
             <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct, 0) * 100}%` }}>{fmtPct(r.terrenistaPct, 0)}</div>
             <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct, 0)}</div>
+            {r.intermediacaoPct > 0 && <div className="bg-[#6F86A3]" style={{ width: `${r.intermediacaoPct * 100}%` }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`} />}
             <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct, 0)}</div>
           </div>
           <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span></div>

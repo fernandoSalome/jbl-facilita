@@ -62,6 +62,8 @@ export type StudyInputs = {
   planilhaInfra?: "2026" | null;
   /** Planilha 2026, "DADOS DO PARCELAMENTO" C14: tamanho máximo da quadra (m). Vazio = poços de visita, bocas de lobo e bigode "A projetar" */
   quadraMax: number | null;
+  /** Corretor que intermediou a parceria (0–1), sobre a parte do incorporador e pago por ela (geralmente 2%). Vazio = sem corretagem */
+  intermediacaoPct: number | null;
   /** Custo de infraestrutura por m² de área aproveitável (R$) */
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
@@ -124,6 +126,7 @@ export const DEFAULT_INPUTS: StudyInputs = {
   larguraVia: 12,
   larguraCalcada: 2,
   quadraMax: null,
+  intermediacaoPct: null,
   custoInfraM2: 145,
   extensaoRede: null,
   lotesEtapa1: null,
@@ -207,6 +210,8 @@ export type StudyResult = {
   custoInfra: number;
   /** Divisão mostrada na proposta: terrenista + JBL + infraestrutura = 100% */
   infraPct: number;
+  /** Parte do corretor da parceria no total (incorporador × % do corretor); sai da parte da JBL. 0 = sem corretagem */
+  intermediacaoPct: number;
   jblPct: number;
   /** Carteira no prazo escolhido (VGV global projetado) */
   principal: Cenario;
@@ -314,6 +319,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const areaObras = Math.floor(areaUtil);
   const custoInfra = areaObras * i.custoInfraM2;
   const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
+  const intermediacaoPct = i.intermediacaoPct && i.intermediacaoPct > 0 ? inc * i.intermediacaoPct : 0;
 
   const prazos = Array.from(new Set<number>([...PRAZOS_MESES, nParcelas])).sort((a, b) => a - b);
   const cenarios = nParcelas > 0 ? prazos.map((m) => cenario(m, saldoLote, i.multiplicador, lotes, reajuste, inc)) : [];
@@ -440,7 +446,8 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     areaObras,
     custoInfra,
     infraPct,
-    jblPct: inc - infraPct,
+    intermediacaoPct,
+    jblPct: inc - infraPct - intermediacaoPct,
     principal,
     cenarios,
     vendas: { mes1, mes2, mes3: total - mes1 - mes2, total },

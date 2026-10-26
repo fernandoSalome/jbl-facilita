@@ -65,17 +65,20 @@ export default function NewProjectForm({ projeto }: { projeto?: ProjetoDados }) 
   return (
     <form onSubmit={submit} onChange={() => setOk(false)} className="card grid gap-5 p-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="md:col-span-2"><span className="label">Nome da gleba / loteamento *</span><input name="name" required className="input" placeholder="Ex.: São Judas Tadeu II" defaultValue={projeto?.name} /></label>
+        <label className="md:col-span-2"><span className="label">Nome da gleba / loteamento *</span><input name="name" required className="input" defaultValue={projeto?.name} /></label>
         <label><span className="label">Município *</span><input name="municipio" required className="input" defaultValue={projeto?.municipio} /></label>
         <label><span className="label">UF</span><input name="uf" defaultValue={projeto?.uf ?? "SP"} maxLength={2} className="input uppercase" /></label>
-        <label><span className="label">Área total (m²) *</span><input name="areaTotal" required inputMode="decimal" className="input text-right" placeholder="137.338,46" defaultValue={projeto ? areaTxt(projeto.areaTotal) : undefined} /></label>
+        <label><span className="label">Área total (m²) *</span><input name="areaTotal" required inputMode="decimal" className="input text-right" defaultValue={projeto ? areaTxt(projeto.areaTotal) : undefined} /></label>
         <label><span className="label">Matrícula</span><input name="matricula" className="input" defaultValue={projeto?.matricula ?? ""} /></label>
-        <label className={editando ? "" : "md:col-span-2"}>
-          <span className="label">Tipo</span>
-          <select name="tipo" className="input" defaultValue={projeto?.tipo ?? TIPOS[0]}>
-            {[...new Set([...TIPOS, ...(projeto?.tipo ? [projeto.tipo] : [])])].map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </label>
+        {/* o tipo de loteamento só aparece ao editar (na criação vale o padrão; o formato é escolhido na proposta) */}
+        {editando && (
+          <label>
+            <span className="label">Tipo</span>
+            <select name="tipo" className="input" defaultValue={projeto.tipo}>
+              {[...new Set([...TIPOS, projeto.tipo])].map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </label>
+        )}
         {editando && (
           <label>
             <span className="label">Fase</span>

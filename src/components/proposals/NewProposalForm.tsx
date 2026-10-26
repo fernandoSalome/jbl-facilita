@@ -178,11 +178,7 @@ export default function NewProposalForm({
               }`}
             >
               <span className="block font-semibold text-navy">{f.content.label}</span>
-              <span className="mt-1 block text-[12px] text-muted">
-                {f.disponivel
-                  ? `Lote de ${f.content.padroes.metragemLote} m² · ${Math.round(f.content.padroes.aproveitamento * 100)}% aproveitável · ${f.content.infra.length + f.content.complementar.length} obras · ${f.content.benfeitorias.length} benfeitorias`
-                  : "Ainda não há dados para este formato"}
-              </span>
+              {!f.disponivel && <span className="mt-1 block text-[12px] text-muted">Ainda não há dados para este formato</span>}
             </button>
           ))}
         </div>
@@ -190,9 +186,9 @@ export default function NewProposalForm({
 
       <Step n={2} title="Dados básicos">
         <div className="grid gap-4 md:grid-cols-3">
-          <label><span className="label">Nome da proposta *</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Cenário 35% · 20 anos" /></label>
-          <label><span className="label">Proprietário / família *</span><input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Ex.: Família Silva" /></label>
-          <label><span className="label">WhatsApp do proprietário</span><input className="input" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} placeholder="(18) 99999-9999" /></label>
+          <label><span className="label">Nome da proposta *</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
+          <label><span className="label">Proprietário / família *</span><input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></label>
+          <label><span className="label">WhatsApp do proprietário</span><input className="input" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} /></label>
         </div>
       </Step>
 
