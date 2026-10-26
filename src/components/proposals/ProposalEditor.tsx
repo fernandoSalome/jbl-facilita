@@ -9,6 +9,7 @@ import { dataDaProposta, type Overrides, type ProposalOptions } from "@/lib/prop
 import DataField from "./DataField";
 import { fmtDate } from "@/lib/format";
 import { tratamento } from "@/lib/destinatario";
+import { MSG_KEY, montarMensagem, saudacao } from "@/lib/mensagem";
 import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
 import ModoToggle from "@/components/template/ModoToggle";
@@ -211,26 +212,16 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
   /* ---------- envio ---------- */
   const publicUrl = `${origin}/p/${p.publicToken}`;
-  // hora de São Paulo: bom dia das 3h às 12h, boa tarde das 12h às 18h, boa noite das 18h às 3h
-  const hora = Number(new Date().toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Sao_Paulo" })) % 24;
-  const saudacao = hora >= 3 && hora < 12 ? "Bom dia" : hora >= 12 && hora < 18 ? "Boa tarde" : "Boa noite";
-  // mensagem base do WhatsApp: nome escolhido em "Proposta para", tipo de loteamento e gleba da proposta
+  // mensagem do template (vale para todas as propostas), com o nome escolhido em "Proposta para",
+  // o tipo de loteamento, a gleba, o link e a saudação pela hora de São Paulo
   const trat = tratamento(data.meta.options.destinatario);
-  const nomeMsg = trat.nome ? trat.rotulo : data.meta.ownerName;
-  const message =
-    `${saudacao} a todos!
-
-` +
-    `${nomeMsg}, segue nossa *Proposta Técnica e Comercial* de Parceria para implantação de *${formato.label} na Gleba ${project.name}*.
-
-` +
-    `A proposta foi desenvolvida em formato *Digital Interativo*, com apresentação e conceito de *Site Personalizado*, proporcionando uma *experiência de visualização mais dinâmica e organizada*. Para melhor aproveitamento do conteúdo e dos recursos interativos, *recomendamos a visualização preferencialmente pelo computador*.
-
-` +
-    `Colocamo-nos à disposição para esclarecimentos e reunião.
-
-` +
-    publicUrl;
+  const message = montarMensagem(formato.overrides?.[MSG_KEY], {
+    saudacao: saudacao(),
+    nome: trat.nome ? trat.rotulo : data.meta.ownerName,
+    tipo: formato.label,
+    gleba: project.name,
+    link: publicUrl,
+  });
   // mensagem escrita à mão (salva na proposta) ou a sugerida
   const salva = data.meta.options.mensagemEnvio?.trim() ? data.meta.options.mensagemEnvio : null;
   const [msgEdit, setMsgEdit] = useState<string | null>(null);

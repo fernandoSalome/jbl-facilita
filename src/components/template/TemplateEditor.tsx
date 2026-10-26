@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_INPUTS } from "@/lib/calc";
 import { DEFAULT_OPTIONS } from "@/lib/proposals";
+import { CAMPOS_MSG, MSG_KEY, MSG_PADRAO, montarMensagem, saudacao } from "@/lib/mensagem";
 import {
   aplicarDiff,
   chaveDoTipo,
@@ -285,6 +286,18 @@ export default function TemplateEditor({
           </div>
         </div>
 
+        <MensagemWhatsapp
+          valor={typeof draft.comum.overrides[MSG_KEY] === "string" ? (draft.comum.overrides[MSG_KEY] as string) : MSG_PADRAO}
+          tipo={tipo.label}
+          onChange={(v) =>
+            update((d) => {
+              // igual ao padrão (ou vazio): não grava nada, vale a mensagem padrão
+              if (!v.trim() || v === MSG_PADRAO) delete d.comum.overrides[MSG_KEY];
+              else d.comum.overrides[MSG_KEY] = v;
+            })
+          }
+        />
+
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <DestinatarioPicker compact value={dest} onChange={setDest} />
           <span className="text-[12.5px] text-muted">
@@ -369,4 +382,69 @@ export default function TemplateEditor({
 
 export function TemplateEditorLink({ id }: { id: string }) {
   return <Link href={`/app/modelo/${id}`} className="font-semibold text-gold-deep hover:underline">Editar template</Link>;
+}
+
+/**
+ * Texto da mensagem de envio no WhatsApp. Vale para todos os tipos e todas as propostas
+ * (a não ser na proposta em que alguém salvou um texto próprio). Os campos entre colchetes
+ * são preenchidos em cada proposta.
+ */
+function MensagemWhatsapp({ valor, tipo, onChange }: { valor: string; tipo: string; onChange: (v: string) => void }) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const mudou = valor !== MSG_PADRAO;
+  const exemplo = montarMensagem(valor, { saudacao: saudacao(), nome: "Família Silva", tipo, gleba: "Gleba Exemplo", link: "https://jbl-facilita.vercel.app/p/…" });
+
+  // coloca o campo onde está o cursor
+  function inserir(campo: string) {
+    const el = ref.current;
+    const ini = el?.selectionStart ?? valor.length;
+    const fim = el?.selectionEnd ?? valor.length;
+    onChange(valor.slice(0, ini) + campo + valor.slice(fim));
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(ini + campo.length, ini + campo.length);
+    });
+  }
+
+  return (
+    <div className="mb-4 rounded-md border border-line bg-white p-4">
+      <button type="button" onClick={() => setAberto((a) => !a)} className="flex w-full flex-wrap items-center gap-3 text-left">
+        <div className="eyebrow">Mensagem de envio no WhatsApp</div>
+        <span className="text-[12px] text-muted">Vale para todos os tipos e todas as propostas.{mudou ? " Alterada." : ""}</span>
+        <span className="ml-auto text-[13px] font-semibold text-navy">{aberto ? "Fechar ▲" : "Alterar ▼"}</span>
+      </button>
+      {aberto && (
+        <div className="mt-3 grid gap-4 lg:grid-cols-2">
+          <div>
+            <textarea
+              ref={ref}
+              className="block w-full resize-y rounded border-0 border-l-[3px] border-gold bg-alt px-4 py-3 text-[14px] leading-relaxed outline-none focus:ring-2 focus:ring-gold-soft"
+              rows={14}
+              value={valor}
+              onChange={(e) => onChange(e.target.value)}
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px]">
+              <span className="text-muted">Inserir campo:</span>
+              {CAMPOS_MSG.map(([campo, explica]) => (
+                <button key={campo} type="button" title={explica} onClick={() => inserir(campo)} className="rounded border border-gold-line bg-gold-soft px-2 py-0.5 font-semibold text-navy hover:border-gold">
+                  {campo}
+                </button>
+              ))}
+              {mudou && (
+                <button type="button" onClick={() => onChange(MSG_PADRAO)} className="ml-auto font-semibold text-navy hover:underline">
+                  ↺ Voltar à mensagem padrão
+                </button>
+              )}
+            </div>
+            <p className="mt-2 text-[12px] text-muted">Os campos entre colchetes são trocados pelos dados de cada proposta. *texto* fica em negrito no WhatsApp. Para valer, clique em Salvar no alto da página.</p>
+          </div>
+          <div>
+            <div className="mb-1 text-[12px] font-semibold text-navy">Como chega (exemplo)</div>
+            <div className="whitespace-pre-wrap rounded bg-[#E7F7E0] px-4 py-3 text-[13.5px] leading-relaxed text-ink">{exemplo}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
