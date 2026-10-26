@@ -9,6 +9,7 @@ import Modal from "@/components/ui/Modal";
 import StatusBadge from "./StatusBadge";
 import EditNumbersModal from "./EditNumbersModal";
 import LetterModal from "./LetterModal";
+import { linkProposta } from "@/lib/site";
 import { FORMATOS_INICIAIS, parseFormato } from "@/lib/formatos";
 
 function readTime(s: number) {
@@ -67,7 +68,7 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
               <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar dados da planilha</button>
               <button className={item} onClick={duplicate}>Duplicar</button>
               {p.status !== "rascunho" && (
-                <button className={item} onClick={() => { navigator.clipboard.writeText(`${location.origin}/p/${p.publicToken}`); setOpen(false); }}>Copiar link</button>
+                <button className={item} onClick={() => { navigator.clipboard.writeText(linkProposta(p.publicToken)); setOpen(false); }}>Copiar link</button>
               )}
               {p.status !== "rascunho" && (
                 <>

@@ -10,6 +10,8 @@ export type ProposalOptions = {
   corretorTelefone?: string;
   /** Mensagem de envio (WhatsApp) escrita à mão. Vazia = a mensagem sugerida */
   mensagemEnvio?: string;
+  /** Mensagem de envio escrita à mão nesta proposta (substitui a do template). Vazia = a do template */
+  msgEnvio?: string;
   /** Para quem a proposta fala: muda saudação e textos ("a família", "o proprietário", "você") */
   destinatario?: Destinatario;
   /** Data escrita na proposta. Sem isto (propostas antigas): a do envio, ou a da criação */

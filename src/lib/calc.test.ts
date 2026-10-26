@@ -185,6 +185,10 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(ob.etapa1!.quadras).toMatchObject({ ruasObrig: 2, obrigM: 24, linha: 976 });
     expect(ob.etapa1!.lotes).toBeCloseTo(calcular({ ...ex, areaPerimetralE1: 976 }).etapa1!.lotes, 9);
     expect(ob.etapa1!.quadras!.areaTotal).toBeCloseTo(1000 * 27.5, 6);
+    // comprimento do lote informado: lote = frente × comprimento (8 × 30 = 240 m²)
+    const cl = calcular({ ...ex, compLoteE1: 30 });
+    expect(cl.etapa1!.lote).toBe(240);
+    expect(cl.etapa1!.quadras!.fundo).toBeCloseTo(30, 9);
     // a definir: a etapa existe, sem números
     const ad = calcular({ ...ex, etapaADefinir: true });
     expect(ad.etapa1).toBe(null);

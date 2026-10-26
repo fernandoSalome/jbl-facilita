@@ -92,6 +92,8 @@ export type StudyInputs = {
   compQuadraE1: number | null;
   /** Primeira etapa: frente do lote (m) */
   frenteE1: number | null;
+  /** Primeira etapa: comprimento (fundo) do lote (m). Com ele, o lote = frente × comprimento */
+  compLoteE1: number | null;
   /** Deságio médio na antecipação de recebíveis (0–1) */
   desagio: number;
   /** Taxa mensal da aplicação financeira simulada (0–1) */
@@ -140,6 +142,7 @@ export const DEFAULT_INPUTS: StudyInputs = {
   ruasObrigE1: null,
   compQuadraE1: null,
   frenteE1: null,
+  compLoteE1: null,
   desagio: 0.66667,
   taxaAplicacao: 0.01,
   reajusteManual: null,
@@ -351,7 +354,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
   const etapa1ADefinir = !!i.etapaADefinir || etapa1FaltaValor;
   if ((i.primeiraEtapa || i.lotesEtapa1) && !etapa1ADefinir && areaUtil > 0) {
-    let lote = i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
+    // lote da etapa: frente × comprimento (quando o comprimento é informado), senão a metragem digitada ou a do estudo
+    const frenteLoteE = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;
+    let lote = i.compLoteE1 && i.compLoteE1 > 0 && frenteLoteE > 0 ? frenteLoteE * i.compLoteE1 : i.loteEtapa1 && i.loteEtapa1 > 0 ? i.loteEtapa1 : i.metragemLote;
     // propostas sem as medidas: lotes salvos; ou a área desmembrada × aproveitamento ÷ lote
     let qtd = i.lotesEtapa1 ?? (i.areaEtapa1 && lote > 0 ? (Math.min(i.areaEtapa1, i.areaTotal) * i.aproveitamento) / lote : 0);
     let quadras: NonNullable<StudyResult["etapa1"]>["quadras"] = null;

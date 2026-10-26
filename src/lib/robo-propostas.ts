@@ -1,4 +1,5 @@
 import { calcular } from "./calc";
+import { LINK_BASE } from "./site";
 import { db } from "./db";
 import { fmtBRL, fmtDate, fmtM2, fmtNum, fmtPct } from "./format";
 import { responderComDados } from "./ia";
@@ -11,7 +12,7 @@ import { displayStatus, parseInputs, parseOptions, STATUS } from "./proposals";
  */
 
 const ORIGEM = () =>
-  process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "https://jbl-facilita-production.up.railway.app");
+  LINK_BASE;
 
 const FORMATO: Record<string, string> = {
   loteamento_aberto: "Loteamento aberto",

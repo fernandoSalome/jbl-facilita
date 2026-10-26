@@ -10,6 +10,7 @@ import DataField from "./DataField";
 import { fmtDate } from "@/lib/format";
 import { tratamento } from "@/lib/destinatario";
 import { MSG_KEY, montarMensagem, saudacao } from "@/lib/mensagem";
+import { linkProposta } from "@/lib/site";
 import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
 import ModoToggle from "@/components/template/ModoToggle";
@@ -211,7 +212,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   }, [pending]);
 
   /* ---------- envio ---------- */
-  const publicUrl = `${origin}/p/${p.publicToken}`;
+  // link enviado ao cliente: sempre o da Vercel
+  const publicUrl = linkProposta(p.publicToken);
   // mensagem do template (vale para todas as propostas), com o nome escolhido em "Proposta para",
   // o tipo de loteamento, a gleba, o link e a saudação pela hora de São Paulo
   const trat = tratamento(data.meta.options.destinatario);
@@ -222,12 +224,13 @@ export default function ProposalEditor({ formato, proposal: p, project, template
     gleba: project.name,
     link: publicUrl,
   });
-  // mensagem escrita à mão (salva na proposta) ou a sugerida
-  const salva = data.meta.options.mensagemEnvio?.trim() ? data.meta.options.mensagemEnvio : null;
+  // mensagem escrita à mão nesta proposta (a partir de 26/10/2026) ou a do template;
+  // as salvas antes (mensagemEnvio, com o link antigo) deixam de valer e todas seguem o template
+  const salva = data.meta.options.msgEnvio?.trim() ? data.meta.options.msgEnvio : null;
   const [msgEdit, setMsgEdit] = useState<string | null>(null);
   const texto = msgEdit ?? salva ?? message;
   const salvarMensagem = (v: string) => {
-    changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, mensagemEnvio: v } } });
+    changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, msgEnvio: v } } });
     setMsgEdit(null);
   };
   const waLink = `https://wa.me/${data.meta.ownerPhone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(texto)}`;

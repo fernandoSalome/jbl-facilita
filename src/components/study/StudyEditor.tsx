@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", intermediacaoPct: "pct", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -305,6 +305,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <tr className="bg-navy text-[12px] text-white">
               <th colSpan={2} className="px-3 py-1.5 text-left font-bold">Outros Períodos de Parcelamento</th>
               <th colSpan={3} className="border-l border-white/20 px-2 py-1.5 font-bold">Arrecadação Mensal (Primeiros 12 meses)</th>
+              <th className="border-l border-white/20 px-2 py-1.5 font-bold">Última Parcela</th>
               <th colSpan={3} className="border-l border-white/20 px-2 py-1.5 font-bold">Arrecadação Carteira</th>
             </tr>
             <tr className="bg-navy/90 text-[11.5px] text-white">
@@ -313,6 +314,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
               <th className="border-l border-white/20 px-2 py-1 text-right font-bold">Empreendimento</th>
               <th className="px-2 py-1 text-right font-bold">Incorporador</th>
               <th className="px-2 py-1 text-right font-bold">Terrenista</th>
+              <th className="border-l border-white/20 px-2 py-1 text-right font-bold">Terrenista</th>
               <th className="border-l border-white/20 px-2 py-1 text-right font-bold">Empreendimento</th>
               <th className="px-2 py-1 text-right font-bold">Incorporador</th>
               <th className="px-2 py-1 text-right font-bold">Terrenista</th>
@@ -326,6 +328,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
                 <td className="border-l border-gold/30 px-2 py-1 text-right">{fmtBRL(c.mensalEmp)}</td>
                 <td className="px-2 py-1 text-right">{fmtBRL(c.mensalInc)}</td>
                 <td className="px-2 py-1 text-right">{fmtBRL(c.mensalTer)}</td>
+                <td className="border-l border-gold/30 px-2 py-1 text-right">{fmtBRL(c.mensalTerFinal)}</td>
                 <td className="border-l border-gold/30 px-2 py-1 text-right">{fmtBRL0(c.carteiraEmp)}</td>
                 <td className="px-2 py-1 text-right">{fmtBRL0(c.carteiraInc)}</td>
                 <td className="px-2 py-1 text-right font-semibold text-navy">{fmtBRL0(c.carteiraTer)}</td>
@@ -384,10 +387,15 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <Titulo>Medidas da 1ª etapa</Titulo>
         <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
         <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quadras" disabled={off} />
-        <In s={s} k="ruaE1" label="Largura da rua (m)" disabled={off} />
+        <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
-        <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
+        <In s={s} k="compLoteE1" label="Comprimento do lote (m)" hint="Com o comprimento, o lote = frente × comprimento (a metragem abaixo é calculada)" disabled={off} />
+        {i.compLoteE1 ? (
+          <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : r.etapa1 ? `${fmtNum(r.etapa1.lote)} m²` : "—"} />
+        ) : (
+          <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
+        )}
         <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
