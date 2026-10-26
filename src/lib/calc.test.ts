@@ -5,6 +5,7 @@ import { calcular } from "./calc";
 // Valores copiados da planilha PLANILHA_ORÇAM_TERRENISTA_OFICIAL.xlsx (aba "Dados do Parcelamento de Solo")
 describe("planilha oficial", () => {
   const r = calcular({
+    planilhaInfra: null,
     areaTotal: 30309.67,
     aproveitamento: 0.7394,
     metragemLote: 220,
@@ -62,6 +63,7 @@ describe("planilha oficial", () => {
 // reajuste fixo de 12%, entrada de 5% e multiplicador 1,6 (embora exiba 1,68 e 6%).
 describe("proposta São Judas Tadeu II", () => {
   const r = calcular({
+    planilhaInfra: null,
     areaTotal: 137338.46,
     aproveitamento: 0.5,
     metragemLote: 200,
@@ -102,6 +104,7 @@ describe("proposta São Judas Tadeu II", () => {
 // IGPM 4,50%, juros 0,67% a.m., entrada 6%, corretor 5%, multiplicador 1,68
 describe("site São Judas Tadeu II (planilha atual)", () => {
   const r = calcular({
+    planilhaInfra: null,
     areaTotal: 137338.46, aproveitamento: 0.5, metragemLote: 200, incorporadorPct: 0.6, valorM2: 500, corretorPct: 0.05,
     ipca: 0.045, jurosAno: 0, jurosMes: 0.0067, entradaPct: 0.06, multiplicador: 1.68, anos: 20, lotesEtapa1: 106.38, valorM2Etapa1: 500, custoInfraM2: 145,
   });
@@ -225,14 +228,14 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(c.infra.ligacoes).toBeCloseTo(215.03327 * 11, 3); // CUSTOS H36 = (rua 8 + 3) × lotes
     expect(c.infra.calcadas).toBeCloseTo(84727.5501 - 56485.0334, 3); // C31 + C32
     expect(c.infra.guias).toBeCloseTo(7060.6292 * 2, 3); // CUSTOS H31
-    expect(c.infra.reservatorio).toBeCloseTo(2.1503327, 6); // CUSTOS H37
+    expect(c.infra.reservatorio).toBe(2); // CUSTOS H37 (2,15, mostrado sem casas)
     expect(c.infra.casaQuimica).toBe(1);
     // sem a marca, continua a planilha anterior
-    expect(calcular(base).infra.eletrica).toBeCloseTo(3548.0489616, 6);
+    expect(calcular({ ...base, planilhaInfra: null }).infra.eletrica).toBeCloseTo(3548.0489616, 6);
   });
 
   it("quantidades iguais às da aba Custo da planilha Chacreamento Condomínio (Fazenda Rancho Fundo)", () => {
-    const c = calcular({ areaTotal: 382894, aproveitamento: 0.5616, metragemLote: 1000, frenteLote: 15, viasPct: 0.221282, larguraVia: 12, larguraCalcada: 2 });
+    const c = calcular({ areaTotal: 382894, aproveitamento: 0.5616, metragemLote: 1000, frenteLote: 15, viasPct: 0.221282, larguraVia: 12, larguraCalcada: 2, planilhaInfra: null });
     expect(c.lotes).toBeCloseTo(215.03327, 5); // F53
     expect(c.infra.logradouros).toBeCloseTo(56485.03340533333, 6); // F57
     expect(c.infra.rede).toBeCloseTo(7060.629175666666, 6); // F58
@@ -270,5 +273,42 @@ describe("corretor da parceria (intermediação)", () => {
     expect(r.jblPct).toBeCloseTo(0.6 - r.infraPct - 0.012, 10);
     expect(r.terrenistaPct + r.jblPct + r.intermediacaoPct + r.infraPct).toBeCloseTo(1, 10);
     expect(r.vgvAvista * r.intermediacaoPct).toBeCloseTo(r.vgvAvistaInc * 0.02, 6);
+  });
+});
+
+// Planilha "JBL Planilha Infla 2026" preenchida com os dados da Fazenda Rancho Fundo e recalculada
+// (todas as fórmulas, abas DADOS DO PARCELAMENTO, CARTEIRA e CUSTOS; quadra máxima de 200 m)
+describe("planilha 2026 recalculada com os dados da Fazenda Rancho Fundo", () => {
+  const r = calcular({
+    areaTotal: 382894, aproveitamento: 0.5616, metragemLote: 1000, frenteLote: 15, viasPct: 0.221282, larguraVia: 12, larguraCalcada: 2, quadraMax: 200,
+    valorM2: 270, corretorPct: 0.05, ipca: 0.04, jurosAno: 0, jurosMes: 0.0067, entradaPct: 0.06, multiplicador: 1.654, anos: 20, incorporadorPct: 0.6, valorM2Etapa1: 270,
+  });
+  it("dados do parcelamento", () => {
+    expect(r.lotes).toBeCloseTo(215.0332704, 7); // C19
+    expect(r.parcela).toBeCloseTo(1749.105, 6); // G28 pagamento em dia
+    expect(r.parcelaContrato).toBeCloseTo(1943.45, 6); // G29
+    expect(r.valorLoteContrato).toBeCloseTo(482628, 4); // G30
+    expect(r.vgvAvistaTer).toBeCloseTo(23223593.2032, 4); // F35
+  });
+  it("carteira com a entrada (CARTEIRA C39, D39, E39)", () => {
+    expect(r.principal.carteiraEmp).toBeCloseTo(330195543.942732, 3);
+    expect(r.principal.carteiraInc).toBeCloseTo(198117326.365639, 3);
+    expect(r.principal.carteiraTer).toBeCloseTo(132078217.577093, 3);
+    expect(r.principal.mensalTer).toBeCloseTo(150446.3073692, 5); // E38
+    expect(r.principal.parcelaFinal).toBeCloseTo(15167.178018293, 6); // C25 (20º ano)
+  });
+  it("quantidades de obra (aba CUSTOS)", () => {
+    expect(r.infra.logradouros).toBeCloseTo(56485.0334053, 6); // H28
+    expect(r.infra.rede).toBeCloseTo(7060.6291757, 6); // G32 / G45
+    expect(r.infra.eletrica).toBeCloseTo(7060.6291757, 6); // H24
+    expect(r.infra.guias).toBeCloseTo(14121.2583513, 6); // H31
+    expect(r.infra.calcadas).toBeCloseTo(28242.5167027, 6); // C31 + C32
+    expect(r.infra.ligacoes).toBeCloseTo(2365.3659744, 6); // H36
+    expect(r.infra.ligacoesEsgoto).toBeCloseTo(2580.3992448, 6); // H50
+    expect(r.infra.drenagem).toBeCloseTo(1412.1258351, 6); // G58
+    expect(r.infra.bigode).toBeCloseTo(198.8371127, 6); // H64
+    expect(r.infra.reservatorio).toBe(2); // H37 = 2,15
+    expect(r.infra.pocosVisita).toBe(25 + 19); // H65 = 24,86 e H55 = 18,64, sem casas
+    expect(r.infra.bocaLobo).toBe(50); // H67 = 49,71
   });
 });

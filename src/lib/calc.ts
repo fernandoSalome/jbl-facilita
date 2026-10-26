@@ -56,8 +56,8 @@ export type StudyInputs = {
   /** Aba "Custo" F55: largura de cada calçada, média em metros */
   larguraCalcada: number;
   /**
-   * Fórmulas de obra da planilha nova (JBL Planilha Infla, 2026): vem do tipo de loteamento
-   * (template), não é digitado. Vazio = as da planilha anterior (aba Custo).
+   * Contas da planilha JBL Planilha Infla 2026 (obras, carteira com a entrada, parcela de contrato):
+   * vem do tipo de loteamento (template), não é digitado. Vazio = 2026; null = planilha anterior.
    */
   planilhaInfra?: "2026" | null;
   /** Planilha 2026, "DADOS DO PARCELAMENTO" C14: tamanho máximo da quadra (m). Vazio = poços de visita, bocas de lobo e bigode "A projetar" */
@@ -192,7 +192,9 @@ export type StudyResult = {
   reajusteCalculado: number;
   /** W15 */ nParcelas: number;
   /** W16 */ parcela: number;
-  /** W17 */ valorLoteContrato: number;
+  /** Planilha 2026 G29: parcela que vai para o contrato (a anterior não separa: igual à parcela) */
+  parcelaContrato: number;
+  /** W17 / planilha 2026 G30 */ valorLoteContrato: number;
   /** Saldo financiado a prazo: (lote − entrada) × multiplicador */
   saldoPrazo: number;
   /** VGV a prazo antes da projeção: saldo a prazo × lotes */
@@ -265,7 +267,7 @@ export type StudyResult = {
   };
 };
 
-function cenario(meses: number, saldoLote: number, multiplicador: number, lotes: number, reajuste: number, incPct: number): Cenario {
+function cenario(meses: number, saldoLote: number, multiplicador: number, lotes: number, reajuste: number, incPct: number, entradaTotal = 0): Cenario {
   const anos = Math.ceil(meses / 12);
   const parcela = (saldoLote * multiplicador) / meses;
   const parcelasPorAno: number[] = [];
@@ -276,6 +278,8 @@ function cenario(meses: number, saldoLote: number, multiplicador: number, lotes:
     carteiraEmp += p * lotes * 12;
     p = p * reajuste + p; // planilha: =D12*N14+D12
   }
+  // planilha 2026 (aba CARTEIRA, C39): a carteira soma também a entrada de todos os lotes
+  carteiraEmp += entradaTotal;
   const parcelaFinal = parcelasPorAno[parcelasPorAno.length - 1];
   const mensalEmp = parcela * lotes;
   const mensalInc = mensalEmp * incPct;
@@ -297,6 +301,8 @@ function cenario(meses: number, saldoLote: number, multiplicador: number, lotes:
 
 export function calcular(input: Partial<StudyInputs>): StudyResult {
   const i: StudyInputs = { ...DEFAULT_INPUTS, ...input };
+  // Planilha JBL 2026 é a regra (vazio = 2026); null = contas da planilha anterior
+  const nova2026 = i.planilhaInfra !== null;
   const inc = i.incorporadorPct;
   const ter = 1 - inc;
   const rateio = (total: number, pct: number): Rateio => ({ total, inc: total * inc, ter: total - total * inc, pct });
@@ -322,7 +328,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const intermediacaoPct = i.intermediacaoPct && i.intermediacaoPct > 0 ? inc * i.intermediacaoPct : 0;
 
   const prazos = Array.from(new Set<number>([...PRAZOS_MESES, nParcelas])).sort((a, b) => a - b);
-  const cenarios = nParcelas > 0 ? prazos.map((m) => cenario(m, saldoLote, i.multiplicador, lotes, reajuste, inc)) : [];
+  const cenarios = nParcelas > 0 ? prazos.map((m) => cenario(m, saldoLote, i.multiplicador, lotes, reajuste, inc, nova2026 ? entrada * lotes : 0)) : [];
   const principal = cenarios.find((c) => c.meses === nParcelas) ?? cenario(1, 0, 0, 0, 0, 0);
 
   const total = Math.ceil(lotes);
@@ -337,7 +343,6 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const areaVias = viasPct * i.areaTotal; // F49 = F48 × F43
   const compVias = i.larguraVia > 0 ? areaVias / i.larguraVia : 0; // F58 = F49 ÷ F54 (rede de água e esgoto, em metros)
   const larguraRua = Math.max(0, i.larguraVia - 2 * i.larguraCalcada); // F56 = F54 − (F55 + F55)
-  const nova2026 = i.planilhaInfra === "2026";
   // C36: poços de visita da drenagem = 2 × área ÷ ((quadra + via) × (2 × fundo do lote + via))
   const fundoLote = i.frenteLote > 0 ? i.metragemLote / i.frenteLote : 0;
   const pvDrenagem = i.quadraMax && i.quadraMax > 0 && i.larguraVia > 0 ? (2 * i.areaTotal) / ((i.quadraMax + i.larguraVia) * (2 * fundoLote + i.larguraVia)) : null;
@@ -434,7 +439,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     reajusteCalculado,
     nParcelas,
     parcela,
-    valorLoteContrato: parcela * nParcelas + entrada,
+    // 2026: a parcela do contrato é a parcela paga em dia ÷ 0,9 (G29) e o lote em contrato usa ela (G30)
+    parcelaContrato: nova2026 ? parcela / 0.9 : parcela,
+    valorLoteContrato: (nova2026 ? parcela / 0.9 : parcela) * nParcelas + entrada,
     saldoPrazo,
     vgvPrazoSemReajuste: saldoPrazo * lotes,
     vgvAvista,
@@ -460,12 +467,13 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       guias: nova2026 ? compVias * 2 : BASE.guias * escala, // CUSTOS H31 = (área da rua ÷ rua) × 2
       calcadas: nova2026 ? areaVias - compVias * larguraRua : BASE.calcadas * escala, // C31 + C32 = vias − rua
       arvores: Math.floor(lotes),
-      reservatorio: lotes / 100, // CUSTOS H37: 1 a cada 100 lotes
+      reservatorio: Math.round(lotes / 100), // CUSTOS H37: 1 a cada 100 lotes (a planilha mostra sem casas: 2,15 → 2)
       casaQuimica: 1, // CUSTOS H42
       ligacoesEsgoto: lotes * (larguraRua + 4), // CUSTOS H50 = (rua + 4) × lotes
       drenagem: compVias * 0.2, // C35 = (área de vias ÷ via) × 20%
-      pocosVisita: pvDrenagem === null ? null : pvDrenagem + pvDrenagem / 1.3333, // C36 (drenagem) + C34 (esgoto = C36 ÷ 1,3333)
-      bocaLobo: pvDrenagem === null ? null : pvDrenagem * 2, // C37
+      // C36 (drenagem) + C34 (esgoto = C36 ÷ 1,3333), cada um sem casas, como a planilha mostra
+      pocosVisita: pvDrenagem === null ? null : Math.round(pvDrenagem) + Math.round(pvDrenagem / 1.3333),
+      bocaLobo: pvDrenagem === null ? null : Math.round(pvDrenagem * 2), // C37 (sem casas, como a planilha mostra)
       bigode: pvDrenagem === null ? null : pvDrenagem * larguraRua, // CUSTOS H64 = PV × rua (tubo de 400 mm, em metros)
     },
     etapa1,

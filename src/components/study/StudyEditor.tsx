@@ -246,15 +246,16 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <In s={s} k="multiplicador" label="Multiplicador para encontrar a Parcela" />
             <In s={s} k="anos" label="Em quantos Anos ocorrerá o Parcelamento" />
             <Out label="Número de Parcelas" value={String(r.nParcelas)} />
-            <Out label="Valor da Parcela a ser Comercializada" value={fmtBRL(r.parcela)} strong />
+            <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={fmtBRL(r.parcela)} strong />
+            <Out label="Valor da Parcela que vai para o Contrato" value={fmtBRL(r.parcelaContrato)} />
             <Out label="Valor do Lote em Contrato" value={fmtBRL(r.valorLoteContrato)} />
           </Box>
           {/* Dados que a planilha não tem, usados no site da proposta */}
           <Box title="Para o site da proposta" right="não está na planilha">
-            <In s={s} k="frenteLote" label="Frente do lote" hint="Escreve “lotes de 8 × 25 metros” e entra na rede de energia (aba Custo, F50)" />
-            <In s={s} k="viasPct" label="Vias (%)" hint={`Aba Custo, F48. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável`} />
-            <In s={s} k="larguraVia" label="Largura da via (m)" hint="Aba Custo, F54: rua + calçadas" />
-            <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Aba Custo, F55: cada lado" />
+            <In s={s} k="frenteLote" label="Frente do lote" hint="Planilha 2026, C7. Escreve “lotes de 8 × 25 metros” e entra nos poços de visita" />
+            <In s={s} k="viasPct" label="Vias (%)" hint={`Planilha 2026, C10: entra nas ruas, redes, calçadas, guias, energia e drenagem. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável. Para bater com a planilha do engenheiro, preencha`} />
+            <In s={s} k="larguraVia" label="Largura da via (m)" hint="Planilha 2026, C8: rua + calçadas" />
+            <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Planilha 2026, C9: cada lado" />
             <In s={s} k="quadraMax" label="Tamanho máximo da quadra (m)" hint="Planilha 2026, C14: entra nos poços de visita, bocas de lobo e bigode. Vazio = esses itens ficam “A projetar”" />
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
