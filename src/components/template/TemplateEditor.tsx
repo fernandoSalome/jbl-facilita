@@ -23,6 +23,7 @@ import {
 } from "@/lib/formatos";
 import Modal from "@/components/ui/Modal";
 import JblPadrao from "./JblPadrao";
+import ModoToggle from "./ModoToggle";
 import DestinatarioPicker from "@/components/proposals/DestinatarioPicker";
 import type { Destinatario } from "@/lib/proposals";
 
@@ -188,7 +189,7 @@ export default function TemplateEditor({
         <div className="flex flex-wrap items-center gap-3 px-6 py-3">
           <button onClick={() => guard(() => router.push("/app/templates"))} className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-semibold text-navy hover:bg-alt">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-            Voltar para templates
+            Voltar
           </button>
           <span className="h-6 w-px bg-line" />
           <div>
@@ -198,6 +199,8 @@ export default function TemplateEditor({
             </div>
             <h1 className="h-display text-lg leading-tight">{templateName}</h1>
           </div>
+          {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
+          <ModoToggle mode={mode} onChange={setMode} />
           <label className="ml-4 flex items-center gap-2 text-[13px] font-semibold text-navy">
             Tipo de loteamento
             <select
@@ -273,18 +276,9 @@ export default function TemplateEditor({
         <div className="mb-4 rounded-md border border-line bg-white p-4">
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <div className="eyebrow">Só deste tipo: {tipo.label}</div>
-            <span className="text-[12px] text-muted">Padrões, lei e modelo mudam só neste tipo. Na página, infraestrutura e benfeitorias também. O resto do texto vale para todos os tipos.</span>
+            <span className="text-[12px] text-muted">Nome, lei e modelo mudam só neste tipo. Na página, infraestrutura e benfeitorias também. O resto do texto vale para todos os tipos.</span>
           </div>
-          <div className="grid gap-3 md:grid-cols-[repeat(3,120px)_1fr_1fr_1fr]">
-            <P label="Lote (m²)">
-              <input className="input py-1.5 text-right" type="number" value={tipo.padroes.metragemLote} onChange={(e) => setTipo((t) => void (t.padroes.metragemLote = Number(e.target.value) || 0))} />
-            </P>
-            <P label="Frente (m)">
-              <input className="input py-1.5 text-right" type="number" value={tipo.padroes.frenteLote} onChange={(e) => setTipo((t) => void (t.padroes.frenteLote = Number(e.target.value) || 0))} />
-            </P>
-            <P label="Aproveitamento (%)">
-              <input className="input py-1.5 text-right" type="number" value={Math.round(tipo.padroes.aproveitamento * 10000) / 100} onChange={(e) => setTipo((t) => void (t.padroes.aproveitamento = (Number(e.target.value) || 0) / 100))} />
-            </P>
+          <div className="grid gap-3 md:grid-cols-3">
             <P label="Nome do tipo"><input className="input py-1.5" value={tipo.label} onChange={(e) => setTipo((t) => void (t.label = e.target.value))} /></P>
             <P label="Modelo citado na carta"><input className="input py-1.5" value={tipo.modelo} onChange={(e) => setTipo((t) => void (t.modelo = e.target.value))} /></P>
             <P label="Lei"><input className="input py-1.5" value={tipo.lei} onChange={(e) => setTipo((t) => void (t.lei = e.target.value))} /></P>
@@ -292,10 +286,6 @@ export default function TemplateEditor({
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded border border-line bg-white p-0.5 text-[13px] font-semibold">
-            <button onClick={() => setMode("edit")} className={`rounded-sm px-3 py-1.5 ${mode === "edit" ? "bg-navy text-white" : "text-muted"}`}>Editar</button>
-            <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como o cliente</button>
-          </div>
           <DestinatarioPicker compact value={dest} onChange={setDest} />
           <span className="text-[12.5px] text-muted">
             Números de exemplo, que vêm da planilha: o valor não muda, mas dá para clicar e mudar negrito, itálico, cor e tamanho. Os textos valem para todos os tipos quando você salvar.

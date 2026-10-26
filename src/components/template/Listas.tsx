@@ -42,8 +42,6 @@ function useLista<T extends { id: string }>(secao: string, base: T[]) {
 function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
   const { overrides, editable, save } = useEdit();
   const q = (overrides[`liq.${item.id}`] as Qtd | undefined) ?? item.qtd;
-  // texto digitado na etiqueta ("Na entrega", "Na conclusão"...): tarja dourada igual à do "A projetar"
-  const digitado = `li.${item.id}.tag` in overrides;
   // quantidade "Fixa": vale o texto que aparece (o digitado por cima, se houver)
   const ovFixa = overrides[`li.${item.id}.qtd`];
   const fixaMostrada = typeof ovFixa === "string" ? ovFixa.replace(/^html:/, "").replace(/<[^>]+>/g, "") : q.kind === "fixa" ? q.text : "";
@@ -53,7 +51,8 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
   const conteudo =
     q.kind === "projetar" ? (
       <>
-        <span className={`tag ${q.label && !digitado ? "" : "pend"}`}><E k={`li.${item.id}.tag`}>{q.label || "A projetar"}</E></span>
+        {/* "A projetar", "Na aprovação" ou texto digitado ("Na entrega"...): sempre a tarja dourada */}
+        <span className="tag pend"><E k={`li.${item.id}.tag`}>{q.label || "A projetar"}</E></span>
         {q.unit && ` ${unidade(q.unit)}`}
       </>
     ) : q.kind === "fixa" ? (

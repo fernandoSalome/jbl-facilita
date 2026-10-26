@@ -11,6 +11,7 @@ import { fmtDate } from "@/lib/format";
 import { tratamento } from "@/lib/destinatario";
 import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
+import ModoToggle from "@/components/template/ModoToggle";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "./StatusBadge";
@@ -263,7 +264,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         <div className="flex flex-wrap items-center gap-3 px-6 py-3">
           <Link href={back} className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-semibold text-navy hover:bg-alt">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-            Voltar para propostas
+            Voltar
           </Link>
           <span className="h-6 w-px bg-line" />
           <div className="min-w-0">
@@ -276,6 +277,9 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               {data.meta.options.semValidade ? " · não expira" : p.expiresAt && ` · válida até ${fmtDate(p.expiresAt)}`}
             </div>
           </div>
+
+          {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
+          <ModoToggle mode={mode} onChange={setMode} />
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <span className={`text-[12.5px] ${saved === "erro" ? "font-semibold text-rose-700" : "text-muted"}`}>{status}</span>
@@ -313,10 +317,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
       <div className="px-6 pb-12 pt-5">
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded border border-line bg-white p-0.5 text-[13px] font-semibold">
-            <button onClick={() => setMode("edit")} className={`rounded-sm px-3 py-1.5 ${mode === "edit" ? "bg-navy text-white" : "text-muted"}`}>Editar</button>
-            <button onClick={() => setMode("preview")} className={`rounded-sm px-3 py-1.5 ${mode === "preview" ? "bg-navy text-white" : "text-muted"}`}>Ver como o cliente</button>
-          </div>
           <DestinatarioPicker compact value={data.meta.options.destinatario} onChange={(dest) => changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, destinatario: dest } } })} />
           {mode === "edit" && (
             <span className="basis-full text-[12.5px] text-muted">
