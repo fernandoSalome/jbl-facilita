@@ -263,7 +263,8 @@ const temTexto = (v: unknown, dica: string) => typeof v === "string" && v.replac
 
 export default function JblPadrao(props: TemplateProps) {
   const { project, inputs, options, mode, formato } = props;
-  const r = useMemo(() => calcular(inputs), [inputs]);
+  // o tipo de loteamento diz qual planilha usar nas quantidades de obra
+  const r = useMemo(() => calcular({ ...inputs, planilhaInfra: formato.planilha ?? null }), [inputs, formato.planilha]);
   const editing = mode === "edit";
   const [scroll, setScroll] = useState(0);
   const [menu, setMenu] = useState(false);

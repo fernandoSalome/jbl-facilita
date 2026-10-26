@@ -7,7 +7,7 @@
 
 const TAGS = new Set(["b", "strong", "i", "em", "u", "s", "mark", "span", "br", "sup", "sub", "small", "font"]);
 const ID = /^[a-z0-9_-]{1,40}$/i;
-const QTD_KEYS = new Set(["logradouros", "rede", "ligacoes", "eletrica", "guias", "calcadas", "arvores"]);
+const QTD_KEYS = new Set(["logradouros", "rede", "ligacoes", "eletrica", "guias", "calcadas", "arvores", "reservatorio", "casaQuimica"]);
 const short = (v: unknown, max = 300) => (typeof v === "string" ? v.replace(/[<>]/g, "").slice(0, max) : "");
 
 function cleanQtd(q: unknown) {

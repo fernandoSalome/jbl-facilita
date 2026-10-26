@@ -55,6 +55,11 @@ export type StudyInputs = {
   larguraVia: number;
   /** Aba "Custo" F55: largura de cada calçada, média em metros */
   larguraCalcada: number;
+  /**
+   * Fórmulas de obra da planilha nova (JBL Planilha Infla, 2026): vem do tipo de loteamento
+   * (template), não é digitado. Vazio = as da planilha anterior (aba Custo).
+   */
+  planilhaInfra?: "2026" | null;
   /** Custo de infraestrutura por m² de área aproveitável (R$) */
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
@@ -207,7 +212,7 @@ export type StudyResult = {
   vendas: { mes1: number; mes2: number; mes3: number; total: number };
   /** Quantidades médias de infraestrutura, a partir da extensão da rede principal */
   /** Quantidades de obra: rede, ligações, ruas, energia e árvores pela aba "Custo" da planilha; guias e calçadas pela proporção com o São Judas */
-  infra: { rede: number; ligacoes: number; logradouros: number; eletrica: number; guias: number; calcadas: number; arvores: number };
+  infra: { rede: number; ligacoes: number; logradouros: number; eletrica: number; guias: number; calcadas: number; arvores: number; reservatorio: number; casaQuimica: number };
   /**
    * Primeira etapa (desmembramento): lotes digitados; pct = lotes × lote ÷ área aproveitável;
    * à vista = lotes × lote × m² da etapa; a prazo com o financiamento do estudo.
@@ -318,6 +323,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const areaVias = viasPct * i.areaTotal; // F49 = F48 × F43
   const compVias = i.larguraVia > 0 ? areaVias / i.larguraVia : 0; // F58 = F49 ÷ F54 (rede de água e esgoto, em metros)
   const larguraRua = Math.max(0, i.larguraVia - 2 * i.larguraCalcada); // F56 = F54 − (F55 + F55)
+  const nova2026 = i.planilhaInfra === "2026";
   let etapa1: StudyResult["etapa1"] = null;
   // 1ª etapa sem o valor do m² do lote dela: não calcula (não usa o m² do estudo); a proposta mostra "a definir"
   const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
@@ -427,14 +433,17 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     principal,
     cenarios,
     vendas: { mes1, mes2, mes3: total - mes1 - mes2, total },
+    // planilha nova (2026): "DADOS DO PARCELAMENTO" C26 a C38 e "CUSTOS"; anterior: aba "Custo" F57 a F60
     infra: {
-      rede: i.extensaoRede ?? compVias, // F58
-      ligacoes: lotes * (larguraRua / 2 + 2), // F59 = F53 × (F56 ÷ 2 + 2)
-      logradouros: compVias * larguraRua, // F57 = F49 ÷ F54 × F56
-      eletrica: lotes * i.frenteLote * 1.1, // F60 = F53 × F50 + 10%
-      guias: BASE.guias * escala,
-      calcadas: BASE.calcadas * escala,
+      rede: i.extensaoRede ?? compVias, // F58 / C33 = área de vias ÷ largura da via
+      ligacoes: nova2026 ? lotes * (larguraRua + 3) : lotes * (larguraRua / 2 + 2), // CUSTOS H36 = (rua + 3) × lotes / F59
+      logradouros: compVias * larguraRua, // F57 / C30
+      eletrica: nova2026 ? compVias : lotes * i.frenteLote * 1.1, // CUSTOS H24 = C33 / F60 = lotes × frente + 10%
+      guias: nova2026 ? compVias * 2 : BASE.guias * escala, // CUSTOS H31 = (área da rua ÷ rua) × 2
+      calcadas: nova2026 ? areaVias - compVias * larguraRua : BASE.calcadas * escala, // C31 + C32 = vias − rua
       arvores: Math.floor(lotes),
+      reservatorio: lotes / 100, // CUSTOS H37: 1 a cada 100 lotes
+      casaQuimica: 1, // CUSTOS H42
     },
     etapa1,
     etapa1ADefinir,

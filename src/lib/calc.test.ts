@@ -216,6 +216,21 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(r.infra.arvores).toBe(343);
   });
 
+  it("planilha nova (2026) com os dados da Fazenda Rancho Fundo", () => {
+    const base = { areaTotal: 382894, aproveitamento: 0.5616, metragemLote: 1000, frenteLote: 15, viasPct: 0.221282, larguraVia: 12, larguraCalcada: 2 };
+    const c = calcular({ ...base, planilhaInfra: "2026" });
+    expect(c.infra.logradouros).toBeCloseTo(56485.0334, 3); // C30
+    expect(c.infra.rede).toBeCloseTo(7060.6292, 3); // C33
+    expect(c.infra.eletrica).toBeCloseTo(7060.6292, 3); // CUSTOS H24 = C33
+    expect(c.infra.ligacoes).toBeCloseTo(215.03327 * 11, 3); // CUSTOS H36 = (rua 8 + 3) × lotes
+    expect(c.infra.calcadas).toBeCloseTo(84727.5501 - 56485.0334, 3); // C31 + C32
+    expect(c.infra.guias).toBeCloseTo(7060.6292 * 2, 3); // CUSTOS H31
+    expect(c.infra.reservatorio).toBeCloseTo(2.1503327, 6); // CUSTOS H37
+    expect(c.infra.casaQuimica).toBe(1);
+    // sem a marca, continua a planilha anterior
+    expect(calcular(base).infra.eletrica).toBeCloseTo(3548.0489616, 6);
+  });
+
   it("quantidades iguais às da aba Custo da planilha Chacreamento Condomínio (Fazenda Rancho Fundo)", () => {
     const c = calcular({ areaTotal: 382894, aproveitamento: 0.5616, metragemLote: 1000, frenteLote: 15, viasPct: 0.221282, larguraVia: 12, larguraCalcada: 2 });
     expect(c.lotes).toBeCloseTo(215.03327, 5); // F53

@@ -35,5 +35,6 @@ export function limparConteudo(raw: unknown, formato: FormatoKey): FormatoConten
     benfeitorias: lista("benfeitorias", c.benfeitorias) as FormatoContent["benfeitorias"],
     contatos: lista("contatos", c.contatos) as FormatoContent["contatos"],
     overrides,
+    ...(c.planilha === "2026" ? { planilha: "2026" as const } : {}),
   };
 }

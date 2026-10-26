@@ -51,6 +51,44 @@ async function main() {
   await unificarTextos();
   await muroDoChacreamentoCondominio();
   await infraPelaPlanilha();
+  await planilha2026NoChacreamentoAberto();
+}
+
+/**
+ * Chacreamento aberto passa a usar as fórmulas de obra da planilha nova (JBL Planilha Infla, 2026):
+ * rede elétrica = comprimento das vias, ligação de água = (rua + 3) × lotes, calçadas = vias − rua,
+ * reservatório = 1 a cada 100 lotes, casa química = 1. Calçadas, reservatório e casa química, que
+ * estavam "A projetar", passam a ser calculados. Só este tipo de loteamento. Roda uma vez só.
+ */
+async function planilha2026NoChacreamentoAberto() {
+  const sem = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/<[^>]+>/g, " ");
+  const REGRAS: [RegExp, "calcadas" | "reservatorio" | "casaQuimica"][] = [
+    [/^calcadas/, "calcadas"],
+    [/reservatorio de agua/, "reservatorio"],
+    [/casa quimica/, "casaQuimica"],
+  ];
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    const atual = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: "chacreamento_aberto" }, orderBy: { createdAt: "desc" } });
+    if (!atual) continue;
+    const c = parseContent(atual.content, "chacreamento_aberto");
+    if (c.planilha === "2026") continue;
+    const trocados: string[] = [];
+    const ajustar = <T extends { id: string; obra: string; qtd: { kind: string; label?: string } }>(itens: T[]) =>
+      itens.map((it) => {
+        if (it.qtd.kind !== "projetar" || it.qtd.label) return it;
+        const ov = c.overrides[`li.${it.id}.obra`];
+        const nome = sem(typeof ov === "string" ? ov.replace(/^html:/, "") : it.obra);
+        const regra = REGRAS.find(([re]) => re.test(nome));
+        if (!regra) return it;
+        trocados.push(`${it.obra} → ${regra[1]}`);
+        return { ...it, qtd: { kind: "calc", key: regra[1] } };
+      });
+    const content = { ...c, planilha: "2026", infra: ajustar(c.infra), complementar: ajustar(c.complementar) };
+    const v = await db.formatoVersion.create({ data: { templateId: t.id, formato: "chacreamento_aberto", content: content as object } });
+    const n = await db.proposal.updateMany({ where: { templateId: t.id, formato: "chacreamento_aberto" }, data: { formatoVersionId: v.id } });
+    console.log(`Chacreamento aberto com a planilha 2026: ${trocados.join("; ") || "nenhum item convertido"} · ${n.count} proposta(s)`);
+  }
 }
 
 /**

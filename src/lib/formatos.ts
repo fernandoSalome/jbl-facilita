@@ -18,6 +18,8 @@ export const QTD_CALC = {
   guias: { label: "Guias e sarjetas", unit: "m" },
   calcadas: { label: "Calçadas", unit: "m²" },
   arvores: { label: "Uma por lote", unit: "un." },
+  reservatorio: { label: "Reservatório (1 a cada 100 lotes)", unit: "un." },
+  casaQuimica: { label: "Casa química (1)", unit: "un." },
 } as const;
 export type QtdCalcKey = keyof typeof QTD_CALC;
 
@@ -46,6 +48,8 @@ export type FormatoContent = {
   contatos: { id: string }[];
   /** Textos e imagens alterados no template (os compartilhados e os deste formato) */
   overrides: Overrides;
+  /** Fórmulas de obra da planilha nova (2026) neste tipo de loteamento; vazio = as da planilha anterior */
+  planilha?: "2026";
   /** Textos que estavam diferentes entre os formatos quando foram unificados (para conferir no editor) */
   conflitos?: Conflito[];
 };
@@ -157,7 +161,7 @@ export const semMl = (t: string) => t.replace(/(\d[\d.,]*\s*)ml\b/gi, "$1m");
 export function qtdTexto(q: Qtd, r: StudyResult, fmtNum: (n: number, d?: number) => string) {
   if (q.kind === "calc") {
     const v = r.infra[q.key];
-    return `${fmtNum(v)} ${QTD_CALC[q.key].unit}`;
+    return `${Number.isInteger(v) ? fmtNum(v, 0) : fmtNum(v)} ${QTD_CALC[q.key].unit}`;
   }
   if (q.kind === "fixa") return semMl(q.text);
   return null;
