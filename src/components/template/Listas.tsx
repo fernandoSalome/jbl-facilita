@@ -39,6 +39,9 @@ function useLista<T extends { id: string }>(secao: string, base: T[]) {
   };
 }
 
+/** Infraestrutura: "(quando houver)" passa a ser "(se houver)", também nos templates e propostas já salvos */
+const seHouver = (t: string) => t.replace(/\(quando houver\)/gi, "(se houver)");
+
 function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
   const { overrides, editable, save } = useEdit();
   const q = (overrides[`liq.${item.id}`] as Qtd | undefined) ?? item.qtd;
@@ -150,8 +153,8 @@ export function TabelaObras({ secao, base, r, colunas, className = "tbl" }: { se
         <tbody>
           {l.itens.map((it) => (
             <tr key={it.id} className={l.editable ? "row-ed" : undefined}>
-              <td data-label={colunas === 3 ? "Obra" : "Item"}><E k={`li.${it.id}.obra`}>{it.obra}</E></td>
-              {colunas === 3 && <td data-label="O que é, em palavras simples"><E k={`li.${it.id}.desc`}>{it.desc || "—"}</E></td>}
+              <td data-label={colunas === 3 ? "Obra" : "Item"}><E k={`li.${it.id}.obra`} limpar={seHouver}>{seHouver(it.obra)}</E></td>
+              {colunas === 3 && <td data-label="O que é, em palavras simples"><E k={`li.${it.id}.desc`} limpar={seHouver}>{seHouver(it.desc || "—")}</E></td>}
               <td data-label={colunas === 3 ? "Quantidade média" : "Previsão"} className="r">
                 <QtdCell item={it} r={r} />
                 {l.editable && <button type="button" className="row-del" title="Remover linha" onClick={() => l.remover(it.id)}>✕</button>}

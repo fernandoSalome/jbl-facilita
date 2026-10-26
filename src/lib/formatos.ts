@@ -213,9 +213,9 @@ function infraUrbana(p: string, pavimento: [string, string]): ObraItem[] {
 
 function complementarUrbana(p: string, construcao: string): ObraItem[] {
   return [
-    ob(p, "Reservatório de água (quando houver)", "", calc("reservatorio")),
-    ob(p, "Casa química de tratamento de água (quando houver)", "", calc("casaQuimica")),
-    ob(p, "Estação de tratamento de esgoto (quando houver)", "", proj()),
+    ob(p, "Reservatório de água (se houver)", "", calc("reservatorio")),
+    ob(p, "Casa química de tratamento de água (se houver)", "", calc("casaQuimica")),
+    ob(p, "Estação de tratamento de esgoto (se houver)", "", proj()),
     ob(p, "Sinalização de trânsito", "", proj()),
     ob(p, construcao, "", proj()),
     ob(p, "Cronograma de obras", "", { kind: "projetar", label: "Na aprovação" }),
@@ -233,7 +233,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     lei: "Lei Federal n.º 6.766/79",
     padroes: { metragemLote: 200, frenteLote: 8, aproveitamento: 0.5 },
     infra: infraUrbana("la", ["Pavimentação CBUQ", "Asfalto nas ruas"]),
-    complementar: complementarUrbana("lac", "Construção civil (quando houver)"),
+    complementar: complementarUrbana("lac", "Construção civil (se houver)"),
     benfeitorias: [
       "📹 Sistema de segurança (CFTV)", "🌳 Praça equipada e arborizada", "💪 Academia robusta ao ar livre", "🛝 Playground",
       "🚶 Pista de caminhada (piso saibro)", "🏀 Quadra poliesportiva", "🎾 Quadra de beach tennis", "🐕 Pet place", "🌿 Área verde",
@@ -285,10 +285,10 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
       ob("ca", "Jardinagem e paisagismo", "Plantas e jardins", proj()),
     ],
     complementar: [
-      ob("cac", "Casa química de tratamento de água (quando houver)", "", proj()),
+      ob("cac", "Casa química de tratamento de água (se houver)", "", proj()),
       ob("cac", "Sinalização de trânsito", "", proj()),
       ob("cac", "Construção civil: portal de acesso e área de lazer", "", proj()),
-      ob("cac", "Reflorestamento (quando houver)", "", proj()),
+      ob("cac", "Reflorestamento (se houver)", "", proj()),
       ob("cac", "Cronograma de obras", "", { kind: "projetar", label: "Na aprovação" }),
     ],
     benfeitorias: [
