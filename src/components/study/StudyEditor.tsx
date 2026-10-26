@@ -150,11 +150,11 @@ function In({ s, k, label, hint, disabled, nota }: { s: State; k: NumKey; label:
   );
 }
 
-function Out({ label, value, strong, nota }: { label: string; value: string; strong?: boolean; nota?: string }) {
+function Out({ label, value, strong, navy, nota }: { label: string; value: string; strong?: boolean; navy?: boolean; nota?: string }) {
   return (
     <div className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
       <span className="text-[13px] font-semibold text-navy">{label}</span>
-      <span className={`tabular px-2 py-1 text-right text-[13.5px] ${strong ? "font-bold text-navy" : "text-ink"}`}>{value}</span>
+      <span className={`tabular px-2 py-1 text-right text-[13.5px] ${strong ? "font-bold text-navy" : navy ? "text-navy" : "text-ink"}`}>{value}</span>
       {nota && <span className="col-start-2 -mt-1.5 px-2 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
     </div>
   );
@@ -186,9 +186,13 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="Total de Lotes" value={fmtNum(r.lotes, 2)} strong />
           </Box>
           <Box title="Parceria do Parcelamento de Solo">
-            <In s={s} k="incorporadorPct" label="Incorporador (%)" nota={`VGV à vista: ${fmtBRL(r.vgvAvistaInc)}`} />
-            <Out label="Terrenista (%)" value={fmtPct(r.terrenistaPct)} strong nota={`VGV à vista: ${fmtBRL(r.vgvAvistaTer)}`} />
-            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. Corretor que intermediou a parceria: sai da parte do incorporador (geralmente 2%). Vazio = sem corretagem" nota={r.intermediacaoPct > 0 ? `VGV à vista: ${fmtBRL(r.vgvAvista * r.intermediacaoPct)} (${fmtPct(r.intermediacaoPct)})` : undefined} />
+            {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
+            <In s={s} k="incorporadorPct" label="Incorporador (%)" />
+            <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
+            <Out label="Terrenista (%)" value={fmtPct(r.terrenistaPct)} strong />
+            <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
+            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. Corretor que intermediou a parceria: o percentual é sobre a parte do incorporador e sai dela (geralmente 2%). Vazio = sem corretagem" />
+            {r.intermediacaoPct > 0 && <Out label="VGV Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />}
           </Box>
         </div>
 
@@ -337,7 +341,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
           <div className="flex h-9 overflow-hidden rounded text-[11.5px] font-bold">
             <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct, 0) * 100}%` }}>{fmtPct(r.terrenistaPct, 0)}</div>
             <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct, 0)}</div>
-            {r.intermediacaoPct > 0 && <div className="bg-[#6F86A3]" style={{ width: `${r.intermediacaoPct * 100}%` }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`} />}
+            {r.intermediacaoPct > 0 && <div className="bg-[#6F86A3]" style={{ width: `${r.intermediacaoPct * 100}%` }} title={`Corretor ${fmtPct(i.intermediacaoPct ?? 0)} da parte do incorporador`} />}
             <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct, 0)}</div>
           </div>
           <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span></div>
