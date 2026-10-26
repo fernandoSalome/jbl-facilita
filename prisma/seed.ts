@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, separarEmoji } from "../src/lib/formatos";
+import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, separarEmoji, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -52,6 +52,58 @@ async function main() {
   await muroDoChacreamentoCondominio();
   await infraPelaPlanilha();
   await planilha2026NoChacreamentoAberto();
+  await planilha2026EmTodos();
+}
+
+/**
+ * A planilha nova (JBL Planilha Infla, 2026) vira a regra em todos os tipos de loteamento:
+ * marca a versão atual de cada tipo com as fórmulas de 2026 e passa a calcular os itens que
+ * ela calcula e estavam "A projetar" (calçadas, reservatório, casa química, rede de drenagem,
+ * poços de visita, bocas de lobo, bigode). A ligação de esgoto passa a ter a conta própria
+ * (rua + 4 m por lote). Os textos não mudam. Leva todas as propostas do tipo para a versão
+ * nova (o que foi ajustado em cada proposta continua por cima). Roda uma vez só.
+ */
+async function planilha2026EmTodos() {
+  const sem = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/<[^>]+>/g, " ");
+  const REGRAS: [RegExp, QtdCalcKey][] = [
+    [/^\s*calcadas/, "calcadas"],
+    [/reservatorio de agua/, "reservatorio"],
+    [/casa quimica/, "casaQuimica"],
+    [/rede de drenagem/, "drenagem"],
+    [/pocos? de visita/, "pocosVisita"],
+    [/boca de lobo/, "bocaLobo"],
+    [/bigode/, "bigode"],
+  ];
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    for (const f of FORMATOS) {
+      const atual = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!atual) continue;
+      const marcado = (atual.content as { planilha?: unknown } | null)?.planilha === "2026";
+      const c = parseContent(atual.content, f);
+      const trocados: string[] = [];
+      const ajustar = <T extends { id: string; obra: string; qtd: { kind: string; key?: string; label?: string } }>(itens: T[]) =>
+        itens.map((it) => {
+          const ov = c.overrides[`li.${it.id}.obra`];
+          const nome = sem(typeof ov === "string" ? ov.replace(/^html:/, "") : it.obra);
+          if (it.qtd.kind === "calc" && it.qtd.key === "ligacoes" && /esgoto/.test(nome) && !/agua/.test(nome)) {
+            trocados.push(`${it.obra} → ligacoesEsgoto`);
+            return { ...it, qtd: { kind: "calc", key: "ligacoesEsgoto" } };
+          }
+          if (it.qtd.kind !== "projetar" || it.qtd.label) return it;
+          const regra = REGRAS.find(([re]) => re.test(nome));
+          if (!regra) return it;
+          trocados.push(`${it.obra} → ${regra[1]}`);
+          return { ...it, qtd: { kind: "calc", key: regra[1] } };
+        });
+      const infra = ajustar(c.infra);
+      const complementar = ajustar(c.complementar);
+      if (marcado && !trocados.length) continue;
+      const v = await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, planilha: "2026", infra, complementar } as object } });
+      const n = await db.proposal.updateMany({ where: { templateId: t.id, formato: f }, data: { formatoVersionId: v.id } });
+      console.log(`Planilha 2026 (${f}): ${trocados.join("; ") || "nenhum item convertido"} · ${n.count} proposta(s)`);
+    }
+  }
 }
 
 /**

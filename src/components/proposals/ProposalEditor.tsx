@@ -210,8 +210,9 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
   /* ---------- envio ---------- */
   const publicUrl = `${origin}/p/${p.publicToken}`;
-  const hora = new Date().getHours();
-  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  // hora de São Paulo: bom dia das 3h às 12h, boa tarde das 12h às 18h, boa noite das 18h às 3h
+  const hora = Number(new Date().toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Sao_Paulo" })) % 24;
+  const saudacao = hora >= 3 && hora < 12 ? "Bom dia" : hora >= 12 && hora < 18 ? "Boa tarde" : "Boa noite";
   // mensagem base do WhatsApp: nome escolhido em "Proposta para", tipo de loteamento e gleba da proposta
   const trat = tratamento(data.meta.options.destinatario);
   const nomeMsg = trat.nome ? trat.rotulo : data.meta.ownerName;

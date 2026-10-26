@@ -128,6 +128,7 @@ export function E({
   fixo,
   vars: varsProp,
   limpar,
+  vazio,
 }: {
   k: string;
   children: string;
@@ -141,6 +142,8 @@ export function E({
    * trocar "a definir" pelo número da planilha... Recebe o texto e se ele é HTML.
    */
   limpar?: (texto: string, html: boolean) => string;
+  /** O texto padrão é só uma dica: ao clicar abre o espaço em branco, e só grava o que for escrito */
+  vazio?: boolean;
 }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
@@ -308,9 +311,11 @@ export function E({
             const ini = antes.toString().length;
             trecho = [ini, ini + r0.toString().length];
           }
-          congelado.current = html;
-          ultimo.current = modelo;
-          modeloInicio.current = modelo;
+          // campo só com a dica: abre em branco (a dica não vira texto)
+          const soDica = vazio && norm(sanitizeHtml(modelo)) === norm(defaultHtml);
+          congelado.current = soDica ? "" : html;
+          ultimo.current = soDica ? "" : modelo;
+          modeloInicio.current = soDica ? "" : modelo;
           inicio.current = own[k];
           setEditing(true);
           // o cursor cai onde a pessoa clicou (dá para clicar numa palavra e já escrever)

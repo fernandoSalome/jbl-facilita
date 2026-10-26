@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["viasPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -32,7 +32,7 @@ function parse(text: string, kind: Kind): number | null {
 const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
-  entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", custoInfraM2: "brl", extensaoRede: "m",
+  entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", custoInfraM2: "brl", extensaoRede: "m",
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
@@ -118,7 +118,7 @@ function useCelula() {
   };
 }
 
-function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean }) {
+function In({ s, k, label, hint, disabled, nota }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string }) {
   const kind = KINDS[k]!;
   const celula = useCelula();
   return (
@@ -145,15 +145,17 @@ function In({ s, k, label, hint, disabled }: { s: State; k: NumKey; label: strin
         />
         {SUFFIX[kind] && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-navy/60">{SUFFIX[kind]}</span>}
       </span>
+      {nota && <span className="col-start-2 -mt-0.5 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
     </label>
   );
 }
 
-function Out({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Out({ label, value, strong, nota }: { label: string; value: string; strong?: boolean; nota?: string }) {
   return (
     <div className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
       <span className="text-[13px] font-semibold text-navy">{label}</span>
       <span className={`tabular px-2 py-1 text-right text-[13.5px] ${strong ? "font-bold text-navy" : "text-ink"}`}>{value}</span>
+      {nota && <span className="col-start-2 -mt-1.5 px-2 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
     </div>
   );
 }
@@ -184,8 +186,8 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="Total de Lotes" value={fmtNum(r.lotes, 2)} strong />
           </Box>
           <Box title="Parceria do Parcelamento de Solo">
-            <In s={s} k="incorporadorPct" label="Incorporador (%)" />
-            <Out label="Terrenista (%)" value={fmtPct(r.terrenistaPct)} strong />
+            <In s={s} k="incorporadorPct" label="Incorporador (%)" nota={`VGV à vista: ${fmtBRL(r.vgvAvistaInc)}`} />
+            <Out label="Terrenista (%)" value={fmtPct(r.terrenistaPct)} strong nota={`VGV à vista: ${fmtBRL(r.vgvAvistaTer)}`} />
           </Box>
         </div>
 
@@ -248,6 +250,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <In s={s} k="viasPct" label="Vias (%)" hint={`Aba Custo, F48. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável`} />
             <In s={s} k="larguraVia" label="Largura da via (m)" hint="Aba Custo, F54: rua + calçadas" />
             <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Aba Custo, F55: cada lado" />
+            <In s={s} k="quadraMax" label="Tamanho máximo da quadra (m)" hint="Planilha 2026, C14: entra nos poços de visita, bocas de lobo e bigode. Vazio = esses itens ficam “A projetar”" />
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
             <In s={s} k="desagio" label="Deságio da antecipação" />

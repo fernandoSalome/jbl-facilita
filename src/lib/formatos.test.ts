@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { chaveDoTipo, estavel, FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, semEmojiHtml, separar, separarEmoji, type FormatoContent } from "./formatos";
+import { chaveDoTipo, estavel, FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, qtdTexto, semEmojiHtml, separar, separarEmoji, type FormatoContent } from "./formatos";
+import { calcular } from "./calc";
 import { cleanOverride } from "./sanitize";
 import { limparConteudo } from "./template-salvar";
 
@@ -86,5 +87,24 @@ describe("emoji das benfeitorias", () => {
     expect(cleanOverride("li.lab1.emoji", "🌲")).toBe("🌲");
     expect(cleanOverride("li.lab1.emoji", "<script>")).toBe(undefined);
     expect(cleanOverride("lista.benfeitorias", { added: [{ id: "n1", texto: "Lago", emoji: "🛶" }] })).toEqual({ added: [{ id: "n1", texto: "Lago", emoji: "🛶" }], removed: [] });
+  });
+});
+
+describe("planilha nova (2026) como regra", () => {
+  it("todos os tipos usam as fórmulas de 2026, inclusive versões antigas sem a marca", () => {
+    for (const f of FORMATOS) {
+      expect(FORMATOS_INICIAIS[f].planilha).toBe("2026");
+      expect(parseContent({ label: "x", infra: [], overrides: {} }, f).planilha).toBe("2026");
+      expect(limparConteudo(FORMATOS_INICIAIS[f], f).planilha).toBe("2026");
+    }
+  });
+  it("poços de visita, bocas de lobo e bigode ficam 'A projetar' sem o tamanho da quadra", () => {
+    const r = calcular({ areaTotal: 100000, metragemLote: 360, frenteLote: 12, aproveitamento: 0.5, valorM2Etapa1: 500, planilhaInfra: "2026" });
+    const fmt = (n: number) => String(n);
+    expect(qtdTexto({ kind: "calc", key: "pocosVisita" }, r, fmt)).toBeNull();
+    expect(qtdTexto({ kind: "calc", key: "drenagem" }, r, fmt)).not.toBeNull();
+    const q = calcular({ areaTotal: 100000, metragemLote: 360, frenteLote: 12, aproveitamento: 0.5, valorM2Etapa1: 500, planilhaInfra: "2026", quadraMax: 100 });
+    expect(q.infra.pocosVisita).toBeGreaterThan(0);
+    expect(q.infra.bocaLobo).toBeCloseTo((q.infra.pocosVisita! / (1 + 1 / 1.3333)) * 2, 6);
   });
 });

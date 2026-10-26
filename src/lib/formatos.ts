@@ -20,6 +20,11 @@ export const QTD_CALC = {
   arvores: { label: "Uma por lote", unit: "un." },
   reservatorio: { label: "Reservatório (1 a cada 100 lotes)", unit: "un." },
   casaQuimica: { label: "Casa química (1)", unit: "un." },
+  ligacoesEsgoto: { label: "Ligações de esgoto (rua + 4 m por lote)", unit: "m" },
+  drenagem: { label: "Rede de drenagem (20% das vias)", unit: "m" },
+  pocosVisita: { label: "Poços de visita (drenagem + esgoto)", unit: "un." },
+  bocaLobo: { label: "Bocas de lobo (2 por PV de drenagem)", unit: "un." },
+  bigode: { label: "Bigode (PV × largura da rua)", unit: "m" },
 } as const;
 export type QtdCalcKey = keyof typeof QTD_CALC;
 
@@ -48,7 +53,7 @@ export type FormatoContent = {
   contatos: { id: string }[];
   /** Textos e imagens alterados no template (os compartilhados e os deste formato) */
   overrides: Overrides;
-  /** Fórmulas de obra da planilha nova (2026) neste tipo de loteamento; vazio = as da planilha anterior */
+  /** Fórmulas de obra da planilha nova (2026, a regra em todos os tipos); vazio = as da planilha anterior */
   planilha?: "2026";
   /** Textos que estavam diferentes entre os formatos quando foram unificados (para conferir no editor) */
   conflitos?: Conflito[];
@@ -161,6 +166,7 @@ export const semMl = (t: string) => t.replace(/(\d[\d.,]*\s*)ml\b/gi, "$1m");
 export function qtdTexto(q: Qtd, r: StudyResult, fmtNum: (n: number, d?: number) => string) {
   if (q.kind === "calc") {
     const v = r.infra[q.key];
+    if (v === null || v === undefined) return null; // falta um dado da planilha: "A projetar"
     return `${Number.isInteger(v) ? fmtNum(v, 0) : fmtNum(v)} ${QTD_CALC[q.key].unit}`;
   }
   if (q.kind === "fixa") return semMl(q.text);
@@ -188,14 +194,14 @@ function infraUrbana(p: string, pavimento: [string, string]): ObraItem[] {
     ob(p, "Topografia e terraplenagem", "Medir e nivelar o terreno", proj("m²")),
     ob(p, "Abertura de logradouros", "Abrir as ruas", calc("logradouros")),
     ob(p, "Rede principal de esgoto", "Cano grande de coleta e tratamento", calc("rede")),
-    ob(p, "Ligações de esgoto", "Do cano grande até cada lote", calc("ligacoes")),
-    ob(p, "Boca de lobo dupla", "Entradas de água da chuva na rua", proj("un.")),
+    ob(p, "Ligações de esgoto", "Do cano grande até cada lote", calc("ligacoesEsgoto")),
+    ob(p, "Boca de lobo dupla", "Entradas de água da chuva na rua", calc("bocaLobo")),
     ob(p, "Rede principal de água", "Cano grande de água", calc("rede")),
     ob(p, "Ligação de rede de água", "Do cano grande até cada lote", calc("ligacoes")),
-    ob(p, "Rede de drenagem pluvial", "Caminho da água da chuva", proj("m²")),
-    ob(p, "Drenagem “bigode”", "Ligação à rede principal", proj("un.")),
+    ob(p, "Rede de drenagem pluvial", "Caminho da água da chuva", calc("drenagem")),
+    ob(p, "Drenagem “bigode”", "Ligação à rede principal", calc("bigode")),
     ob(p, "Dissipador de drenagem", "Galeria em forma de escada", { kind: "fixa", text: "1 un." }),
-    ob(p, "Poços de visita", "Tampas redondas de água, drenagem e esgoto", proj("un.")),
+    ob(p, "Poços de visita", "Tampas redondas de água, drenagem e esgoto", calc("pocosVisita")),
     ob(p, "Rede elétrica", "Postes e fios de luz", calc("eletrica")),
     ob(p, pavimento[0], pavimento[1], calc("logradouros")),
     ob(p, "Guias e sarjetas", "Meio-fio e canaleta da rua", calc("guias")),
@@ -207,8 +213,8 @@ function infraUrbana(p: string, pavimento: [string, string]): ObraItem[] {
 
 function complementarUrbana(p: string, construcao: string): ObraItem[] {
   return [
-    ob(p, "Reservatório de água (quando houver)", "", proj()),
-    ob(p, "Casa química de tratamento de água (quando houver)", "", proj()),
+    ob(p, "Reservatório de água (quando houver)", "", calc("reservatorio")),
+    ob(p, "Casa química de tratamento de água (quando houver)", "", calc("casaQuimica")),
     ob(p, "Estação de tratamento de esgoto (quando houver)", "", proj()),
     ob(p, "Sinalização de trânsito", "", proj()),
     ob(p, construcao, "", proj()),
@@ -235,6 +241,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     ].map((t) => bf("lab", t)),
     contatos: CONTATOS,
     overrides: BASE_OV,
+    planilha: "2026",
   },
   condominio_urbano: {
     label: "Condomínio Urbano",
@@ -252,6 +259,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     ].map((t) => bf("cub", t)),
     contatos: CONTATOS,
     overrides: BASE_OV,
+    planilha: "2026",
   },
   chacreamento_aberto: {
     label: "Chacreamento Aberto",
@@ -289,6 +297,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     ].map((t) => bf("cab", t)),
     contatos: CONTATOS,
     overrides: BASE_OV,
+    planilha: "2026",
   },
   chacreamento_condominio: {
     label: "Chacreamento Condomínio",
@@ -307,6 +316,7 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     ].map((t) => bf("ccb", t)),
     contatos: CONTATOS,
     overrides: BASE_OV,
+    planilha: "2026",
   },
 };
 

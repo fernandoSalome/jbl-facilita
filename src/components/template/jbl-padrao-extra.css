@@ -10,6 +10,8 @@
 .jblt .ed.changed::after { content: "✎"; display: inline-block; margin-left: 4px; width: 16px; height: 16px; border-radius: 50%; background: #e0a800; color: #fff; font: 700 10px/16px var(--body); text-align: center; vertical-align: super; font-style: normal; letter-spacing: 0; text-transform: none; }
 .jblt .ed.editing { outline: none; background: #fff; color: var(--navy); box-shadow: 0 0 0 2px var(--gold), 0 8px 24px -10px rgba(18,42,69,.35); }
 .jblt .ed.editing::after { display: none; }
+/* campo aberto em branco (observações): o espaço continua visível para escrever */
+.jblt .ed.editing:empty { display: inline-block; min-width: 100%; min-height: 1.5em; }
 .jblt a .ed, .jblt button .ed { cursor: text; }
 
 /* ---------- edição: imagens ---------- */
@@ -218,6 +220,7 @@
 /* Observações do projeto (sem texto: dica apagada, só na edição) */
 .jblt .obs-sec .faq > div { padding-block: 14px; }
 .jblt .obs-vazio { color: var(--muted); font-style: italic; opacity: .75; }
+.jblt .obs-vazio:has(.ed.editing) { font-style: normal; opacity: 1; }
 .jblt .obs-div { margin: 18px 0 26px; }
 .jblt .calc .f .idx-res small { margin-top: 8px; }
 

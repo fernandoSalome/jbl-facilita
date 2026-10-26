@@ -43,8 +43,8 @@ export type TemplateProps = {
 };
 
 /** Texto do template. Chave "txt.<k>". */
-function T({ k, children, multiline, html, fixo, vars, limpar }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string }) {
-  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo} vars={vars} limpar={limpar}>{children}</E>;
+function T({ k, children, multiline, html, fixo, vars, limpar, vazio }: { k: string; children: string; multiline?: boolean; html?: boolean; fixo?: boolean; vars?: Record<string, string>; limpar?: (t: string, html: boolean) => string; vazio?: boolean }) {
+  return <E k={`txt.${k}`} multiline={multiline} html={html} fixo={fixo} vars={vars} limpar={limpar} vazio={vazio}>{children}</E>;
 }
 /**
  * Texto que muda com o destinatário: a edição vale só para aquele tipo (chave "txt.<k>@familia" ou "@pessoa").
@@ -817,7 +817,7 @@ export default function JblPadrao(props: TemplateProps) {
                 </div>
                 {/* observação logo abaixo da divisão: só aparece para o cliente quando tem texto */}
                 {verObsDiv ? (
-                  <p className={`tip tip-full obs-div ${temObsDiv ? "" : "obs-vazio"}`}><T k="obsDivisao" multiline>{OBS_DIV_VAZIA}</T></p>
+                  <p className={`tip tip-full obs-div ${temObsDiv ? "" : "obs-vazio"}`}><T k="obsDivisao" multiline vazio>{OBS_DIV_VAZIA}</T></p>
                 ) : editing && !ehTemplate ? (
                   <button type="button" className="add-pill obs-add" onClick={() => setAbrirObsDiv(true)}>+ Observação sobre a divisão</button>
                 ) : null}
@@ -990,7 +990,7 @@ export default function JblPadrao(props: TemplateProps) {
                 </div></div>
                 <div className="content faq">
                   <div>
-                    <p className={temObs ? undefined : "obs-vazio"}><T k="obsTexto" multiline>{OBS_VAZIA}</T></p>
+                    <p className={temObs ? undefined : "obs-vazio"}><T k="obsTexto" multiline vazio>{OBS_VAZIA}</T></p>
                   </div>
                 </div>
               </Sec>

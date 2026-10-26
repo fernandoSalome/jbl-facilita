@@ -64,8 +64,8 @@ function QtdCell({ item, r }: { item: ObraItem; r: StudyResult }) {
         <span className="tag pend"><E k={`li.${item.id}.qtd`}>{q.text}</E></span>
       )
     ) : (
-      // calculada pela área e pelos lotes: o valor não muda à mão, só o visual
-      <Fixo k={`li.${item.id}.calc`}>{txt}</Fixo>
+      // calculada pela planilha: o valor não muda à mão, só o visual; sem um dado necessário, "A projetar"
+      txt === null ? <span className="tag pend">A projetar</span> : <Fixo k={`li.${item.id}.calc`}>{txt}</Fixo>
     );
 
   if (!editable) return <>{conteudo}</>;

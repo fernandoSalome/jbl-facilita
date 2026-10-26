@@ -60,6 +60,8 @@ export type StudyInputs = {
    * (template), não é digitado. Vazio = as da planilha anterior (aba Custo).
    */
   planilhaInfra?: "2026" | null;
+  /** Planilha 2026, "DADOS DO PARCELAMENTO" C14: tamanho máximo da quadra (m). Vazio = poços de visita, bocas de lobo e bigode "A projetar" */
+  quadraMax: number | null;
   /** Custo de infraestrutura por m² de área aproveitável (R$) */
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
@@ -121,6 +123,7 @@ export const DEFAULT_INPUTS: StudyInputs = {
   viasPct: null,
   larguraVia: 12,
   larguraCalcada: 2,
+  quadraMax: null,
   custoInfraM2: 145,
   extensaoRede: null,
   lotesEtapa1: null,
@@ -212,7 +215,12 @@ export type StudyResult = {
   vendas: { mes1: number; mes2: number; mes3: number; total: number };
   /** Quantidades médias de infraestrutura, a partir da extensão da rede principal */
   /** Quantidades de obra: rede, ligações, ruas, energia e árvores pela aba "Custo" da planilha; guias e calçadas pela proporção com o São Judas */
-  infra: { rede: number; ligacoes: number; logradouros: number; eletrica: number; guias: number; calcadas: number; arvores: number; reservatorio: number; casaQuimica: number };
+  infra: {
+    rede: number; ligacoes: number; logradouros: number; eletrica: number; guias: number; calcadas: number; arvores: number;
+    reservatorio: number; casaQuimica: number; ligacoesEsgoto: number; drenagem: number;
+    /** dependem do tamanho máximo da quadra: null = "A projetar" */
+    pocosVisita: number | null; bocaLobo: number | null; bigode: number | null;
+  };
   /**
    * Primeira etapa (desmembramento): lotes digitados; pct = lotes × lote ÷ área aproveitável;
    * à vista = lotes × lote × m² da etapa; a prazo com o financiamento do estudo.
@@ -324,6 +332,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const compVias = i.larguraVia > 0 ? areaVias / i.larguraVia : 0; // F58 = F49 ÷ F54 (rede de água e esgoto, em metros)
   const larguraRua = Math.max(0, i.larguraVia - 2 * i.larguraCalcada); // F56 = F54 − (F55 + F55)
   const nova2026 = i.planilhaInfra === "2026";
+  // C36: poços de visita da drenagem = 2 × área ÷ ((quadra + via) × (2 × fundo do lote + via))
+  const fundoLote = i.frenteLote > 0 ? i.metragemLote / i.frenteLote : 0;
+  const pvDrenagem = i.quadraMax && i.quadraMax > 0 && i.larguraVia > 0 ? (2 * i.areaTotal) / ((i.quadraMax + i.larguraVia) * (2 * fundoLote + i.larguraVia)) : null;
   let etapa1: StudyResult["etapa1"] = null;
   // 1ª etapa sem o valor do m² do lote dela: não calcula (não usa o m² do estudo); a proposta mostra "a definir"
   const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
@@ -444,6 +455,11 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       arvores: Math.floor(lotes),
       reservatorio: lotes / 100, // CUSTOS H37: 1 a cada 100 lotes
       casaQuimica: 1, // CUSTOS H42
+      ligacoesEsgoto: lotes * (larguraRua + 4), // CUSTOS H50 = (rua + 4) × lotes
+      drenagem: compVias * 0.2, // C35 = (área de vias ÷ via) × 20%
+      pocosVisita: pvDrenagem === null ? null : pvDrenagem + pvDrenagem / 1.3333, // C36 (drenagem) + C34 (esgoto = C36 ÷ 1,3333)
+      bocaLobo: pvDrenagem === null ? null : pvDrenagem * 2, // C37
+      bigode: pvDrenagem === null ? null : pvDrenagem * larguraRua, // CUSTOS H64 = PV × rua (tubo de 400 mm, em metros)
     },
     etapa1,
     etapa1ADefinir,
