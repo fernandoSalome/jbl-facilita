@@ -146,15 +146,17 @@ function useCelula() {
   };
 }
 
-function In({ s, k, label, hint, disabled, nota }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string }) {
+/** Números que a planilha precisa (vazio ou zero quebra as contas): ficam em vermelho com aviso */
+const OBRIGATORIOS: NumKey[] = ["areaTotal", "aproveitamento", "frenteLote", "compLote", "valorM2", "incorporadorPct", "multiplicador", "anos", "larguraVia"];
+
+function In({ s, k, label, disabled, nota, erro: erroProp }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null }) {
   const kind = KINDS[k]!;
   const celula = useCelula();
+  const valor = s.inputs[k] as number | null;
+  const erro = disabled ? null : erroProp !== undefined ? erroProp : OBRIGATORIOS.includes(k) && !(typeof valor === "number" && valor > 0) ? "Preencha com um número maior que zero" : null;
   return (
-    <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1" title={hint}>
-      <span className="text-[13px] font-semibold text-navy">
-        {label}
-        {hint && <span className="ml-1 cursor-help text-[11px] font-normal text-muted">ⓘ</span>}
-      </span>
+    <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
+      <span className="text-[13px] font-semibold text-navy">{label}</span>
       <span className="relative">
         <input
           inputMode="decimal"
@@ -169,10 +171,12 @@ function In({ s, k, label, hint, disabled, nota }: { s: State; k: NumKey; label:
           value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
           placeholder={disabled ? "a definir" : k === "valorM2Etapa1" ? "obrigatório" : OPTIONAL.includes(k) ? "opcional" : ""}
-          className={`tabular w-full rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 pl-2 ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
+          aria-invalid={!!erro}
+          className={`tabular w-full rounded-sm border ${erro ? "border-rose-500 bg-rose-50 ring-1 ring-rose-300" : "border-[#9DC3E6] bg-[#DDEBF7]"} py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 pl-2 ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
         />
         {SUFFIX[kind] && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-navy/60">{SUFFIX[kind]}</span>}
       </span>
+      {erro && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] font-semibold text-rose-700">{erro}</span>}
       {nota && <span className="col-start-2 -mt-0.5 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
     </label>
   );
@@ -218,7 +222,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <In s={s} k="aproveitamento" label="Aproveitamento %" />
             <Out label="Área Útil (m²)" value={fmtNum(r.areaUtil)} />
             <Out label="Doação de Área + Vias (m²)" value={fmtNum(r.areaDoacao)} />
-            <Out label="Metragem do Lote (frente × comprimento)" value={`${fmtNum(i.metragemLote)} m²`} strong />
+            <Out label="Metragem do Lote (frente × comprimento)" value={i.frenteLote > 0 && i.compLote && i.compLote > 0 ? `${fmtNum(i.metragemLote)} m²` : "— preencha frente e comprimento"} strong />
             <In s={s} k="frenteLote" label="Frente do lote (m)" hint="Planilha 2026, C7. Escreve “lotes de 8 × 25 metros” e entra nos poços de visita" />
             <In s={s} k="compLote" label="Comprimento do lote (m)" hint="Metragem do lote = frente × comprimento" />
             <In s={s} k="larguraVia" label="Largura da via (m)" hint="Planilha 2026, C8: rua + calçadas" />
@@ -310,7 +314,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="Valor do Lote em Contrato" value={fmtBRL(r.valorLoteContrato)} />
           </Box>
           {/* Dados que a planilha não tem, usados no site da proposta */}
-          <Box title="Para o site da proposta" right="não está na planilha">
+          <Box title="Infraestrutura e securitização">
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
             <In s={s} k="desagio" label="Deságio da antecipação" />
@@ -434,6 +438,9 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const i = r.inputs;
   const off = !!i.etapaADefinir;
   const q = r.etapa1?.quadras ?? null;
+  // lote da etapa = frente (vazia = a do estudo) × comprimento; com zero ou vazio não calcula
+  const frenteE1 = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;
+  const loteE1Ok = i.frenteE1 !== 0 && frenteE1 > 0 && !!(i.compLoteE1 && i.compLoteE1 > 0);
   const v = (x: string) => (off ? "a definir" : q ? x : "—");
   const m2 = (n: number) => `${fmtNum(n)} m²`;
   return (
@@ -445,9 +452,9 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quadras" disabled={off} />
         <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
-        <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
-        <In s={s} k="compLoteE1" label="Comprimento do lote (m)" hint="Metragem do lote da etapa = frente × comprimento" disabled={off} />
-        <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : `${fmtNum((i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote) * (i.compLoteE1 ?? 0))} m²`} />
+        <In s={s} k="frenteE1" label="Frente do lote (m)" disabled={off} erro={i.frenteE1 === 0 ? "A frente não pode ser zero (vazio = a do estudo)" : null} />
+        <In s={s} k="compLoteE1" label="Comprimento do lote (m)" disabled={off} erro={!(i.compLoteE1 && i.compLoteE1 > 0) ? "Preencha o comprimento (maior que zero)" : null} />
+        <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : loteE1Ok ? `${fmtNum(frenteE1 * (i.compLoteE1 ?? 0))} m²` : "— preencha frente e comprimento"} />
         <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />

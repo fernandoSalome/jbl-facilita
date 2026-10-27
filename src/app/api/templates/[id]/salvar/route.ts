@@ -10,6 +10,7 @@ import { limparConteudo } from "@/lib/template-salvar";
  *   aplicar = "todas":    todas as propostas do template passam para as versões novas
  *                         (textos personalizados em cada proposta continuam valendo)
  *   aplicar = "proximas": as propostas existentes ficam nas versões anteriores
+ *   aplicar = "selecionadas" + propostas: só essas passam para as versões novas (as outras ficam como estão)
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async (s) => {
@@ -19,7 +20,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const b = await req.json().catch(() => null);
     const comum = b?.comum as ComumContent | undefined;
     const tipos = b?.tipos as Record<FormatoKey, TipoContent> | undefined;
-    if (!comum?.overrides || !tipos || FORMATOS.some((f) => !tipos[f]) || (b.aplicar !== "todas" && b.aplicar !== "proximas")) {
+    if (!comum?.overrides || !tipos || FORMATOS.some((f) => !tipos[f]) || !["todas", "proximas", "selecionadas"].includes(b.aplicar)) {
       return json({ error: "Dados inválidos" }, 400);
     }
 
@@ -30,6 +31,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return json({ error: (e as Error).message }, 400);
     }
 
+    const escolhidas: string[] = Array.isArray(b.propostas) ? b.propostas.filter((x: unknown) => typeof x === "string").slice(0, 2000) : [];
     let atualizadas = 0;
     for (const [formato, content] of conteudos) {
       const atual = await latestVersion(tpl.id, formato);
@@ -42,6 +44,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         // inclui as excluídas, para que fiquem certas se forem reativadas; a contagem mostra só as ativas
         await db.proposal.updateMany({ where: { templateId: tpl.id, formato }, data: { formatoVersionId: v.id } });
         atualizadas += await db.proposal.count({ where: { templateId: tpl.id, formato, deletedAt: null } });
+      } else if (b.aplicar === "selecionadas" && escolhidas.length) {
+        const r = await db.proposal.updateMany({ where: { templateId: tpl.id, formato, id: { in: escolhidas }, deletedAt: null }, data: { formatoVersionId: v.id } });
+        atualizadas += r.count;
       }
     }
     return json({ ok: true, atualizadas });

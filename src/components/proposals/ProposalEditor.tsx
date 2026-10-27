@@ -321,6 +321,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
                   <button
                     className="font-semibold text-navy underline"
                     onClick={async () => {
+                      // proposta já enviada: o cliente vai ver a mudança no link
+                      if (p.status !== "rascunho" && !confirm("Esta proposta já foi enviada. Ao atualizar para o template atual, o cliente vai ver as mudanças no link. Continuar?")) return;
                       await patch({ atualizarTemplate: true });
                       window.location.reload();
                     }}

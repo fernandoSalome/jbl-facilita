@@ -108,3 +108,14 @@ describe("planilha nova (2026) como regra", () => {
     expect(Number.isInteger(q.infra.bocaLobo)).toBe(true);
   });
 });
+
+describe("emoji padrão das benfeitorias", () => {
+  it("escolhe pelo tipo do item", async () => {
+    const { emojiPadrao } = await import("./formatos");
+    expect(emojiPadrao("Piscina adulto e infantil")).toBe("🏊");
+    expect(emojiPadrao("Academia ao ar livre")).toBe("💪");
+    expect(emojiPadrao("<b>Quadra de beach tennis</b>")).toBe("🎾");
+    expect(emojiPadrao("Praça central")).toBe("🌳");
+    expect(emojiPadrao("Item qualquer")).toBe("✨");
+  });
+});

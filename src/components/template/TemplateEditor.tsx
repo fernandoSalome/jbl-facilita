@@ -56,12 +56,14 @@ export default function TemplateEditor({
   formatos,
   counts,
   inicial,
+  propostas,
 }: {
   templateId: string;
   templateName: string;
   formatos: F[];
   counts: Record<string, { total: number; enviadas: number }>;
   inicial: FormatoKey;
+  propostas: { id: string; name: string; status: string; formato: string; projeto: string }[];
 }) {
   const router = useRouter();
   const [key, setKey] = useState<FormatoKey>(inicial);
@@ -89,7 +91,9 @@ export default function TemplateEditor({
 
   const [leaving, setLeaving] = useState<null | (() => void)>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [aplicar, setAplicar] = useState<"todas" | "proximas" | null>(null);
+  // propostas que também mudam ao salvar: rascunhos marcados; as já enviadas ficam protegidas (desmarcadas)
+  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  const rascunhos = useMemo(() => propostas.filter((p) => p.status === "rascunho").map((p) => p.id), [propostas]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -152,19 +156,20 @@ export default function TemplateEditor({
 
   async function salvar() {
     // nenhuma opção vem marcada: precisa escolher onde o template vai valer
-    if (!aplicar) return setMsg("Escolha onde o template vai valer: só nas propostas novas ou em todas.");
+    const enviadasMarcadas = propostas.filter((p) => p.status !== "rascunho" && marcadas.has(p.id)).length;
+    if (enviadasMarcadas && !confirm(`${enviadasMarcadas} proposta(s) já enviada(s) vão mudar: o cliente vai ver as mudanças no link. Continuar?`)) return;
     setBusy(true);
     setMsg("");
     const r = await fetch(`/api/templates/${templateId}/salvar`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comum: draft.comum, tipos: draft.tipos, aplicar }),
+      body: JSON.stringify({ comum: draft.comum, tipos: draft.tipos, aplicar: "selecionadas", propostas: [...marcadas] }),
     });
     const d = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok) return setMsg(d.error ?? "Não foi possível salvar.");
     setSaveOpen(false);
-    setMsg(aplicar === "todas" ? `✓ Template salvo e aplicado em ${d.atualizadas} proposta(s)` : "✓ Template salvo. Vale para as próximas propostas");
+    setMsg(d.atualizadas ? `✓ Template salvo: vale para as próximas propostas e foi aplicado em ${d.atualizadas} proposta(s)` : "✓ Template salvo. Vale para as próximas propostas; as que já existem ficaram como estavam");
     router.refresh();
   }
 
@@ -223,7 +228,7 @@ export default function TemplateEditor({
             {msg && <span className="text-[12.5px] font-semibold text-emerald-700">{msg}</span>}
             {dirty && <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Alterações não salvas</span>}
             {dirty && <button className="btn-ghost" onClick={() => setDraft(clone(salvo.draft))}>Descartar</button>}
-            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setAplicar(null); setSaveOpen(true); }}>Salvar</button>
+            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(rascunhos)); setSaveOpen(true); }}>Salvar</button>
           </div>
         </div>
       </div>
@@ -343,22 +348,43 @@ export default function TemplateEditor({
             {!dirty && conflitos.length > 0 && <li>• Confirma os textos unificados (o aviso de conferência some).</li>}
           </ul>
           <p className="text-[14px] font-semibold text-navy">Onde este template vai valer?</p>
-          <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "proximas" ? "border-gold bg-gold-soft" : "border-line"}`}>
-            <input type="radio" checked={aplicar === "proximas"} onChange={() => { setAplicar("proximas"); setMsg(""); }} className="mt-1 accent-[#A2782F]" />
-            <span>
-              <b className="block text-navy">Só nas propostas novas</b>
-              <span className="text-[13px] text-muted">O template muda só nas propostas criadas daqui para frente. As que já existem ficam como estão.</span>
-            </span>
-          </label>
-          <label className={`flex cursor-pointer gap-3 rounded border-[1.5px] p-3 ${aplicar === "todas" ? "border-gold bg-gold-soft" : "border-line"}`}>
-            <input type="radio" checked={aplicar === "todas"} onChange={() => { setAplicar("todas"); setMsg(""); }} className="mt-1 accent-[#A2782F]" />
-            <span>
-              <b className="block text-navy">Em todas as propostas (as que já existem e as novas)</b>
-              <span className="text-[13px] text-muted">
-                As {total} proposta(s) que usam este template{enviadas ? ` (${enviadas} já enviadas)` : ""} ficam iguais ao template. Só continua diferente o que foi mudado dentro de cada proposta e os números da planilha dela.
-              </span>
-            </span>
-          </label>
+          <p className="rounded bg-emerald-50 px-3 py-2 text-[13px] text-emerald-900 ring-1 ring-emerald-200">✓ Sempre nas <b>propostas novas</b>, criadas daqui para frente.</p>
+          {propostas.length > 0 && (
+            <div className="rounded border border-line">
+              <div className="flex flex-wrap items-center gap-2 border-b border-line bg-alt px-3 py-2 text-[13px]">
+                <b className="text-navy">Propostas que já existem: marque as que também devem mudar</b>
+                <span className="ml-auto flex gap-2 text-[12px]">
+                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(rascunhos))}>só rascunhos</button>
+                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set())}>nenhuma</button>
+                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(propostas.map((p) => p.id)))}>todas</button>
+                </span>
+              </div>
+              <div className="max-h-[38vh] overflow-y-auto">
+                {propostas.map((p) => {
+                  const enviada = p.status !== "rascunho";
+                  const on = marcadas.has(p.id);
+                  return (
+                    <label key={p.id} className={`flex cursor-pointer items-start gap-2.5 border-b border-line/70 px-3 py-2 text-[13px] last:border-0 ${on && enviada ? "bg-amber-50" : ""}`}>
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 accent-[#A2782F]"
+                        checked={on}
+                        onChange={(e) => setMarcadas((x) => { const n = new Set(x); if (e.target.checked) n.add(p.id); else n.delete(p.id); return n; })}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="font-semibold text-navy">{p.name}</span> <span className="text-muted">· {p.projeto} · {nomeTipo(p.formato as FormatoKey)}</span>
+                        <span className={`ml-1.5 inline-block rounded px-1.5 text-[11px] font-semibold ${enviada ? "bg-slate-100 text-slate-700" : "bg-gold-soft text-gold-ink"}`}>{enviada ? `🔒 ${p.status.replace("_", " ")}` : "rascunho"}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {propostas.some((p) => p.status !== "rascunho" && marcadas.has(p.id)) && (
+            <p className="rounded border-l-[3px] border-amber-500 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">⚠ Há proposta já enviada marcada: o cliente vai ver as mudanças no link.</p>
+          )}
+          <p className="text-[12.5px] text-muted">As desmarcadas ficam exatamente como estão. Dá para atualizar uma delas depois, dentro da própria proposta (aviso “versão anterior do template”). O que foi mudado dentro de cada proposta e os números da planilha dela continuam valendo.</p>
           {msg && <p className="text-sm font-semibold text-rose-700">{msg}</p>}
         </div>
       </Modal>

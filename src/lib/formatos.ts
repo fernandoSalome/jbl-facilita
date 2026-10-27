@@ -143,6 +143,44 @@ export function separarEmoji(t: string): { emoji: string | null; texto: string }
   return m ? { emoji: m[1], texto: t.slice(m[0].length) } : { emoji: null, texto: t };
 }
 
+/** Emoji padrão pelo tipo da benfeitoria (para itens sem emoji escolhido) */
+const EMOJI_POR_TIPO: [RegExp, string][] = [
+  [/portaria|guarita/, "🏛️"],
+  [/portal/, "🚪"],
+  [/muro|alambrado|cerca|fechamento/, "🧱"],
+  [/seguranc|cftv|camera|monitora/, "📹"],
+  [/piscina/, "🏊"],
+  [/gourmet|churrasq|quiosque/, "🍖"],
+  [/salao|festa|evento/, "🎉"],
+  [/academia (indoor|fechada)|fitness/, "🏋️"],
+  [/academia/, "💪"],
+  [/playground|parquinho|brinquedo/, "🛝"],
+  [/pista|caminhada|cooper/, "🚶"],
+  [/beach|tenis|padel/, "🎾"],
+  [/society|futebol|campo/, "⚽"],
+  [/quadra|poliesportiva|basquete|futsal|volei/, "🏀"],
+  [/\bpet\b|cachorro|canil/, "🐕"],
+  [/reflorest|plantio|muda/, "🌱"],
+  [/area verde|bosque|mata|jardim|paisag/, "🌿"],
+  [/praca/, "🌳"],
+  [/zen|medita|yoga/, "🧘"],
+  [/mirante|deck/, "🌄"],
+  [/trilha/, "🥾"],
+  [/tirolesa/, "🪂"],
+  [/lago|represa/, "🛶"],
+  [/internet|wi-?fi|fibra/, "🌐"],
+  [/ilumina|energia/, "💡"],
+  [/agua|reservatorio|poco/, "💧"],
+  [/asfalto|paviment|rua/, "🛣️"],
+  [/brinquedoteca|kids|infantil/, "🧸"],
+  [/jogos/, "🎱"],
+  [/lounge|espaco/, "🛋️"],
+];
+export function emojiPadrao(texto: string): string {
+  const n = texto.replace(/<[^>]+>/g, " ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return EMOJI_POR_TIPO.find(([re]) => re.test(n))?.[1] ?? "✨";
+}
+
 /** Tira o emoji do começo de um texto em HTML (pode vir depois de tags de abertura: "<b>🌳 Praça</b>") */
 export function semEmojiHtml(html: string) {
   const m = html.match(/^((?:<[a-z][^>]*>)*)([\s\S]*)$/i)!;

@@ -301,3 +301,7 @@
   .jblt .share.total { grid-template-columns: 14px minmax(0, 1fr) auto; }
   .jblt .share.total .pct { grid-column: 3; justify-self: end; }
 }
+
+/* Nome da JBL sempre em azul-escuro (nos fundos escuros continua na cor clara do bloco) */
+.jblt .marca-jbl { color: var(--navy); }
+.jblt :is(.cover-cta, .dl, .s-lots, .photo-bar, .photo figcaption, .tbl th, .badge, .nav .cta, .mv.mv-hl, .vs .tile.gold, .prazo-max .pm-ic, .tab[aria-pressed="true"]) .marca-jbl { color: inherit; }

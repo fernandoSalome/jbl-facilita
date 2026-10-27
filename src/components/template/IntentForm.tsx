@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { fmtNum } from "@/lib/format";
-import { E } from "./Editable";
+import { E, marcaJbl } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
 import { paragrafos, TITULO, type Campos, type Parte, type Projeto } from "@/lib/carta";
 
@@ -17,11 +17,13 @@ function Texto({ partes }: { partes: Parte[] }) {
     <>
       {partes.map((x, i) => {
         if (typeof x !== "string") {
-          if ("b" in x) return <strong key={i}>{x.b}</strong>;
+          if ("b" in x) return /JBL/.test(x.b) ? <strong key={i} className="marca-jbl">{x.b}</strong> : <strong key={i}>{x.b}</strong>;
           return <span key={i} className="fill empty">[{x.blank}]</span>;
         }
         const linhas = x.split("\n");
-        return <Fragment key={i}>{linhas.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{l}</Fragment>)}</Fragment>;
+        // o nome da JBL no meio do texto também em azul-escuro
+        const comMarca = (l: string) => (/JBL/.test(l) ? <span dangerouslySetInnerHTML={{ __html: marcaJbl(l.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)) }} /> : l);
+        return <Fragment key={i}>{linhas.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{comMarca(l)}</Fragment>)}</Fragment>;
       })}
     </>
   );

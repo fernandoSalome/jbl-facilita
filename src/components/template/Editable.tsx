@@ -118,6 +118,27 @@ function valueToHtml(v: unknown, fallback: string) {
   return v.startsWith(HTML_PREFIX) ? sanitizeHtml(v.slice(HTML_PREFIX.length)) : plainToHtml(v);
 }
 
+/* ------------------------------------------------------------------ nome da JBL em azul-escuro */
+
+const TEM_JBL = /JBL/;
+const P = (w: string) => `(?:${w}|${w.toLowerCase()}|${w.toUpperCase()}|${w[0].toUpperCase()}${w.slice(1).toLowerCase()})`;
+/** "JBL", "Grupo JBL", "JBL Incorporadora", "JBL Incorporadora e Urbanismo", "… Urbanismo e Empreendimentos Ltda" */
+const NOME_JBL = new RegExp(
+  `(?:${P("grupo")}\\s+)?JBL(?:\\s+${P("incorporadora")})?(?:\\s+(?:e\\s+|E\\s+)?${P("urbanismo")})?(?:\\s+(?:e|E)\\s+${P("empreendimentos")})?(?:\\s+(?:Ltda|LTDA)\\.?)?`,
+  "g",
+);
+/**
+ * Marca o nome da JBL para aparecer em azul-escuro (classe .marca-jbl). Só no texto mostrado:
+ * o texto salvo e o que se edita continuam sem a marca.
+ */
+export function marcaJbl(html: string): string {
+  if (!TEM_JBL.test(html)) return html;
+  return html
+    .split(/(<[^>]+>)/)
+    .map((parte) => (parte.startsWith("<") ? parte : parte.replace(NOME_JBL, (m) => `<span class="marca-jbl">${m}</span>`)))
+    .join("");
+}
+
 /* ------------------------------------------------------------------ texto */
 
 export function E({
@@ -231,8 +252,8 @@ export function E({
   }
 
   if (!editable) {
-    if (!al && !vars && !(k in overrides) && !isHtml && !children.includes("\n")) return <>{children}</>;
-    return <span style={alStyle} dangerouslySetInnerHTML={{ __html: html }} />;
+    if (!al && !vars && !(k in overrides) && !isHtml && !children.includes("\n") && !TEM_JBL.test(children)) return <>{children}</>;
+    return <span style={alStyle} dangerouslySetInnerHTML={{ __html: marcaJbl(html) }} />;
   }
 
   /** Grava o que está escrito agora (sem sair da edição) */
@@ -279,7 +300,7 @@ export function E({
         contentEditable={editing}
         suppressContentEditableWarning
         spellCheck={editing}
-        {...(editing ? {} : { dangerouslySetInnerHTML: { __html: html } })}
+        {...(editing ? {} : { dangerouslySetInnerHTML: { __html: marcaJbl(html) } })}
         onInput={() => {
           // salva sozinho 0,8 s depois de parar de digitar
           if (timer.current) clearTimeout(timer.current);

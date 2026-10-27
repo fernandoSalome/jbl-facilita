@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { StudyResult } from "@/lib/calc";
 import { fmtNum } from "@/lib/format";
-import { aplicarDiff, QTD_CALC, qtdTexto, semMl, unidade, semEmojiHtml, separarEmoji, type Benfeitoria, type ListaDiff, type ObraItem, type Qtd, type QtdCalcKey } from "@/lib/formatos";
+import { aplicarDiff, emojiPadrao, QTD_CALC, qtdTexto, semMl, unidade, semEmojiHtml, separarEmoji, type Benfeitoria, type ListaDiff, type ObraItem, type Qtd, type QtdCalcKey } from "@/lib/formatos";
 import type { Overrides } from "@/lib/proposals";
 import { HTML_PREFIX } from "@/lib/sanitize";
 import { E, Fixo, useEdit } from "./Editable";
@@ -183,7 +183,7 @@ const EMOJIS: [string, string[]][] = [
   ["Convivência", ["🍖", "🍽️", "🎉", "🎈", "⛱️", "🏕️", "⛺", "🪑", "🧒", "👨‍👩‍👧", "🚰", "♻️", "✨", "⭐", "❤️", "✅"]],
 ];
 
-/** Emoji em uso: o escolhido, senão o que estava no começo do texto (itens antigos) */
+/** Emoji em uso: o escolhido ("Sem emoji" vale), senão o do começo do texto (itens antigos), senão o padrão do tipo */
 function emojiDe(b: Benfeitoria, ov: Overrides): string | null {
   const escolhido = ov[`li.${b.id}.emoji`];
   if (typeof escolhido === "string") return escolhido || null;
@@ -193,7 +193,8 @@ function emojiDe(b: Benfeitoria, ov: Overrides): string | null {
     const e = separarEmoji(t).emoji;
     if (e) return e;
   }
-  return b.emoji ?? separarEmoji(b.texto).emoji;
+  // sem emoji escolhido: um padrão pelo tipo do item (piscina 🏊, academia 💪…)
+  return b.emoji ?? separarEmoji(b.texto).emoji ?? emojiPadrao(typeof salvo === "string" ? salvo.replace(HTML_PREFIX, "") : b.texto);
 }
 
 function GradeEmojis({ anchor, atual, onPick, onClose }: { anchor: HTMLElement; atual: string | null; onPick: (e: string) => void; onClose: () => void }) {

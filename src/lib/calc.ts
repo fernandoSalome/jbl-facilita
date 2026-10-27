@@ -368,7 +368,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   let etapa1: StudyResult["etapa1"] = null;
   // 1ª etapa sem o valor do m² do lote dela: não calcula (não usa o m² do estudo); a proposta mostra "a definir"
   const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
-  const etapa1ADefinir = !!i.etapaADefinir || etapa1FaltaValor;
+  // frente ou comprimento do lote da etapa digitados como zero: não calcula (a proposta mostra "a definir")
+  const etapa1LoteZero = (i.primeiraEtapa || !!i.lotesEtapa1) && (i.frenteE1 === 0 || i.compLoteE1 === 0);
+  const etapa1ADefinir = !!i.etapaADefinir || etapa1FaltaValor || etapa1LoteZero;
   if ((i.primeiraEtapa || i.lotesEtapa1) && !etapa1ADefinir && areaUtil > 0) {
     // lote da etapa: frente × comprimento (quando o comprimento é informado), senão a metragem digitada ou a do estudo
     const frenteLoteE = i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote;

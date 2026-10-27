@@ -24,8 +24,17 @@ export default async function ModeloPage({ params, searchParams }: { params: { i
       return [f.key, { total: rows.reduce((s, r) => s + r._count, 0), enviadas: rows.filter((r) => r.status !== "rascunho").reduce((s, r) => s + r._count, 0) }];
     }),
   );
+  // propostas que usam este template: ao salvar, escolhe quais também mudam
+  const propostas = (
+    await db.proposal.findMany({
+      where: { templateId: t.id, deletedAt: null },
+      select: { id: true, name: true, status: true, formato: true, project: { select: { name: true } } },
+      orderBy: { updatedAt: "desc" },
+    })
+  ).map((p) => ({ id: p.id, name: p.name, status: p.status, formato: p.formato, projeto: p.project.name }));
   return (
     <TemplateEditor
+      propostas={propostas}
       templateId={t.id}
       templateName={t.name}
       formatos={formatos.map(({ key, content, createdAt }) => ({ key, content, createdAt }))}
