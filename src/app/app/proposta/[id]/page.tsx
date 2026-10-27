@@ -17,6 +17,8 @@ export default async function PropostaPage({ params }: { params: { id: string } 
   });
   if (!p) notFound();
   const formato = await contentForProposal(p);
+  // carta de intenção mais recente desta proposta (dados que a pessoa enviou)
+  const carta = await db.intentLetter.findFirst({ where: { proposalId: p.id }, orderBy: { createdAt: "desc" }, select: { id: true, minutaStatus: true } });
   // proposta presa numa versão anterior do template (salvo com "só nas propostas novas")
   const ultima = await latestVersion(p.templateId, parseFormato(p.formato));
   const templateDesatualizado = !!(p.formatoVersionId && ultima && ultima.id !== p.formatoVersionId);
@@ -25,6 +27,7 @@ export default async function PropostaPage({ params }: { params: { id: string } 
     <ProposalEditor
       formato={formato}
       templateDesatualizado={templateDesatualizado}
+      carta={carta}
       proposal={{
         id: p.id,
         name: p.name,

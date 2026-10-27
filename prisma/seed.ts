@@ -53,6 +53,25 @@ async function main() {
   await infraPelaPlanilha();
   await planilha2026NoChacreamentoAberto();
   await planilha2026EmTodos();
+  await minutasComDadosNovosDaJbl();
+}
+
+/**
+ * Carta de intenção com os dados da empresa do modelo oficial (CNPJ, sede na Vila Olímpia e o
+ * sócio administrador). Minutas em revisão que já foram editadas: troca só o trecho da JBL e a
+ * assinatura (as edições continuam). As já enviadas para assinatura não mudam. Roda uma vez só.
+ */
+async function minutasComDadosNovosDaJbl() {
+  const ANTIGO = ", com sede jurídica na Alameda Rio Negro, n.º 503, Cj. 2011, 20º andar – Alphaville Empresarial, Barueri/SP, representada neste ato por seu sócio administrador, doravante ";
+  const NOVO =
+    ", inscrita no CNPJ sob n.º 58.521.773/0001-01, com sede jurídica na Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, São Paulo/SP – CEP: 04549-060, representada neste ato pelo sócio administrador, Felipe Stampini Oliveira Lopes, brasileiro, solteiro, engenheiro civil, portador do CPF: n.º 104.945.466-97 e n.º do documento de identidade: CNH: n.º 05625886555 - Órgão Emissor: SNT/MG, nascido em 20/9/1993, natural da cidade de Visconde do Rio Branco/MG, doravante ";
+  const ASSIN = "<strong>JBL Incorporadora Urbanismo e Empreendimentos Ltda</strong></div>";
+  const cartas = await db.intentLetter.findMany({ where: { minutaStatus: "revisao", minutaHtml: { contains: "Alameda Rio Negro" } }, select: { id: true, minutaHtml: true } });
+  for (const c of cartas) {
+    const html = c.minutaHtml!.split(ANTIGO).join(NOVO).split(ASSIN).join("<strong>JBL Incorporadora Urbanismo e Empreendimentos Ltda</strong><br><small>CNPJ sob n.º 58.521.773/0001-01</small></div>");
+    await db.intentLetter.update({ where: { id: c.id }, data: { minutaHtml: html } });
+  }
+  if (cartas.length) console.log(`Minutas com os dados novos da JBL: ${cartas.length}`);
 }
 
 /**

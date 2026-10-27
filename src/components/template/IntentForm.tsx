@@ -1,33 +1,16 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fmtNum } from "@/lib/format";
-import { E, marcaJbl } from "./Editable";
+import { E } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
-import { paragrafos, TITULO, type Campos, type Parte, type Projeto } from "@/lib/carta";
+import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, TITULO, valoresCarta, varsDoEditor, type Campos, type Projeto } from "@/lib/carta";
 
 /**
  * Carta de intenção: formulário no layout do site da proposta (campos à esquerda,
  * carta montando sozinha à direita). O envio continua indo para o servidor e
  * aparece como "Assinada" na lista de propostas.
  */
-
-function Texto({ partes }: { partes: Parte[] }) {
-  return (
-    <>
-      {partes.map((x, i) => {
-        if (typeof x !== "string") {
-          if ("b" in x) return /JBL/.test(x.b) ? <strong key={i} className="marca-jbl">{x.b}</strong> : <strong key={i}>{x.b}</strong>;
-          return <span key={i} className="fill empty">[{x.blank}]</span>;
-        }
-        const linhas = x.split("\n");
-        // o nome da JBL no meio do texto também em azul-escuro
-        const comMarca = (l: string) => (/JBL/.test(l) ? <span dangerouslySetInnerHTML={{ __html: marcaJbl(l.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)) }} /> : l);
-        return <Fragment key={i}>{linhas.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{comMarca(l)}</Fragment>)}</Fragment>;
-      })}
-    </>
-  );
-}
 
 const MASCARAS: Record<string, string | ((digitos: string) => string)> = {
   p_cpf: CPF,
@@ -137,9 +120,9 @@ export default function IntentForm({
     setSending(true);
     try {
       const body = {
-        proprietario: { nome: g("p_nome"), cpf: g("p_cpf"), rg: g("p_rg"), nacionalidade: g("p_nac"), profissao: g("p_prof"), endereco: g("p_end"), telefone: g("p_tel"), email: g("p_email") },
+        proprietario: { nome: g("p_nome"), cpf: g("p_cpf"), rg: g("p_rg"), nacionalidade: g("p_nac"), profissao: g("p_prof"), nascimento: g("p_nasc"), naturalidade: g("p_natural"), endereco: g("p_end"), telefone: g("p_tel"), email: g("p_email") },
         casamento: { estadoCivil: g("estado_civil"), data: g("c_data"), regime: g("c_regime"), matricula: g("c_matricula"), rcpn: g("c_rcpn"), municipio: g("c_municipio") },
-        conjuge: { nome: g("j_nome"), cpf: g("j_cpf"), rg: g("j_rg"), nacionalidade: g("j_nac"), profissao: g("j_prof") },
+        conjuge: { nome: g("j_nome"), cpf: g("j_cpf"), rg: g("j_rg"), nacionalidade: g("j_nac"), profissao: g("j_prof"), nascimento: g("j_nasc"), naturalidade: g("j_natural") },
         imovel: { areaHa: g("i_area"), zona: g("i_zona"), municipio: g("i_municipio"), cartorio: g("i_cartorio"), matriculas: g("i_matriculas"), car: g("i_car") },
         interesse: { modalidade: g("modalidade"), prazo: g("prazo"), reuniao: g("reuniao"), observacoes: g("obs") },
         local: g("i_municipio"),
@@ -161,19 +144,25 @@ export default function IntentForm({
   }
 
   const assinaturas: [string, string][] = [
-    ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", ""],
+    ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", `CNPJ sob n.º ${CNPJ_JBL}`],
     [g("p_nome") || "Proprietário(a)", `CPF: n.º ${g("p_cpf")}`],
     ...(g("j_nome") ? [[g("j_nome"), `CPF: n.º ${g("j_cpf")}`] as [string, string]] : []),
   ];
 
+  const varsCarta = varsDoEditor(valoresCarta(v, project));
   const carta = (
     <div className="preview" aria-live="polite">
       <div className="minuta-aviso">
         <strong><E k="form.minutaTitulo">Veja como vai ficar a minuta</E></strong>
         <span><E k="form.minutaNota">Aqui você só envia os seus dados. A assinatura será feita depois, pelo gov.br, quando a JBL enviar a minuta.</E></span>
       </div>
-      <h3>{TITULO}</h3>
-      {paragrafos(v, project).map((p, i) => (p.h ? <p key={i} className="ci-h"><Texto partes={p.partes} /></p> : <p key={i}><Texto partes={p.partes} /></p>))}
+      <h3><E k="carta.titulo">{TITULO}</E></h3>
+      {/* cada parágrafo dá para editar (no template: todas as propostas); os dados do formulário ficam travados */}
+      {BLOCOS_CARTA.map((b) => (
+        <p key={b.k} className={b.h ? "ci-h" : undefined}>
+          <E k={b.k} html vars={varsCarta} campos={CAMPOS_CARTA}>{b.texto}</E>
+        </p>
+      ))}
       {assinaturas.map(([n, s], i) => (
         <div key={i} className="sig"><strong>{n}</strong>{s && <><br /><small>{s}</small></>}</div>
       ))}
@@ -201,6 +190,7 @@ export default function IntentForm({
           {I({ k: "p_nome", label: "Nome completo" })}
           <div className="row2">{I({ k: "p_cpf", label: "CPF", mode: "numeric" })}{I({ k: "p_rg", label: "RG" })}</div>
           <div className="row2">{I({ k: "p_nac", label: "Nacionalidade" })}{I({ k: "p_prof", label: "Profissão" })}</div>
+          <div className="row2">{I({ k: "p_nasc", label: "Data de nascimento", type: "date" })}{I({ k: "p_natural", label: "Natural de (cidade/UF)" })}</div>
           {I({ k: "p_end", label: "Endereço residencial (rua, número, bairro, cidade/UF)" })}
           <div className="row2">{I({ k: "p_email", label: "E-mail", type: "email" })}<div className="field">
             <L k="p_tel">Telefone com DDD</L>
@@ -224,6 +214,7 @@ export default function IntentForm({
           {I({ k: "j_nome", label: "Nome completo do cônjuge" })}
           <div className="row2">{I({ k: "j_cpf", label: "CPF do cônjuge", mode: "numeric" })}{I({ k: "j_rg", label: "RG do cônjuge" })}</div>
           <div className="row2">{I({ k: "j_nac", label: "Nacionalidade do cônjuge" })}{I({ k: "j_prof", label: "Profissão do cônjuge" })}</div>
+          <div className="row2">{I({ k: "j_nasc", label: "Nascimento do cônjuge", type: "date" })}{I({ k: "j_natural", label: "Cônjuge natural de (cidade/UF)" })}</div>
         </fieldset>
 
         <fieldset className="group"><legend><i>03</i><E k="form.grupo3b">Dados do imóvel</E></legend>

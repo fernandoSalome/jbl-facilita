@@ -305,3 +305,7 @@
 /* Nome da JBL sempre em azul-escuro (nos fundos escuros continua na cor clara do bloco) */
 .jblt .marca-jbl { color: var(--navy); }
 .jblt :is(.cover-cta, .dl, .s-lots, .photo-bar, .photo figcaption, .tbl th, .badge, .nav .cta, .mv.mv-hl, .vs .tile.gold, .prazo-max .pm-ic, .tab[aria-pressed="true"]) .marca-jbl { color: inherit; }
+
+/* carta de intenção: lacunas ([CPF]) e trechos opcionais vazios (só aparecem na edição) */
+.jblt .preview .lacuna { background: #F6EBD3; padding: 0 4px; border-radius: 3px; }
+.jblt.editing .preview .var-vazia::before { content: "[" attr(data-rotulo) "]"; opacity: .55; font-style: italic; font-size: .9em; }

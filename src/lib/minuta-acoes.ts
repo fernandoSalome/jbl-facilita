@@ -8,6 +8,8 @@ import { documentoMinuta, minutaInicial, novoTokenAssinatura, numeroWhatsapp, ty
 import { pdfDeHtml } from "./pdf";
 import { enviarTexto } from "./whatsapp";
 import { emailConfigurado, enviarEmail } from "./email";
+import { contentForProposal } from "./formato-server";
+import { parseOverrides } from "./proposals";
 
 export const carregarCarta = (id: string) => db.intentLetter.findUnique({ where: { id }, include: { proposal: { include: { project: true } } } });
 export type Carta = NonNullable<Awaited<ReturnType<typeof carregarCarta>>>;
@@ -18,14 +20,25 @@ export const linkAssinatura = (token: string) => `${LINK_BASE}/assinar/${token}`
 export const linkMinutaPortal = (id: string) => `${LINK_BASE}/app/minuta/${id}`;
 const rodapeDe = (c: Carta) => `Minuta · Carta de intenção · ${c.proposal.project.name} · Protocolo ${c.protocolo}`;
 
+/** Textos em uso na proposta: os do template (na versão dela) com os ajustes feitos só nela */
+export async function textosDaProposta(p: Carta["proposal"]) {
+  const f = await contentForProposal(p);
+  return { ...(f.overrides ?? {}), ...parseOverrides(p.overrides) };
+}
+
+/** Minuta montada agora com o texto da carta em uso na proposta e os dados enviados */
+export async function minutaMontada(c: Carta) {
+  return minutaInicial(dadosDe(c), c.proposal.project, c.createdAt, await textosDaProposta(c.proposal));
+}
+
 /** Texto atual da minuta (o editado, ou o montado com os dados enviados) */
-export function minutaAtual(c: Carta) {
-  return c.minutaHtml ?? minutaInicial(dadosDe(c), c.proposal.project, c.createdAt);
+export async function minutaAtual(c: Carta) {
+  return c.minutaHtml ?? (await minutaMontada(c));
 }
 
 /** PDF da minuta: a versão em revisão, ou a travada no link de assinatura */
 export async function pdfDaMinuta(c: Carta, travada = false) {
-  const corpo = travada && c.minutaFinal ? c.minutaFinal : minutaAtual(c);
+  const corpo = travada && c.minutaFinal ? c.minutaFinal : await minutaAtual(c);
   return pdfDeHtml(documentoMinuta(corpo, { titulo: `Minuta ${c.protocolo}` }), rodapeDe(c));
 }
 
@@ -36,9 +49,10 @@ export const nomeArquivo = (c: Carta, assinada = false) =>
 export async function garantirLink(c: Carta) {
   if (c.assinaturaToken && c.minutaStatus !== "revisao") return { token: c.assinaturaToken, carta: c };
   const token = novoTokenAssinatura();
+  const texto = await minutaAtual(c);
   const atual = await db.intentLetter.update({
     where: { id: c.id },
-    data: { minutaFinal: minutaAtual(c), minutaHtml: minutaAtual(c), assinaturaToken: token, minutaStatus: "enviada", linkGeradoEm: new Date(), sessaoHash: null, codigoHash: null, codigoTentativas: 0 },
+    data: { minutaFinal: texto, minutaHtml: texto, assinaturaToken: token, minutaStatus: "enviada", linkGeradoEm: new Date(), sessaoHash: null, codigoHash: null, codigoTentativas: 0 },
     include: { proposal: { include: { project: true } } },
   });
   return { token, carta: atual };

@@ -37,9 +37,9 @@ export const linkPortal = (origem: string, id: string) => `${origem}/app/propost
 /** Dados da carta em texto para o WhatsApp (só o que foi preenchido) */
 export function dadosDaCarta(b: Record<string, Record<string, unknown> | unknown>) {
   const grupos: [string, string, [string, string][]][] = [
-    ["Proprietário(a)", "proprietario", [["nome", "Nome"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"], ["endereco", "Endereço"], ["telefone", "Telefone"], ["email", "E-mail"]]],
+    ["Proprietário(a)", "proprietario", [["nome", "Nome"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"], ["nascimento", "Nascimento"], ["naturalidade", "Natural de"], ["endereco", "Endereço"], ["telefone", "Telefone"], ["email", "E-mail"]]],
     ["Casamento", "casamento", [["estadoCivil", "Estado civil"], ["data", "Data"], ["regime", "Regime de bens"], ["matricula", "Matrícula"], ["rcpn", "RCPN"], ["municipio", "Município"]]],
-    ["Cônjuge", "conjuge", [["nome", "Nome"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"]]],
+    ["Cônjuge", "conjuge", [["nome", "Nome"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"], ["nascimento", "Nascimento"], ["naturalidade", "Natural de"]]],
     ["Imóvel", "imovel", [["areaHa", "Área (ha)"], ["zona", "Zona"], ["municipio", "Município"], ["cartorio", "Cartório"], ["matriculas", "Matrícula(s)"], ["car", "CAR"]]],
     ["Interesse", "interesse", [["modalidade", "Modalidade"], ["prazo", "Prazo"], ["reuniao", "Reunião"], ["observacoes", "Observações"]]],
   ];

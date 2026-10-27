@@ -17,6 +17,7 @@ import ModoToggle from "@/components/template/ModoToggle";
 import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "./StatusBadge";
+import LetterModal from "./LetterModal";
 
 /**
  * Tela de edição da proposta: tudo salva sozinho e qualquer alteração pode ser
@@ -31,6 +32,8 @@ type Props = {
   formato: FormatoContent;
   /** a proposta usa uma versão anterior do template */
   templateDesatualizado?: boolean;
+  /** carta de intenção recebida por esta proposta */
+  carta?: { id: string; minutaStatus: string } | null;
   proposal: {
     id: string; name: string; ownerName: string; ownerPhone: string | null; status: string; rawStatus: string; publicToken: string;
     publishedAt: string | null; expiresAt: string | null; createdAt: string; template: string;
@@ -78,7 +81,8 @@ function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (
 
 /* ------------------------------------------------------------ tela */
 
-export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado }: Props) {
+export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado, carta }: Props) {
+  const [cartaAberta, setCartaAberta] = useState(false);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [numbersOpen, setNumbersOpen] = useState(false);
   const [numbersKey, setNumbersKey] = useState(0);
@@ -281,6 +285,11 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               <button onClick={undo} disabled={pos === 0} title="Desfazer (Ctrl+Z)" className="px-3 py-2 text-[13px] font-semibold text-navy hover:bg-alt disabled:opacity-35">↶ Desfazer</button>
               <button onClick={redo} disabled={pos >= hist.length} title="Refazer (Ctrl+Y)" className="border-l border-line px-3 py-2 text-[13px] font-semibold text-navy hover:bg-alt disabled:opacity-35">↷ Refazer</button>
             </div>
+            {carta && (
+              <button className="btn-ghost" onClick={() => setCartaAberta(true)} title="Dados enviados pela carta de intenção">
+                📥 Dados recebidos{carta.minutaStatus === "assinada" ? " · ✓ assinada" : carta.minutaStatus === "enviada" ? " · minuta enviada" : ""}
+              </button>
+            )}
             <button className={numbersOpen ? "btn-navy" : "btn-ghost"} onClick={() => setNumbersOpen((v) => !v)}>
               {numbersOpen ? "Fechar dados da planilha" : "Editar dados da planilha"}
             </button>
@@ -402,6 +411,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         </div>
         {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar dados da planilha” para abrir a conversa direto.</p>}
       </Modal>
+      {carta && <LetterModal id={cartaAberta ? carta.id : null} onClose={() => setCartaAberta(false)} />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
-import { limparMinuta, minutaInicial } from "@/lib/minuta";
-import { carregarCarta, dadosDe, enviarLinkEmail, enviarLinkWhatsapp, garantirLink, linkAssinatura, minutaAtual, nomeDe, reabrirMinuta } from "@/lib/minuta-acoes";
+import { limparMinuta } from "@/lib/minuta";
+import { carregarCarta, dadosDe, enviarLinkEmail, enviarLinkWhatsapp, garantirLink, linkAssinatura, minutaAtual, minutaMontada, nomeDe, reabrirMinuta } from "@/lib/minuta-acoes";
 import { emailConfigurado } from "@/lib/email";
 
 export const maxDuration = 60;
@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       telefone: p.telefone ?? "",
       email: p.email ?? "",
       emailConfigurado: emailConfigurado(),
-      html: minutaAtual(c),
+      html: await minutaAtual(c),
       editada: !!c.minutaHtml,
       status: c.minutaStatus,
       link: c.assinaturaToken && c.minutaStatus !== "revisao" ? linkAssinatura(c.assinaturaToken) : null,
@@ -68,7 +68,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       if (acao === "restaurar") {
         if (c.minutaStatus !== "revisao") return json({ error: "Reabra a minuta para editar." }, 409);
         await db.intentLetter.update({ where: { id: c.id }, data: { minutaHtml: null } });
-        return json({ html: minutaInicial(dadosDe(c), c.proposal.project, c.createdAt) });
+        return json({ html: await minutaMontada(c) });
       }
       return json({ error: "Ação inválida" }, 400);
     } catch (e) {

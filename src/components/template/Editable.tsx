@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { createPortal } from "react-dom";
 import type { Overrides } from "@/lib/proposals";
 import { escapeHtml, HTML_PREFIX, sanitizeHtml } from "@/lib/sanitize";
+import { VAR_HTML } from "@/lib/carta";
 
 /**
  * Edição visual da proposta. Tudo o que é alterado vira uma entrada em "overrides":
@@ -44,9 +45,15 @@ const norm = (s: string) => s.replace(/&nbsp;| /g, " ").trim();
 /** Troca {{nome}} pelo número da planilha. Na tela vira um bloco travado (não dá para apagar nem mudar só o número). */
 function preencher(modelo: string, vars: Record<string, string>) {
   return modelo.replace(/\{\{(\w+)\}\}/g, (_, n: string) =>
-    n in vars ? `<span class="num-var" contenteditable="false" data-var="${n}">${escapeHtml(vars[n])}</span>` : "",
+    n in vars ? `<span class="num-var" contenteditable="false" data-var="${n}">${valorVar(vars[n])}</span>` : "",
   );
 }
+
+/** Valor do campo na tela: texto (escapado) ou HTML já montado (marcado com VAR_HTML, ex.: dados da carta) */
+const valorVar = (v: string) => (v.startsWith(VAR_HTML) ? v.slice(VAR_HTML.length) : escapeHtml(v));
+
+/** Campos que dá para colocar no texto pela barra de edição, por grupo */
+export type CamposInserir = { grupo: string; campos: [campo: string, rotulo: string][] }[];
 
 /**
  * Lê o texto editado de volta, com os números como {{nome}} (assim continuam ligados à planilha).
@@ -150,6 +157,7 @@ export function E({
   vars: varsProp,
   limpar,
   vazio,
+  campos,
 }: {
   k: string;
   children: string;
@@ -165,6 +173,8 @@ export function E({
   limpar?: (texto: string, html: boolean) => string;
   /** O texto padrão é só uma dica: ao clicar abre o espaço em branco, e só grava o que for escrito */
   vazio?: boolean;
+  /** Campos (de `vars`) que a barra de edição oferece para colocar no texto */
+  campos?: CamposInserir;
 }) {
   const { overrides, own, editable, save } = useContext(EditCtx);
   const link = useContext(LinkCtx);
@@ -409,6 +419,7 @@ export function E({
           onCancel={cancel}
           align={al}
           onAlign={(v) => save(`al.${k}`, v)}
+          campos={campos && vars ? { lista: campos, vars } : undefined}
           onReset={() => {
             setEditing(false);
             save(k, null);
@@ -456,6 +467,7 @@ function Toolbar({
   onAlign,
   onCancel,
   onReset,
+  campos,
 }: {
   target: HTMLElement;
   multi: boolean;
@@ -466,8 +478,10 @@ function Toolbar({
   onAlign: (v: "left" | "center" | "right") => void;
   onCancel: () => void;
   onReset: () => void;
+  campos?: { lista: CamposInserir; vars: Record<string, string> };
 }) {
   const { overrides, save } = useContext(EditCtx);
+  const [camposAberto, setCamposAberto] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
   const range = useRef<Range | null>(null);
   const [pos, setPos] = useState({ top: -999, left: 0 });
@@ -518,6 +532,37 @@ function Toolbar({
       s.removeAllRanges();
       s.addRange(range.current);
     }
+  }
+
+  /** Coloca um campo (bloco travado, ex.: CPF do proprietário) onde está o cursor */
+  function inserirCampo(n: string) {
+    if (!campos) return;
+    restore();
+    const s = window.getSelection();
+    let r = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
+    if (!r || !target.contains(r.commonAncestorContainer)) {
+      r = document.createRange();
+      r.selectNodeContents(target);
+    }
+    r.collapse(false);
+    // cursor dentro de outro campo: entra logo depois dele
+    const no = r.startContainer.nodeType === 1 ? (r.startContainer as Element) : r.startContainer.parentElement;
+    const dentro = no?.closest("[data-var]");
+    if (dentro && target.contains(dentro)) r.setStartAfter(dentro);
+    const el = document.createElement("span");
+    el.className = "num-var";
+    el.contentEditable = "false";
+    el.dataset.var = n;
+    el.innerHTML = valorVar(campos.vars[n] ?? "");
+    r.insertNode(el);
+    r.setStartAfter(el);
+    r.collapse(true);
+    s?.removeAllRanges();
+    s?.addRange(r);
+    range.current = r.cloneRange();
+    setCamposAberto(false);
+    // salva como qualquer digitação
+    target.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   /** Formatação também nos números da planilha: liberados só durante o comando (o texto deles não muda) */
@@ -673,6 +718,36 @@ function Toolbar({
                 {s === "sm" ? "P" : s === "md" ? "M" : "G"}
               </B>
             ))}
+          </span>
+        </>
+      )}
+      {campos && (
+        <>
+          <Sep />
+          <span className="relative">
+            <button
+              type="button"
+              title="Colocar no texto um dado do formulário (fica travado e é preenchido com o que a pessoa digitar)"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setCamposAberto((v) => !v)}
+              className={`h-8 rounded px-2 text-[12.5px] font-semibold ${camposAberto ? "bg-gold text-navy" : "text-white hover:bg-white/15"}`}
+            >
+              ＋ Dados do formulário
+            </button>
+            {camposAberto && (
+              <span className="absolute right-0 top-full z-10 mt-1 block max-h-[340px] w-[320px] overflow-auto rounded-md bg-white p-2 text-left text-navy shadow-xl" onMouseDown={(e) => e.preventDefault()}>
+                {campos.lista.map((g) => (
+                  <span key={g.grupo} className="mb-1.5 block">
+                    <span className="block px-1.5 pb-0.5 pt-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">{g.grupo}</span>
+                    {g.campos.map(([n, rotulo]) => (
+                      <button key={n} type="button" onClick={() => inserirCampo(n)} className="block w-full rounded px-1.5 py-1 text-left text-[12.5px] leading-snug hover:bg-alt">
+                        {rotulo}
+                      </button>
+                    ))}
+                  </span>
+                ))}
+              </span>
+            )}
           </span>
         </>
       )}

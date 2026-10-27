@@ -3,7 +3,7 @@
  * A equipe revisa e edita (como num Word) e manda o link para assinatura pelo gov.br.
  */
 import { createHash, randomBytes, randomInt } from "node:crypto";
-import { paragrafos, TITULO, type Campos, type Parte } from "./carta";
+import { cartaMontada, CNPJ_JBL, type Campos } from "./carta";
 
 export type DadosCarta = {
   proprietario?: Record<string, string>;
@@ -23,31 +23,32 @@ const t = (x?: string) => (x ?? "").trim();
 export function camposDaCarta(d: DadosCarta): Campos {
   const p = d.proprietario ?? {}, c = d.casamento ?? {}, j = d.conjuge ?? {}, i = d.imovel ?? {};
   return {
-    p_nome: t(p.nome), p_cpf: t(p.cpf), p_rg: t(p.rg), p_nac: t(p.nacionalidade), p_prof: t(p.profissao), p_end: t(p.endereco),
+    p_nome: t(p.nome), p_cpf: t(p.cpf), p_rg: t(p.rg), p_nac: t(p.nacionalidade), p_prof: t(p.profissao), p_end: t(p.endereco), p_nasc: t(p.nascimento), p_natural: t(p.naturalidade),
     estado_civil: t(c.estadoCivil), c_data: t(c.data), c_regime: t(c.regime), c_matricula: t(c.matricula), c_rcpn: t(c.rcpn), c_municipio: t(c.municipio),
-    j_nome: t(j.nome), j_cpf: t(j.cpf), j_rg: t(j.rg), j_nac: t(j.nacionalidade), j_prof: t(j.profissao),
+    j_nome: t(j.nome), j_cpf: t(j.cpf), j_rg: t(j.rg), j_nac: t(j.nacionalidade), j_prof: t(j.profissao), j_nasc: t(j.nascimento), j_natural: t(j.naturalidade),
     i_area: t(i.areaHa), i_zona: t(i.zona), i_municipio: t(i.municipio), i_cartorio: t(i.cartorio), i_matriculas: t(i.matriculas), i_car: t(i.car),
   };
 }
 
 type Projeto = { name: string; municipio: string; uf: string; matricula: string | null };
 
-/** Minuta inicial (HTML): título, texto oficial com os dados e as assinaturas. Lacunas ficam marcadas */
-export function minutaInicial(d: DadosCarta, projeto: Projeto, criadaEm: Date): string {
+/**
+ * Minuta inicial (HTML): título, texto da carta em uso na proposta (o do template ou o editado nela)
+ * com os dados e as assinaturas. Lacunas ficam marcadas
+ */
+export function minutaInicial(d: DadosCarta, projeto: Projeto, criadaEm: Date, overrides: Record<string, unknown> = {}): string {
   const campos = camposDaCarta(d);
   const quando = d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data) ? new Date(`${d.data}T12:00:00`) : criadaEm;
-  const parte = (x: Parte) => (typeof x === "string" ? esc(x).replace(/\n/g, "<br>") : "b" in x ? `<strong>${esc(x.b)}</strong>` : `<span class="lacuna">[${esc(x.blank)}]</span>`);
-  const corpo = paragrafos(campos, projeto, quando)
-    .map((pg) => (pg.h ? `<h3>${pg.partes.map(parte).join("")}</h3>` : `<p>${pg.partes.map(parte).join("")}</p>`))
-    .join("\n");
+  const carta = cartaMontada(overrides, campos, projeto, quando);
+  const corpo = carta.blocos.map((b) => (b.h ? `<h3>${b.html}</h3>` : `<p>${b.html}</p>`)).join("\n");
   const assinaturas = [
-    ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", ""],
+    ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", `CNPJ sob n.º ${CNPJ_JBL}`],
     [campos.p_nome || "Proprietário(a)", campos.p_cpf ? `CPF: n.º ${campos.p_cpf}` : ""],
     ...(campos.j_nome ? [[campos.j_nome, campos.j_cpf ? `CPF: n.º ${campos.j_cpf}` : ""]] : []),
   ]
     .map(([n, c]) => `<div class="sig"><strong>${esc(n)}</strong>${c ? `<br><small>${esc(c)}</small>` : ""}</div>`)
     .join("");
-  return `<h2 class="titulo">${esc(TITULO)}</h2>\n${corpo}\n<div class="assinaturas">${assinaturas}</div>`;
+  return `<h2 class="titulo">${esc(carta.titulo)}</h2>\n${corpo}\n<div class="assinaturas">${assinaturas}</div>`;
 }
 
 // ------------------------------------------------------------------ limpeza do HTML editado

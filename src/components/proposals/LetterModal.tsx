@@ -15,9 +15,9 @@ type Dados = {
 type Carta = { protocolo: string; createdAt: string; proposta: string; projeto: string; dados: Dados; anexo: string | null };
 
 const GRUPOS: [keyof Dados, string, [string, string][]][] = [
-  ["proprietario", "Proprietário", [["nome", "Nome completo"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"], ["telefone", "Telefone"], ["email", "E-mail"]]],
+  ["proprietario", "Proprietário", [["nome", "Nome completo"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"], ["nascimento", "Nascimento"], ["naturalidade", "Natural de"], ["endereco", "Endereço"], ["telefone", "Telefone"], ["email", "E-mail"]]],
   ["casamento", "Informações matrimoniais", [["estadoCivil", "Estado civil"], ["data", "Data do casamento"], ["regime", "Regime de bens"], ["matricula", "Matrícula"], ["rcpn", "RCPN"], ["municipio", "Município / comarca"], ["observacoes", "Observações"]]],
-  ["conjuge", "Cônjuge", [["nome", "Nome completo"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"]]],
+  ["conjuge", "Cônjuge", [["nome", "Nome completo"], ["cpf", "CPF"], ["rg", "RG"], ["nacionalidade", "Nacionalidade"], ["profissao", "Profissão"], ["nascimento", "Nascimento"], ["naturalidade", "Natural de"]]],
   ["imovel", "Imóvel", [["areaHa", "Área total (ha)"], ["zona", "Zona"], ["municipio", "Município"], ["cartorio", "Cartório de Registro de Imóveis"], ["matriculas", "Matrícula(s)"], ["car", "CAR(s)"]]],
 ];
 

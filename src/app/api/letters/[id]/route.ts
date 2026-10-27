@@ -1,7 +1,9 @@
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { fmtLongDate } from "@/lib/format";
-import { paragrafos, TITULO, type Parte } from "@/lib/carta";
+import { cartaMontada, CNPJ_JBL } from "@/lib/carta";
+import { camposDaCarta } from "@/lib/minuta";
+import { textosDaProposta } from "@/lib/minuta-acoes";
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -45,22 +47,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 
   // a carta com o texto oficial, preenchida com os dados enviados
-  const s = (x?: string) => (x ?? "").trim();
-  const campos: Record<string, string> = {
-    p_nome: s(p0().nome), p_cpf: s(p0().cpf), p_rg: s(p0().rg), p_nac: s(p0().nacionalidade), p_prof: s(p0().profissao), p_end: s(p0().endereco),
-    estado_civil: s(d.casamento?.estadoCivil), c_data: s(d.casamento?.data), c_regime: s(d.casamento?.regime), c_matricula: s(d.casamento?.matricula), c_rcpn: s(d.casamento?.rcpn), c_municipio: s(d.casamento?.municipio),
-    j_nome: s(d.conjuge?.nome), j_cpf: s(d.conjuge?.cpf), j_rg: s(d.conjuge?.rg), j_nac: s(d.conjuge?.nacionalidade), j_prof: s(d.conjuge?.profissao),
-    i_area: s(d.imovel?.areaHa), i_zona: s(d.imovel?.zona), i_municipio: s(d.imovel?.municipio), i_cartorio: s(d.imovel?.cartorio), i_matriculas: s(d.imovel?.matriculas), i_car: s(d.imovel?.car),
-  };
-  function p0() { return d.proprietario ?? {}; }
+  const campos: Record<string, string> = camposDaCarta(d);
   const proj = l.proposal.project;
   const quando = d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data) ? new Date(`${d.data}T12:00:00`) : l.createdAt;
-  const parte = (x: Parte) => (typeof x === "string" ? esc(x).replace(/\n/g, "<br>") : "b" in x ? `<strong>${esc(x.b)}</strong>` : `[${esc(x.blank)}]`);
-  const carta = paragrafos(campos, { name: proj.name, municipio: proj.municipio, uf: proj.uf, matricula: proj.matricula }, quando)
-    .map((pg) => (pg.h ? `<h3>${pg.partes.map(parte).join("")}</h3>` : `<p>${pg.partes.map(parte).join("")}</p>`))
-    .join("");
+  const montada = cartaMontada(await textosDaProposta(l.proposal), campos, { name: proj.name, municipio: proj.municipio, uf: proj.uf, matricula: proj.matricula }, quando);
+  const carta = montada.blocos.map((b) => (b.h ? `<h3>${b.html}</h3>` : `<p>${b.html}</p>`)).join("");
   const assinaturas = [
-    ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", ""],
+    ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", `CNPJ sob n.º ${CNPJ_JBL}`],
     [campos.p_nome || "Proprietário(a)", campos.p_cpf ? `CPF: n.º ${campos.p_cpf}` : ""],
     ...(campos.j_nome ? [[campos.j_nome, campos.j_cpf ? `CPF: n.º ${campos.j_cpf}` : ""]] : []),
   ].map(([n, c]) => `<div><strong>${esc(n)}</strong>${c ? `<br><small>${esc(c)}</small>` : ""}</div>`).join("");
@@ -79,14 +72,14 @@ h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#A2782F;bo
 p.decl{background:#F7F2E7;border-left:3px solid #C1943D;padding:12px 14px;font-size:14px}
 .sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:60px}.sig div{border-top:1px solid #122A45;padding-top:6px;text-align:center;font-size:13px}
 .bar{display:flex;gap:10px;margin:20px 0}.bar a,.bar button{font:600 14px Arial;padding:9px 14px;border-radius:4px;border:1px solid #122A45;background:#122A45;color:#fff;text-decoration:none;cursor:pointer}.bar a{background:#fff;color:#122A45}
-.ct{font-size:22px;text-align:center;margin-top:28px}.carta p{text-align:justify;font-size:14.5px}.carta h3{font-size:14px;margin:20px 0 6px;color:#122A45}
+.ct{font-size:22px;text-align:center;margin-top:28px}.carta p{text-align:justify;font-size:14.5px}.carta h3{font-size:14px;margin:20px 0 6px;color:#122A45}.carta .lacuna{background:#fff1c2;padding:0 3px}
 .sig3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.sig3 small{color:#697683}
 .quebra{break-before:page;page-break-before:always;height:1px;margin-top:40px;border-top:1px dashed #DDE3E9}
 @media print{.bar{display:none}body{margin:0}.quebra{border:0;margin:0}}
 </style></head><body>
 <div class="bar"><button onclick="print()">Imprimir / salvar PDF</button>${d.matricula?.data ? `<a href="?anexo=1" target="_blank">📎 Ver matrícula anexada (${esc(d.matricula.name)})</a>` : ""}</div>
 <div class="top"><img src="/brand/lockup.webp" alt="Grupo JBL Incorporadora"><div class="proto">${esc(l.protocolo)}<small>Recebida em ${esc(fmtLongDate(l.createdAt))}</small></div></div>
-<h1 class="ct">${esc(TITULO)}</h1>
+<h1 class="ct">${esc(montada.titulo)}</h1>
 <div class="carta">${carta}</div>
 <div class="sig sig3">${assinaturas}</div>
 <div class="quebra"></div>
