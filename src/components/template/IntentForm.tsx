@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { fmtNum } from "@/lib/format";
 import { E } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
@@ -43,6 +43,9 @@ function readFile(file: File): Promise<{ name: string; type: string; data: strin
   });
 }
 
+/** Texto antigo da nota dizia que nada era salvo ao digitar: agora o rascunho fica no aparelho */
+const rascunho = (t: string) => t.replace(/Nenhum campo é salvo apenas por digitar\.?/g, "O que você preencher fica salvo neste aparelho: pode sair e voltar depois para enviar.");
+
 export default function IntentForm({
   token,
   disabled,
@@ -67,6 +70,29 @@ export default function IntentForm({
   const [err, setErr] = useState("");
   const [protocolo, setProtocolo] = useState("");
   const [aceite, setAceite] = useState(false);
+  // o que foi digitado fica guardado neste aparelho: dá para sair e voltar depois para enviar
+  const chave = `jbl-carta:${token}`;
+  const [lido, setLido] = useState(false);
+  useEffect(() => {
+    if (disabled) return;
+    try {
+      const salvo = JSON.parse(localStorage.getItem(chave) ?? "null") as { campos?: Campos; aceite?: boolean; protocolo?: string } | null;
+      if (salvo?.campos) setV((o) => ({ ...o, ...salvo.campos }));
+      if (salvo?.aceite) setAceite(true);
+      if (salvo?.protocolo) setProtocolo(salvo.protocolo);
+    } catch {
+      // sem acesso ao armazenamento do navegador: segue sem rascunho
+    }
+    setLido(true);
+  }, [chave, disabled]);
+  useEffect(() => {
+    if (disabled || !lido) return;
+    try {
+      localStorage.setItem(chave, JSON.stringify({ campos: v, aceite, protocolo: protocolo || undefined }));
+    } catch {
+      // armazenamento cheio ou bloqueado
+    }
+  }, [v, aceite, protocolo, lido, chave, disabled]);
   const g = (k: string) => (v[k] ?? "").trim();
   const on = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const m = MASCARAS[k];
@@ -74,12 +100,13 @@ export default function IntentForm({
     setV((o) => ({ ...o, [k]: val }));
   };
 
-  const L = ({ k, children, req }: { k: string; children: string; req?: boolean }) => (
-    <label htmlFor={`ci-${k}`}><E k={`form.${k}`}>{children}</E>{req && <> <span className="req">*</span></>}</label>
+  const L = ({ k, children }: { k: string; children: string }) => (
+    // nenhum campo é obrigatório: o * não aparece
+    <label htmlFor={`ci-${k}`}><E k={`form.${k}`}>{children}</E></label>
   );
-  const I = ({ k, label, req, type = "text", ph, mode }: { k: string; label: string; req?: boolean; type?: string; ph?: string; mode?: "numeric" | "decimal" }) => (
+  const I = ({ k, label, type = "text", ph, mode }: { k: string; label: string; type?: string; ph?: string; mode?: "numeric" | "decimal" }) => (
     <div className="field">
-      <L k={k} req={req}>{label}</L>
+      <L k={k}>{label}</L>
       <input id={`ci-${k}`} type={type} inputMode={mode} value={v[k] ?? ""} onChange={on(k)} />
     </div>
   );
@@ -94,8 +121,6 @@ export default function IntentForm({
 
   async function enviar() {
     if (disabled) return setErr("Pré-visualização: o formulário só envia na página pública da proposta.");
-    const falta = [!g("p_nome") && "nome completo", !g("p_cpf") && "CPF"].filter(Boolean);
-    if (falta.length) return setErr(`Falta preencher: ${falta.join(", ")}.`);
     if (!aceite) return setErr("Marque a confirmação antes de enviar.");
     if (file && file.size > 6 * 1024 * 1024) return setErr("O arquivo da matrícula deve ter até 6 MB.");
     setErr("");
@@ -133,8 +158,8 @@ export default function IntentForm({
     <div className="intent-grid">
       <form noValidate onSubmit={(e) => { e.preventDefault(); enviar(); }}>
         <fieldset className="group"><legend><i>01</i><E k="form.grupo1b">Dados do proprietário</E></legend>
-          {I({ k: "p_nome", label: "Nome completo", req: true })}
-          <div className="row2">{I({ k: "p_cpf", label: "CPF", req: true, mode: "numeric" })}{I({ k: "p_rg", label: "RG" })}</div>
+          {I({ k: "p_nome", label: "Nome completo" })}
+          <div className="row2">{I({ k: "p_cpf", label: "CPF", mode: "numeric" })}{I({ k: "p_rg", label: "RG" })}</div>
           <div className="row2">{I({ k: "p_nac", label: "Nacionalidade" })}{I({ k: "p_prof", label: "Profissão" })}</div>
           {I({ k: "p_end", label: "Endereço residencial (rua, número, bairro, cidade/UF)" })}
           <div className="row2">{I({ k: "p_email", label: "E-mail", type: "email" })}<div className="field">
@@ -190,15 +215,14 @@ export default function IntentForm({
             <span className="muted" style={{ fontSize: 14, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Seu protocolo</span>
             <span className="code">{protocolo}</span>
             <p style={{ fontSize: 16 }}><E k="form.recebida">Carta de intenção recebida. A equipe da JBL entrará em contato para os próximos passos.</E></p>
-            <div className="actions"><button type="button" className="dl dl-navy" onClick={() => window.print()}>Baixar / salvar como PDF</button></div>
           </div>
         ) : (
           <>
             <div className="actions">
               <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar2">Enviar intenção e gerar protocolo ↗</E>}</button>
-              <button type="button" className="dl dl-navy" onClick={() => window.print()}><E k="form.salvarPdf">Baixar / salvar como PDF</E></button>
             </div>
-            <p className="note"><E k="form.confira">Confira os dados antes de enviar. Nenhum campo é salvo apenas por digitar.</E></p>
+            <p className="note intent-registro"><E k="txt.intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</E></p>
+            <p className="note intent-registro"><E k="form.confira" limpar={rascunho}>Confira os dados antes de enviar. O que você preencher fica salvo neste aparelho: pode sair e voltar depois para enviar.</E></p>
           </>
         )}
       </form>

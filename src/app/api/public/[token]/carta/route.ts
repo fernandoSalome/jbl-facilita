@@ -11,7 +11,8 @@ export async function POST(req: Request, { params }: { params: { token: string }
   if (!parseOptions(p.options).cartaIntencao) return json({ error: "Esta proposta não recebe carta de intenção" }, 400);
 
   const b = await req.json().catch(() => null);
-  if (!b?.proprietario?.nome || !b?.proprietario?.cpf) return json({ error: "Preencha nome e CPF do proprietário." }, 400);
+  // nenhum campo é obrigatório; só confere que veio um formulário
+  if (!b || typeof b !== "object" || typeof b.proprietario !== "object") return json({ error: "Formulário inválido." }, 400);
   if (b.matricula && (typeof b.matricula.data !== "string" || b.matricula.data.length > MAX_FILE * 1.4)) {
     return json({ error: "Arquivo da matrícula muito grande (máx. 6 MB)." }, 400);
   }
