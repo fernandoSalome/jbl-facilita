@@ -188,7 +188,7 @@ export default function IntentForm({
         <div className="protocol">
           <span className="muted" style={{ fontSize: 14, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Dados enviados · protocolo</span>
           <span className="code">{protocolo}</span>
-          <p style={{ fontSize: 16 }}><E k="form.recebida2">Dados enviados. Em breve a equipe da JBL entrará em contato para enviar a minuta para assinatura.</E></p>
+          <p style={{ fontSize: 16 }}><E k="form.recebida3">Dados enviados. Em breve a equipe JBL entrará em contato para enviar a minuta da carta.</E></p>
         </div>
       </div>
     );

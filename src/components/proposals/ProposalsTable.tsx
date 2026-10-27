@@ -202,10 +202,10 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
                     <button
                       onClick={() => setLetter(p.carta!.id)}
                       className="rounded-sm bg-emerald-50 px-2 py-1 text-left font-semibold text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100"
-                      title="Ver os dados da carta"
+                      title="Ver os dados da carta e abrir a minuta"
                     >
-                      ✓ Assinada
-                      <span className="block text-[11px] font-normal text-emerald-700">{fmtDate(p.carta.createdAt)} · ver dados</span>
+                      {p.carta.minuta === "assinada" ? "✓ Assinada" : p.carta.minuta === "enviada" ? "Minuta enviada" : "Dados recebidos"}
+                      <span className="block text-[11px] font-normal text-emerald-700">{fmtDate(p.carta.createdAt)} · ver dados e minuta</span>
                     </button>
                   ) : p.status === "rascunho" ? (
                     <span className="text-muted">—</span>
