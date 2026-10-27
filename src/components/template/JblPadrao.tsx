@@ -165,6 +165,45 @@ function portalDoCliente(t: string) {
 }
 
 /** "13 / Vamos avançar na análise" → "Vamos avançar na análise" (o número fica no círculo da seção) */
+/**
+ * Valores em destaque (cartões, VGV): sempre numa linha. Se não couberem na largura,
+ * a fonte diminui até caber (no lugar de quebrar o número no meio). Refaz ao mudar a tela.
+ */
+const NUMA_LINHA = ".tile .v, .vgv-split .vs-v";
+function useValoresNumaLinha(root: React.RefObject<HTMLDivElement>, deps: unknown[]) {
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    let quadro = 0;
+    const ajustar = () => {
+      cancelAnimationFrame(quadro);
+      quadro = requestAnimationFrame(() => {
+        el.querySelectorAll<HTMLElement>(NUMA_LINHA).forEach((v) => {
+          v.style.fontSize = "";
+          if (!v.clientWidth) return;
+          let tam = parseFloat(getComputedStyle(v).fontSize);
+          while (v.scrollWidth > v.clientWidth + 1 && tam > 12) {
+            tam -= 1;
+            v.style.fontSize = `${tam}px`;
+          }
+        });
+      });
+    };
+    ajustar();
+    const ro = new ResizeObserver(ajustar);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(quadro);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
+/** Rótulo do desconto da entrada: "para corretagem + marketing" (também nos textos já salvos) */
+function paraCorretagem(t: string) {
+  return /^\s*corretagem \+ marketing\s*$/i.test(t) ? "para corretagem + marketing" : t;
+}
 /** Nenhum campo da carta é obrigatório: tira o aviso dos * dos textos salvos */
 function semObrigatorios(t: string) {
   return t.replace(/\s*Campos com \* são obrigatórios\.?/g, "");
@@ -277,6 +316,7 @@ export default function JblPadrao(props: TemplateProps) {
   const root = useRef<HTMLDivElement>(null);
   useChainArrows(chain, [r, props.overrides]);
   useCenterExtenso(root, [r, props.overrides]);
+  useValoresNumaLinha(root, [r, props.overrides, pick]);
   useEffect(() => setPick(Math.max(0, r.cenarios.findIndex((c) => c.meses === r.nParcelas))), [r]);
 
   useEffect(() => {
@@ -731,7 +771,7 @@ export default function JblPadrao(props: TemplateProps) {
                   </div>
                   <div className="calc num">
                     <span className="n">2</span><span className="t"><T k="v2t" vars={nv}>{"Entrada paga pelo comprador ({{entrada}})"}</T></span>
-                    <span className="f"><span className="carry" data-from="v1">{fmtBRL(r.valorLote)}</span><span className="op op-menos" aria-label="menos">−</span><span className="idx"><V k="v2b">{fmtBRL(r.entrada)}</V><small><T k="v2bs2">corretagem + marketing</T></small></span><span className="op">=</span><span className="res" id="v2" data-id="v2"><V k="v2r">{fmtBRL(r.valorLote - r.entrada)}</V></span></span>
+                    <span className="f"><span className="carry" data-from="v1">{fmtBRL(r.valorLote)}</span><span className="op op-menos" aria-label="menos">−</span><span className="idx"><V k="v2b">{fmtBRL(r.entrada)}</V><small><T k="v2bs2" limpar={paraCorretagem}>para corretagem + marketing</T></small></span><span className="op">=</span><span className="res" id="v2" data-id="v2"><V k="v2r">{fmtBRL(r.valorLote - r.entrada)}</V></span></span>
                   </div>
                   <div className="calc num">
                     <span className="n">3</span><span className="t"><T k="v3t">Saldo financiado a prazo</T></span>

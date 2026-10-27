@@ -386,6 +386,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         <textarea
           className="mt-3 block w-full resize-y rounded border-0 border-l-[3px] border-gold bg-alt px-4 py-3 text-[14px] leading-relaxed outline-none focus:ring-2 focus:ring-gold-soft"
           rows={12}
+          // em telas baixas a caixa encolhe para os botões da janela continuarem à vista
+          style={{ height: "min(300px, 38dvh)" }}
           value={texto}
           onChange={(e) => setMsgEdit(e.target.value)}
         />

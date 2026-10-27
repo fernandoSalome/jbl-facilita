@@ -247,3 +247,65 @@
 
 /* Carta de intenção: avisos pequenos logo abaixo do botão de enviar */
 .jblt .intent-grid .note.intent-registro { font-size: 12.5px; line-height: 1.55; margin: 8px 0 0; color: var(--muted); }
+
+/* ---------- Telas de todos os tamanhos: nada de número quebrado nem rolagem para o lado ---------- */
+/* itens de grade podem encolher (sem isso o conteúdo mais largo empurra a página para fora da tela) */
+.jblt .chain > *, .jblt .calc > *, .jblt .tiles > *, .jblt .shares > *, .jblt .share > div { min-width: 0; }
+/* valores dos cartões: numa linha só; o tamanho acompanha a largura do cartão (e o script ajusta se ainda faltar espaço) */
+.jblt .tile { container-type: inline-size; }
+.jblt .tile .v { white-space: nowrap; overflow-wrap: normal; font-size: clamp(17px, 12.5cqi, 32px); }
+.jblt .vgv-split .vs-v, .jblt .share .pct, .jblt .calc .f .res, .jblt .calc .f .carry { white-space: nowrap; }
+/* rótulo embaixo do valor nas contas (ex.: "para corretagem + marketing"): centralizado */
+.jblt .calc .f .idx small { text-align: center; }
+@media (max-width: 760px) {
+  .jblt .calc { padding: 16px; }
+  .jblt .calc .f { font-size: clamp(16px, 4.6vw, 20px); gap: 6px 8px; }
+  .jblt .calc .f .idx small { white-space: normal; max-width: 160px; }
+  .jblt .calc .f .res#v6 { font-size: 1.25em; padding: 4px 12px; }
+}
+/* chave "60%" da divisão: espaço para o rótulo ao lado, sem sair da tela */
+@media (max-width: 900px) {
+  .jblt .share-group { margin-right: 74px; }
+  .jblt .share-group .brace { right: -12px; }
+  .jblt .share-group .brace-lbl { right: -14px; font-size: 15px; letter-spacing: .02em; padding: 0 2px; }
+}
+/* celular bem estreito: logo um pouco menor para o botão do menu caber na mesma linha */
+@media (max-width: 400px) {
+  .jblt .nav .mark { flex: 1 1 auto; min-width: 0; }
+  .jblt .nav .mark .lockup { height: 30px; max-width: 100%; }
+  .jblt .nav .cta { padding: 7px 10px; font-size: 14px; white-space: nowrap; }
+}
+
+/* Carta de intenção enviada: o formulário some; aviso + carta preenchida, centralizados */
+.jblt .intent-grid.intent-enviada { display: grid; grid-template-columns: minmax(0, 820px); grid-template-rows: none; justify-content: center; gap: 22px; }
+.jblt .intent-grid.intent-enviada > * { grid-column: 1 !important; grid-row: auto !important; }
+/* depois do envio a instrução de preencher não faz mais sentido */
+.jblt .intent:has(.intent-enviada) .intent-lead-full { display: none; }
+.jblt .intent-enviada .protocol { margin: 0; }
+
+/* Comemoração do envio: confetes e mensagem de parabéns por cima da página */
+.festa { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; padding: 20px; background: rgba(18, 42, 69, .28); animation: festa-entra .35s ease-out both; cursor: pointer; }
+.festa.sumindo { animation: festa-sai .8s ease-in both; }
+.festa-confete { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
+.festa-msg { position: relative; max-width: 460px; width: 100%; background: #fff; border-radius: 10px; border-top: 4px solid #C1943D; box-shadow: 0 30px 80px -20px rgba(18, 42, 69, .55); padding: 26px 24px 22px; text-align: center; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #2B3A4A; animation: festa-pula .6s cubic-bezier(.2, 1.4, .4, 1) both; }
+.festa-msg strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: clamp(24px, 6vw, 30px); font-weight: 400; color: #122A45; margin: 4px 0 10px; }
+.festa-msg p { margin: 6px 0 0; font-size: 16px; line-height: 1.55; }
+.festa-ic { font-size: 44px; line-height: 1; }
+@keyframes festa-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes festa-sai { to { opacity: 0; } }
+@keyframes festa-pula { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .festa, .festa-msg { animation: none; } }
+/* divisão no celular: nome e porcentagem sem encostar um no outro */
+@media (max-width: 480px) {
+  .jblt .share { grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; padding: 12px 12px; }
+  .jblt .share .dot { width: 14px; height: 14px; }
+  .jblt .share b { font-size: 15.5px; overflow-wrap: break-word; }
+  .jblt .share .pct { font-size: 22px; }
+  .jblt .share-group { margin-right: 62px; }
+}
+@media (max-width: 380px) {
+  .jblt .share { grid-template-columns: 14px minmax(0, 1fr); row-gap: 2px; }
+  .jblt .share .pct { grid-column: 2; justify-self: start; font-size: 21px; }
+  .jblt .share.total { grid-template-columns: 14px minmax(0, 1fr) auto; }
+  .jblt .share.total .pct { grid-column: 3; justify-self: end; }
+}
