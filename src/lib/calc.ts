@@ -94,6 +94,8 @@ export type StudyInputs = {
   frenteE1: number | null;
   /** Primeira etapa: comprimento (fundo) do lote (m). Com ele, o lote = frente × comprimento */
   compLoteE1: number | null;
+  /** Comprimento (fundo) do lote do estudo (m). Preenchido: metragem do lote = frente × comprimento */
+  compLote: number | null;
   /** Deságio médio na antecipação de recebíveis (0–1) */
   desagio: number;
   /** Taxa mensal da aplicação financeira simulada (0–1) */
@@ -143,6 +145,7 @@ export const DEFAULT_INPUTS: StudyInputs = {
   compQuadraE1: null,
   frenteE1: null,
   compLoteE1: null,
+  compLote: null,
   desagio: 0.66667,
   taxaAplicacao: 0.01,
   reajusteManual: null,

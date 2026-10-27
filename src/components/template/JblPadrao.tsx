@@ -913,11 +913,12 @@ export default function JblPadrao(props: TemplateProps) {
                 <h3><T k="s8h3">A tabela completa</T></h3>
                 <div className="tbl tbl-pay"><table>
                   <thead><tr>
-                    <th>Prazo de venda</th>
-                    <th>Parcela do comprador<br />com desconto por pontualidade</th>
-                    <th>{dono} por mês<br />primeiros 12 meses¹</th>
-                    <th>{dono}<br />última parcela</th>
-                    <th>Total {dono}<br />Arrecadação final (VGV)</th>
+                    {/* títulos editáveis; o nome de quem recebe a proposta fica travado (vem de "Proposta para") */}
+                    <th><T k="tbH1">Prazo de venda</T></th>
+                    <th><T k="tbH2" html>{"Parcela do comprador<br>com desconto por pontualidade"}</T></th>
+                    <th><T k="tbH3" html vars={{ dono }}>{"{{dono}} por mês<br>primeiros 12 meses¹"}</T></th>
+                    <th><T k="tbH4" html vars={{ dono }}>{"{{dono}}<br>última parcela"}</T></th>
+                    <th><T k="tbH5" html vars={{ dono }}>{"Total {{dono}}<br>Arrecadação final (VGV)"}</T></th>
                   </tr></thead>
                   <tbody>
                     <tr>

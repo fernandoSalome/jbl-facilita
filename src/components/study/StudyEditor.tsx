@@ -13,7 +13,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -33,7 +33,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", intermediacaoPct: "pct", custoInfraM2: "brl", extensaoRede: "m",
-  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", compLote: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
 export function useStudyState(initial: StudyInputs) {
@@ -47,7 +47,17 @@ export function useStudyState(initial: StudyInputs) {
     const kind = KINDS[key]!;
     setTexts((s) => ({ ...s, [key]: text }));
     const v = parse(text, kind);
-    if (v !== null || OPTIONAL.includes(key)) setInputs((s) => ({ ...s, [key]: v }));
+    if (v !== null || OPTIONAL.includes(key)) {
+      setInputs((s) => {
+        const n = { ...s, [key]: v };
+        // com o comprimento do lote, a metragem é frente × comprimento (guardada junto: a proposta usa ela)
+        if ((key === "compLote" || key === "frenteLote") && n.compLote && n.compLote > 0 && n.frenteLote > 0) {
+          n.metragemLote = Math.round(n.frenteLote * n.compLote * 100) / 100;
+          setTexts((t) => ({ ...t, metragemLote: toText(n.metragemLote, "m2") }));
+        }
+        return n;
+      });
+    }
   }
   function setIndice(v: string) {
     setInputs((s) => ({ ...s, indice: v }));
@@ -190,8 +200,13 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <In s={s} k="aproveitamento" label="Aproveitamento %" />
             <Out label="Área Útil (m²)" value={fmtNum(r.areaUtil)} />
             <Out label="Doação de Área + Vias (m²)" value={fmtNum(r.areaDoacao)} />
-            <In s={s} k="metragemLote" label="Metragem do Lote (m²)" />
+            {i.compLote ? (
+              <Out label="Metragem do Lote (frente × comprimento)" value={`${fmtNum(i.metragemLote)} m²`} strong />
+            ) : (
+              <In s={s} k="metragemLote" label="Metragem do Lote (m²)" />
+            )}
             <In s={s} k="frenteLote" label="Frente do lote (m)" hint="Planilha 2026, C7. Escreve “lotes de 8 × 25 metros” e entra nos poços de visita" />
+            <In s={s} k="compLote" label="Comprimento do lote (m)" hint={`Opcional. Com o comprimento, a metragem do lote = frente × comprimento. Vazio = metragem ÷ frente (${fmtNum(r.fundoLote, 2)} m)`} />
             <In s={s} k="larguraVia" label="Largura da via (m)" hint="Planilha 2026, C8: rua + calçadas" />
             <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Planilha 2026, C9: cada lado" />
             <In s={s} k="viasPct" label="Vias (%)" hint={`Planilha 2026, C10: entra nas ruas, redes, calçadas, guias, energia e drenagem. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável. Para bater com a planilha do engenheiro, preencha`} />
@@ -415,7 +430,6 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           </p>
         )}
         <Titulo>Quadras</Titulo>
-        <Out label="Fundo do lote (metragem do lote / frente do lote)" value={v(q ? `${fmtNum(q.fundo)} m` : "")} />
         <Out label="Quadras inteiras" value={v(q ? `${q.cheias} ${q.cheias === 1 ? "quadra" : "quadras"} × ${fmtNum(q.porQuadra)} lotes = ${fmtNum(q.cheias * q.porQuadra)} lotes` : "")} />
         <Out label="Quadra menor" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m = ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
         <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
