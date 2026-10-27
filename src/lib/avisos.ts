@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { enviarTexto } from "./whatsapp";
+import { enviarArquivo, enviarTexto } from "./whatsapp";
 import { tratamento } from "./destinatario";
 import { parseOptions } from "./proposals";
 
@@ -14,6 +14,14 @@ export async function avisarGrupos(texto: string) {
   if (!grupos.length) return;
   const envio = Promise.allSettled(grupos.map((g) => enviarTexto(g.jid, `🤖 ${texto}`)));
   await Promise.race([envio, new Promise((ok) => setTimeout(ok, 8000))]);
+}
+
+/** Manda um arquivo (PDF) para os grupos cadastrados, com legenda */
+export async function arquivoParaGrupos(f: { base64: string; mime: string; fileName: string }, legenda: string) {
+  if (!process.env.EVOLUTION_URL) return;
+  const grupos = await db.waGroup.findMany({ where: { papel: { not: "inativo" } }, select: { jid: true } });
+  const envio = Promise.allSettled(grupos.map((g) => enviarArquivo(g.jid, { ...f, caption: `🤖 ${legenda}` })));
+  await Promise.race([envio, new Promise((ok) => setTimeout(ok, 15000))]);
 }
 
 type PropostaAviso = { id: string; name: string; ownerName: string; options: unknown; project: { name: string } };

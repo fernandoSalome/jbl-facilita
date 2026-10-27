@@ -271,13 +271,21 @@ describe("corretor da parceria (intermediação)", () => {
     expect(r.intermediacaoPct).toBe(0);
     expect(r.jblPct).toBeCloseTo(0.6 - r.infraPct, 10);
   });
-  it("corretor com 2% do total: sai da parte da JBL", () => {
+  it("corretor 2% sobre a parte de quem paga (JBL, terrenista ou os dois)", () => {
+    // 2% sobre a parte da JBL (incorporador menos as obras); obras não mudam
     const r = calcular({ ...base, intermediacaoPct: 0.02 });
-    expect(r.intermediacaoPct).toBeCloseTo(0.02, 10);
-    expect(r.terrenistaPct + r.jblPct + r.intermediacaoPct + r.infraPct).toBeCloseTo(1, 10);
-    expect(r.vgvAvista * r.intermediacaoPct).toBeCloseTo(r.vgvAvista * 0.02, 6);
-    // sai só da JBL: incorporador 60%, obras e corretor 2% → JBL = 60% − obras − 2%
-    expect(r.jblPct).toBeCloseTo(r.inputs.incorporadorPct - r.infraPct - 0.02, 10);
+    const jbl = 0.6 - r.infraPct;
+    expect(r.intermediacaoPct).toBeCloseTo(0.02 * jbl, 10);
+    expect(r.jblPct).toBeCloseTo(jbl * 0.98, 10);
+    expect(r.terrenistaPct - r.intermediacaoDeTer + r.jblPct + r.intermediacaoPct + r.infraPct).toBeCloseTo(1, 10);
+    // só do terrenista: 2% dos 40%
+    const t = calcular({ ...base, intermediacaoPct: 0.02, intermediacaoOrigem: "ter" });
+    expect(t.intermediacaoDeTer).toBeCloseTo(0.008, 10);
+    expect(t.jblPct).toBeCloseTo(jbl, 10);
+    // dos dois: 2% de (JBL + terrenista)
+    const a = calcular({ ...base, intermediacaoPct: 0.02, intermediacaoOrigem: "ambos" });
+    expect(a.intermediacaoPct).toBeCloseTo(0.02 * (jbl + 0.4), 10);
+    expect(a.infraPct).toBeCloseTo(r.infraPct, 12);
   });
 });
 

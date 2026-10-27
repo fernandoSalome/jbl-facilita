@@ -62,8 +62,12 @@ export type StudyInputs = {
   planilhaInfra?: "2026" | null;
   /** Planilha 2026, "DADOS DO PARCELAMENTO" C14: tamanho máximo da quadra (m). Vazio = poços de visita, bocas de lobo e bigode "A projetar" */
   quadraMax: number | null;
-  /** Corretor que intermediou a parceria (0–1), sobre a parte do incorporador e pago por ela (geralmente 2%). Vazio = sem corretagem */
+  /** Corretor que intermediou a parceria (0–1, geralmente 2%): sobre a parte de quem paga. Vazio = sem corretagem */
   intermediacaoPct: number | null;
+  /** Quem paga o corretor: incorporador (a parte da JBL, sem as obras), terrenista ou os dois */
+  intermediacaoOrigem?: "inc" | "ter" | "ambos";
+  /** Mostrar o corretor na divisão da proposta (falso: a divisão aparece sem ele) */
+  mostrarCorretor?: boolean;
   /** Custo de infraestrutura por m² de área aproveitável (R$) */
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
@@ -218,8 +222,11 @@ export type StudyResult = {
   custoInfra: number;
   /** Divisão mostrada na proposta: terrenista + JBL + infraestrutura = 100% */
   infraPct: number;
-  /** Parte do corretor da parceria no total (incorporador × % do corretor); sai da parte da JBL. 0 = sem corretagem */
+  /** Parte do corretor da parceria no total (soma do que sai da JBL e do terrenista). 0 = sem corretagem */
   intermediacaoPct: number;
+  /** Quanto do total sai da parte da JBL e da parte do terrenista para o corretor */
+  intermediacaoDeInc: number;
+  intermediacaoDeTer: number;
   jblPct: number;
   /** Carteira no prazo escolhido (VGV global projetado) */
   principal: Cenario;
@@ -331,8 +338,13 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const areaObras = Math.floor(areaUtil);
   const custoInfra = areaObras * i.custoInfraM2;
   const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
-  // corretor da parceria: o percentual digitado é do total (VGV) e sai da parte do incorporador
-  const intermediacaoPct = i.intermediacaoPct && i.intermediacaoPct > 0 ? i.intermediacaoPct : 0;
+  // corretor da parceria: o percentual incide sobre a parte de quem paga e sai dela; as obras não mudam
+  // ex.: VGV 100 mi, JBL 30%, obras 30%, terrenista 40%, corretor 2% → JBL 600 mil · terrenista 800 mil · os dois 1,4 mi
+  const pctCorretor = i.intermediacaoPct && i.intermediacaoPct > 0 ? i.intermediacaoPct : 0;
+  const origem = i.intermediacaoOrigem ?? "inc";
+  const intermediacaoDeInc = origem !== "ter" ? pctCorretor * Math.max(0, inc - infraPct) : 0;
+  const intermediacaoDeTer = origem !== "inc" ? pctCorretor * ter : 0;
+  const intermediacaoPct = intermediacaoDeInc + intermediacaoDeTer;
 
   const prazos = Array.from(new Set<number>([...PRAZOS_MESES, nParcelas])).sort((a, b) => a - b);
   const cenarios = nParcelas > 0 ? prazos.map((m) => cenario(m, saldoLote, i.multiplicador, lotes, reajuste, inc, nova2026 ? entrada * lotes : 0)) : [];
@@ -463,7 +475,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     custoInfra,
     infraPct,
     intermediacaoPct,
-    jblPct: inc - infraPct - intermediacaoPct,
+    intermediacaoDeInc,
+    intermediacaoDeTer,
+    jblPct: inc - infraPct - intermediacaoDeInc,
     principal,
     cenarios,
     vendas: { mes1, mes2, mes3: total - mes1 - mes2, total },

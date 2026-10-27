@@ -52,6 +52,8 @@ export default async function PublicProposal({ params, searchParams }: { params:
     return <Unavailable title="Proposta expirada" text="O prazo de validade desta proposta terminou. Fale com a JBL para prorrogar." />;
   }
   const formato = await contentForProposal(p);
+  // carta de intenção já enviada: a seção mostra só o protocolo (em qualquer aparelho)
+  const carta = await db.intentLetter.findFirst({ where: { proposalId: p.id }, orderBy: { createdAt: "desc" }, select: { protocolo: true } });
   const printing = searchParams.print === "1";
   // número de páginas do PDF: o da impressão em andamento, ou o do último PDF (se ainda vale)
   const pdfPages = printing ? Number(searchParams.pages) || null : p.pdfKey === pdfKeyOf(p) ? p.pdfPages : null;
@@ -69,6 +71,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
       options={parseOptions(p.options)}
       overrides={parseOverrides(p.overrides)}
       date={dataDaProposta({ ...p, options: parseOptions(p.options) }).toISOString()}
+      cartaProtocolo={carta?.protocolo ?? null}
     />
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { fmtNum } from "@/lib/format";
 import { E } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
@@ -47,6 +46,7 @@ function readFile(file: File): Promise<{ name: string; type: string; data: strin
 export default function IntentForm({
   token,
   disabled,
+  protocoloEnviado,
   project,
   areaHa,
   contatos,
@@ -57,6 +57,8 @@ export default function IntentForm({
   areaHa: number;
   /** Contatos exclusivos: embaixo do formulário no computador, embaixo da carta no celular */
   contatos?: React.ReactNode;
+  /** Protocolo da carta já enviada para esta proposta (vem do servidor: vale em qualquer aparelho) */
+  protocoloEnviado?: string | null;
 }) {
   const [v, setV] = useState<Campos>(() => ({
     i_area: fmtNum(areaHa, 4),
@@ -66,7 +68,7 @@ export default function IntentForm({
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
-  const [protocolo, setProtocolo] = useState("");
+  const [protocolo, setProtocolo] = useState(disabled ? "" : protocoloEnviado ?? "");
   const [aceite, setAceite] = useState(false);
   // o que foi digitado fica guardado neste aparelho: dá para sair e voltar depois para enviar
   const chave = `jbl-carta:${token}`;
@@ -98,13 +100,13 @@ export default function IntentForm({
     setV((o) => ({ ...o, [k]: val }));
   };
 
-  const L = ({ k, children }: { k: string; children: string }) => (
+  const L = ({ k, children, lk }: { k: string; children: string; lk?: string }) => (
     // nenhum campo é obrigatório: o * não aparece
-    <label htmlFor={`ci-${k}`}><E k={`form.${k}`}>{children}</E></label>
+    <label htmlFor={`ci-${k}`}><E k={`form.${lk ?? k}`}>{children}</E></label>
   );
-  const I = ({ k, label, type = "text", ph, mode }: { k: string; label: string; type?: string; ph?: string; mode?: "numeric" | "decimal" }) => (
+  const I = ({ k, label, type = "text", ph, mode, lk }: { k: string; label: string; type?: string; ph?: string; mode?: "numeric" | "decimal"; lk?: string }) => (
     <div className="field">
-      <L k={k}>{label}</L>
+      <L k={k} lk={lk}>{label}</L>
       <input id={`ci-${k}`} type={type} inputMode={mode} value={v[k] ?? ""} onChange={on(k)} />
     </div>
   );
@@ -124,7 +126,6 @@ export default function IntentForm({
     avisouInicio.current = true;
     fetch(`/api/public/${token}/carta/inicio`, { method: "POST", keepalive: true }).catch(() => {});
   }
-  const [festa, setFesta] = useState(false);
 
   async function enviar() {
     if (disabled) return setErr("Pré-visualização: o formulário só envia na página pública da proposta.");
@@ -148,7 +149,6 @@ export default function IntentForm({
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Não foi possível enviar.");
       setProtocolo(d.protocolo);
-      setFesta(true);
       // a carta enviada fica à vista no lugar do formulário
       requestAnimationFrame(() => document.getElementById("intencao")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (e) {
@@ -166,6 +166,10 @@ export default function IntentForm({
 
   const carta = (
     <div className="preview" aria-live="polite">
+      <div className="minuta-aviso">
+        <strong><E k="form.minutaTitulo">Veja como vai ficar a minuta</E></strong>
+        <span><E k="form.minutaNota">Aqui você só envia os seus dados. A assinatura será feita depois, pelo gov.br, quando a JBL enviar a minuta.</E></span>
+      </div>
       <h3>{TITULO}</h3>
       {paragrafos(v, project).map((p, i) => (p.h ? <p key={i} className="ci-h"><Texto partes={p.partes} /></p> : <p key={i}><Texto partes={p.partes} /></p>))}
       {assinaturas.map(([n, s], i) => (
@@ -175,17 +179,15 @@ export default function IntentForm({
   );
 
   // enviada: o formulário some; fica a carta preenchida e o aviso de que os dados foram enviados
+  // enviada: some o formulário e a carta; fica só o quadro do protocolo
   if (protocolo) {
     return (
       <div className="intent-grid intent-enviada">
-        {festa && <Comemoracao nome={g("p_nome").split(/\s+/)[0] ?? ""} fim={() => setFesta(false)} />}
         <div className="protocol">
           <span className="muted" style={{ fontSize: 14, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Dados enviados · protocolo</span>
           <span className="code">{protocolo}</span>
-          <p style={{ fontSize: 16 }}><E k="form.recebida">Carta de intenção recebida. A equipe da JBL entrará em contato para os próximos passos.</E></p>
+          <p style={{ fontSize: 16 }}><E k="form.recebida2">Dados enviados. Em breve a equipe da JBL entrará em contato para enviar a minuta para assinatura.</E></p>
         </div>
-        {carta}
-        {contatos && <div className="intent-contatos">{contatos}</div>}
       </div>
     );
   }
@@ -225,7 +227,7 @@ export default function IntentForm({
         <fieldset className="group"><legend><i>03</i><E k="form.grupo3b">Dados do imóvel</E></legend>
           <div className="row2">{I({ k: "i_area", label: "Área total em hectares", mode: "decimal" })}{I({ k: "i_zona", label: "Zona / localização" })}</div>
           <div className="row2">{I({ k: "i_municipio", label: "Município / UF" })}{I({ k: "i_matriculas", label: "Matrícula(s) do imóvel" })}</div>
-          <div className="row2">{I({ k: "i_cartorio", label: "Cartório de Registro de Imóveis" })}{I({ k: "i_car", label: "CAR, quando aplicável" })}</div>
+          <div className="row2">{I({ k: "i_cartorio", label: "Cartório de Registro de Imóveis" })}{I({ k: "i_car", lk: "i_car2", label: "Número do CAR, quando aplicável" })}</div>
           <div className="field">
             <L k="arquivo">Matrícula atualizada (opcional neste primeiro envio)</L>
             <input id="ci-arquivo" type="file" accept="application/pdf,image/png,image/jpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -247,7 +249,7 @@ export default function IntentForm({
         {err && <p className="err">{err}</p>}
 
         <div className="actions">
-          <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar2">Enviar intenção e gerar protocolo ↗</E>}</button>
+          <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar3">Enviar dados para a minuta ↗</E>}</button>
         </div>
         <p className="note intent-registro"><E k="txt.intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</E></p>
       </form>
@@ -255,82 +257,5 @@ export default function IntentForm({
       {carta}
       {contatos && <div className="intent-contatos">{contatos}</div>}
     </div>
-  );
-}
-
-/**
- * Comemoração do envio: estouro de confetes na tela e uma mensagem de parabéns que some sozinha
- * (clique fecha antes). Com "reduzir movimento" ligado no aparelho, só a mensagem.
- */
-function Comemoracao({ nome, fim }: { nome: string; fim: () => void }) {
-  const tela = useRef<HTMLCanvasElement>(null);
-  const [sumindo, setSumindo] = useState(false);
-  useEffect(() => {
-    const t1 = setTimeout(() => setSumindo(true), 5200);
-    const t2 = setTimeout(fim, 6000);
-    const c = tela.current;
-    const ctx = c?.getContext("2d");
-    const calmo = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    let quadro = 0;
-    if (c && ctx && !calmo) {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const W = window.innerWidth, H = window.innerHeight;
-      c.width = W * dpr;
-      c.height = H * dpr;
-      ctx.scale(dpr, dpr);
-      const cores = ["#C1943D", "#E7C26A", "#122A45", "#2E6DB4", "#F5F1E6", "#22A06B", "#E4572E"];
-      // três estouros: centro e as duas laterais
-      const origens = [[W / 2, H * 0.55], [W * 0.18, H * 0.75], [W * 0.82, H * 0.75]];
-      const pecas = origens.flatMap(([ox, oy], k) =>
-        Array.from({ length: k === 0 ? 170 : 90 }, () => {
-          const ang = k === 0 ? Math.random() * Math.PI * 2 : -Math.PI / 2 + (Math.random() - 0.5) * 1.4 + (k === 1 ? 0.35 : -0.35);
-          // em tela pequena os confetes andam mais devagar (senão saem da tela num instante)
-          const vel = ((k === 0 ? 7 : 11) + Math.random() * 9) * Math.max(0.5, Math.min(1, W / 1000));
-          return { x: ox, y: oy, vx: Math.cos(ang) * vel, vy: Math.sin(ang) * vel - (k === 0 ? 4 : 2), g: 0.22 + Math.random() * 0.12, w: 6 + Math.random() * 7, h: 3 + Math.random() * 5, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.35, cor: cores[(Math.random() * cores.length) | 0], vida: 1 };
-        }),
-      );
-      const inicio = performance.now();
-      const passo = (t: number) => {
-        ctx.clearRect(0, 0, W, H);
-        const idade = (t - inicio) / 1000;
-        for (const p of pecas) {
-          p.vx *= 0.985;
-          p.vy = p.vy * 0.985 + p.g;
-          p.x += p.vx;
-          p.y += p.vy;
-          p.r += p.vr;
-          p.vida = Math.max(0, 1 - Math.max(0, idade - 2.6) / 1.4);
-          ctx.save();
-          ctx.globalAlpha = p.vida;
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.r);
-          ctx.fillStyle = p.cor;
-          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2)));
-          ctx.restore();
-        }
-        if (idade < 4.2) quadro = requestAnimationFrame(passo);
-        else ctx.clearRect(0, 0, W, H);
-      };
-      quadro = requestAnimationFrame(passo);
-    }
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      cancelAnimationFrame(quadro);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // fora da página da proposta (direto no body): fica por cima de tudo, mesmo com seções animadas
-  return createPortal(
-    <div className={`festa ${sumindo ? "sumindo" : ""}`} onClick={fim} role="status" aria-live="assertive">
-      <canvas ref={tela} className="festa-confete" aria-hidden="true" />
-      <div className="festa-msg">
-        <div className="festa-ic" aria-hidden="true">🎉</div>
-        <strong>{nome ? `Parabéns, ${nome}!` : "Parabéns!"}</strong>
-        <p>Sua carta de intenção foi enviada com sucesso. Este é o primeiro passo de uma grande parceria.</p>
-        <p>A JBL vai estar sempre ao seu lado para apoiar você em cada etapa.</p>
-      </div>
-    </div>,
-    document.body,
   );
 }

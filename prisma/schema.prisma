@@ -139,6 +139,29 @@ model IntentLetter {
   protocolo  String   @unique
   data       Json
   createdAt  DateTime @default(now())
+  /// Minuta da carta (HTML) que a equipe revisa e edita antes de mandar para assinatura
+  minutaHtml     String?
+  /// revisao | enviada | assinada
+  minutaStatus   String    @default("revisao")
+  /// Texto travado quando o link de assinatura foi gerado (é o que a pessoa assina)
+  minutaFinal    String?
+  /// Link de assinatura (/assinar/<token>)
+  assinaturaToken String?  @unique
+  linkGeradoEm   DateTime?
+  linkEnviadoEm  DateTime?
+  /// Confirmação do celular: código de 6 dígitos (guardado com hash) e a sessão aberta depois de confirmar
+  codigoHash     String?
+  codigoExpira   DateTime?
+  codigoEnvios   Int       @default(0)
+  codigoTentativas Int     @default(0)
+  telefoneConfirmado String?
+  sessaoHash     String?
+  sessaoExpira   DateTime?
+  /// PDF assinado pelo gov.br, enviado de volta pela pessoa
+  assinadaEm     DateTime?
+  pdfAssinado    Bytes?
+  pdfAssinadoNome String?
+  assinante      String?
 }
 
 /// Banco de imagens: fotos e logos usados nas propostas.

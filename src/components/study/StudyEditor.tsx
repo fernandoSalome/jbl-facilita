@@ -36,11 +36,25 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", compLote: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
 };
 
+/**
+ * O lote é sempre frente × comprimento (a metragem é calculada). Propostas antigas, sem o
+ * comprimento, começam com comprimento = metragem ÷ frente: a metragem não muda.
+ */
+function comComprimentos(i: StudyInputs): StudyInputs {
+  const n = { ...i };
+  if (!(n.compLote && n.compLote > 0) && n.frenteLote > 0 && n.metragemLote > 0) n.compLote = n.metragemLote / n.frenteLote;
+  const frenteE1 = n.frenteE1 && n.frenteE1 > 0 ? n.frenteE1 : n.frenteLote;
+  const loteE1 = n.loteEtapa1 && n.loteEtapa1 > 0 ? n.loteEtapa1 : n.metragemLote;
+  if (!(n.compLoteE1 && n.compLoteE1 > 0) && frenteE1 > 0 && loteE1 > 0) n.compLoteE1 = loteE1 / frenteE1;
+  return n;
+}
+
 export function useStudyState(initial: StudyInputs) {
-  const [inputs, setInputs] = useState<StudyInputs>(initial);
+  const [inputs, setInputs] = useState<StudyInputs>(() => comComprimentos(initial));
   const [texts, setTexts] = useState<Record<string, string>>(() => {
     const t: Record<string, string> = {};
-    for (const [k, kind] of Object.entries(KINDS)) t[k] = toText(initial[k as NumKey] as number | null, kind as Kind);
+    const ini = comComprimentos(initial);
+    for (const [k, kind] of Object.entries(KINDS)) t[k] = toText(ini[k as NumKey] as number | null, kind as Kind);
     return t;
   });
   function set(key: NumKey, text: string) {
@@ -77,7 +91,11 @@ export function useStudyState(initial: StudyInputs) {
     setTexts((s) => ({ ...s, reajusteManual: "" }));
     setInputs((s) => ({ ...s, reajusteManual: null }));
   }
-  return { inputs, texts, set, setIndice, setEtapa, setEtapaADefinir, clearManual };
+  /** Opções do corretor da parceria: quem paga e se aparece na proposta */
+  function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean }) {
+    setInputs((s) => ({ ...s, ...c }));
+  }
+  return { inputs, texts, set, setIndice, setEtapa, setEtapaADefinir, clearManual, setCorretor };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -200,13 +218,9 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <In s={s} k="aproveitamento" label="Aproveitamento %" />
             <Out label="Área Útil (m²)" value={fmtNum(r.areaUtil)} />
             <Out label="Doação de Área + Vias (m²)" value={fmtNum(r.areaDoacao)} />
-            {i.compLote ? (
-              <Out label="Metragem do Lote (frente × comprimento)" value={`${fmtNum(i.metragemLote)} m²`} strong />
-            ) : (
-              <In s={s} k="metragemLote" label="Metragem do Lote (m²)" />
-            )}
+            <Out label="Metragem do Lote (frente × comprimento)" value={`${fmtNum(i.metragemLote)} m²`} strong />
             <In s={s} k="frenteLote" label="Frente do lote (m)" hint="Planilha 2026, C7. Escreve “lotes de 8 × 25 metros” e entra nos poços de visita" />
-            <In s={s} k="compLote" label="Comprimento do lote (m)" hint={`Opcional. Com o comprimento, a metragem do lote = frente × comprimento. Vazio = metragem ÷ frente (${fmtNum(r.fundoLote, 2)} m)`} />
+            <In s={s} k="compLote" label="Comprimento do lote (m)" hint="Metragem do lote = frente × comprimento" />
             <In s={s} k="larguraVia" label="Largura da via (m)" hint="Planilha 2026, C8: rua + calçadas" />
             <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Planilha 2026, C9: cada lado" />
             <In s={s} k="viasPct" label="Vias (%)" hint={`Planilha 2026, C10: entra nas ruas, redes, calçadas, guias, energia e drenagem. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável. Para bater com a planilha do engenheiro, preencha`} />
@@ -219,8 +233,25 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
             <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100, Number.isInteger(Math.round(r.terrenistaPct * 1e4) / 100) ? 0 : 2)} sufixo="%" strong />
             <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
-            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. Corretor que intermediou a parceria: o percentual é do total e sai da parte do incorporador (ex.: incorporador 60%, corretor 2% → JBL fica 60% − obras − 2%). Vazio = sem corretagem" />
-            {r.intermediacaoPct > 0 && <Out label="VGV Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />}
+            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. O percentual incide sobre a parte de quem paga (a JBL sem as obras, o terrenista ou os dois) e sai dela; as obras não mudam. Vazio = sem corretor" />
+            {r.intermediacaoPct > 0 && (
+              <>
+                <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
+                  <span className="text-[13px] font-semibold text-navy">Corretor pago por</span>
+                  <select className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] px-2 py-1 text-[13px] font-semibold text-navy outline-none focus:border-gold" value={i.intermediacaoOrigem ?? "inc"} onChange={(e) => s.setCorretor({ intermediacaoOrigem: e.target.value as "inc" | "ter" | "ambos" })}>
+                    <option value="inc">Incorporador (JBL)</option>
+                    <option value="ter">Terrenista</option>
+                    <option value="ambos">Incorporador e terrenista</option>
+                  </select>
+                </label>
+                <Out label="VGV Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />
+                <Out label="Corretor no total (divisão)" value={fmtPct(r.intermediacaoPct)} />
+                <label className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-semibold text-navy">
+                  <input type="checkbox" className="accent-[#C1943D]" checked={i.mostrarCorretor !== false} onChange={(e) => s.setCorretor({ mostrarCorretor: e.target.checked })} />
+                  Mostrar o corretor na proposta
+                </label>
+              </>
+            )}
           </Box>
         </div>
 
@@ -366,7 +397,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
         <div>
           <div className="mb-2 text-[12.5px] font-semibold text-navy">Divisão na proposta (sobre o VGV à vista)</div>
           <div className="flex h-9 overflow-hidden rounded text-[11.5px] font-bold">
-            <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct, 0) * 100}%` }}>{fmtPct(r.terrenistaPct, 0)}</div>
+            <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct - r.intermediacaoDeTer, 0) * 100}%` }}>{fmtPct(r.terrenistaPct - r.intermediacaoDeTer, 0)}</div>
             <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct, 0)}</div>
             <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct, 0)}</div>
             {r.intermediacaoPct > 0 && (
@@ -415,12 +446,8 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         <In s={s} k="frenteE1" label="Frente do lote (m)" hint={`Vazio = ${fmtNum(i.frenteLote, 0)} m, a frente do estudo`} disabled={off} />
-        <In s={s} k="compLoteE1" label="Comprimento do lote (m)" hint="Com o comprimento, o lote = frente × comprimento (a metragem abaixo é calculada)" disabled={off} />
-        {i.compLoteE1 ? (
-          <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : r.etapa1 ? `${fmtNum(r.etapa1.lote)} m²` : "—"} />
-        ) : (
-          <In s={s} k="loteEtapa1" label="Metragem do lote (m²)" hint={`Vazio = ${fmtNum(i.metragemLote, 0)} m², o lote do estudo. Fundo = m² ÷ frente`} disabled={off} />
-        )}
+        <In s={s} k="compLoteE1" label="Comprimento do lote (m)" hint="Metragem do lote da etapa = frente × comprimento" disabled={off} />
+        <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : `${fmtNum((i.frenteE1 && i.frenteE1 > 0 ? i.frenteE1 : i.frenteLote) * (i.compLoteE1 ?? 0))} m²`} />
         <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />

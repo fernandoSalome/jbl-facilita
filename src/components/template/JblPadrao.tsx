@@ -40,6 +40,8 @@ export type TemplateProps = {
   printing?: boolean;
   /** Editor do template: nome do tipo de loteamento, para marcar as partes que mudam por tipo */
   tipoLabel?: string;
+  /** Página pública: protocolo da carta de intenção já enviada (mostra só o quadro do protocolo) */
+  cartaProtocolo?: string | null;
 };
 
 /** Texto do template. Chave "txt.<k>". */
@@ -380,8 +382,15 @@ export default function JblPadrao(props: TemplateProps) {
   const maxTot = Math.max(...r.cenarios.map((c) => c.carteiraTer), 1);
   const circ = 2 * Math.PI * 70;
   // corretor da parceria (opcional): última fatia, dentro da parte do incorporador; o percentual é a fatia no total (a conta fecha 100%)
-  const corr = r.intermediacaoPct;
-  const pie = [r.terrenistaPct, Math.max(r.jblPct, 0), r.infraPct, corr].map((p) => (p * circ).toFixed(2));
+  // corretor da parceria: sai da parte de quem paga (JBL, terrenista ou os dois); as obras não mudam.
+  // Escondido na planilha: a divisão aparece sem ele.
+  const mostraCorr = r.intermediacaoPct > 0 && r.inputs.mostrarCorretor !== false;
+  const corr = mostraCorr ? r.intermediacaoPct : 0;
+  const terDiv = r.terrenistaPct - (mostraCorr ? r.intermediacaoDeTer : 0);
+  const jblDiv = Math.max(r.jblPct + (mostraCorr ? 0 : r.intermediacaoDeInc), 0);
+  const origemCorr = r.inputs.intermediacaoOrigem ?? "inc";
+  const corrNota = `${fmtNum((r.inputs.intermediacaoPct ?? 0) * 100, Number.isInteger(Math.round((r.inputs.intermediacaoPct ?? 0) * 1e4) / 100) ? 0 : 2)}% sobre a parte ${origemCorr === "inc" ? "da JBL" : origemCorr === "ter" ? "dos proprietários" : "da JBL e dos proprietários"}`;
+  const pie = [terDiv, jblDiv, r.infraPct, corr].map((p) => (p * circ).toFixed(2));
   const [pdfPages, setPdfPages] = useState(props.pdfPages ?? null);
   const [gerando, setGerando] = useState(false);
   // página pública sem PDF atualizado: gera em segundo plano para mostrar o número de páginas
@@ -830,7 +839,7 @@ export default function JblPadrao(props: TemplateProps) {
               </div></div>
               <div className="content">
                 <div className="pie-row">
-                  <svg viewBox="0 0 200 200" role="img" aria-label={`Gráfico de pizza: ${ter2} proprietários, ${pctTxt(r.jblPct)} JBL, ${pctTxt(r.infraPct)} obras${corr > 0 ? `, ${pctTxt(corr)} corretor` : ""}`}>
+                  <svg viewBox="0 0 200 200" role="img" aria-label={`Gráfico de pizza: ${pctTxt(terDiv)} proprietários, ${pctTxt(jblDiv)} JBL, ${pctTxt(r.infraPct)} obras${corr > 0 ? `, ${pctTxt(corr)} corretor` : ""}`}>
                     <g transform="translate(100 100) rotate(-90)">
                       <circle r="70" fill="none" stroke="var(--gold)" strokeWidth="56" strokeDasharray={`${pie[0]} ${circ.toFixed(2)}`} />
                       <circle r="70" fill="none" stroke="var(--sky-strong)" strokeWidth="56" strokeDasharray={`${pie[1]} ${circ.toFixed(2)}`} strokeDashoffset={`-${pie[0]}`} />
@@ -838,10 +847,10 @@ export default function JblPadrao(props: TemplateProps) {
                       {corr > 0 && <circle r="70" fill="none" stroke="var(--corretor)" strokeWidth="56" strokeDasharray={`${pie[3]} ${circ.toFixed(2)}`} strokeDashoffset={`-${(Number(pie[0]) + Number(pie[1]) + Number(pie[2])).toFixed(2)}`} />}
                     </g>
                     {[
-                      [r.terrenistaPct, 0, "var(--navy)"],
-                      [Math.max(r.jblPct, 0), r.terrenistaPct, "#fff"],
-                      [r.infraPct, r.terrenistaPct + Math.max(r.jblPct, 0), "var(--navy)"],
-                      [corr, r.terrenistaPct + Math.max(r.jblPct, 0) + r.infraPct, "#fff"],
+                      [terDiv, 0, "var(--navy)"],
+                      [jblDiv, terDiv, "#fff"],
+                      [r.infraPct, terDiv + jblDiv, "var(--navy)"],
+                      [corr, terDiv + jblDiv + r.infraPct, "#fff"],
                     ].map(([frac, ini, cor], i) => {
                       if ((frac as number) < 0.04) return null;
                       const a = ((ini as number) + (frac as number) / 2) * 2 * Math.PI;
@@ -855,11 +864,11 @@ export default function JblPadrao(props: TemplateProps) {
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>
                   <div className="shares">
-                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick(fam ? `Proprietários (${fam})` : "Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvistaTer)} · Em ${n} meses: ${fmtBRL(r.principal.carteiraTer)}`}</V></small></div><span className="pct"><V k="sh1p">{ter2}</V></span></div>
-                    <div className="share-group"><span className="brace" aria-hidden="true" /><span className="brace-lbl">{pctTxt(1 - r.terrenistaPct)}</span>
-                      <div className="share"><span className="dot" style={{ background: "var(--sky-strong)" }} /><div><b><T k="sh2">JBL Incorporadora</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh2v">{`À vista: ${fmtBRL(r.vgvAvista * r.jblPct)}`}</V></small></div><span className="pct"><V k="sh2p">{pctTxt(r.jblPct)}</V></span></div>
+                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick(fam ? `Proprietários (${fam})` : "Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvista * terDiv)} · Em ${n} meses: ${fmtBRL(r.terrenistaPct > 0 ? r.principal.carteiraTer * (terDiv / r.terrenistaPct) : 0)}`}</V></small></div><span className="pct"><V k="sh1p">{pctTxt(terDiv)}</V></span></div>
+                    <div className="share-group"><span className="brace" aria-hidden="true" /><span className="brace-lbl">{pctTxt(1 - terDiv)}</span>
+                      <div className="share"><span className="dot" style={{ background: "var(--sky-strong)" }} /><div><b><T k="sh2">JBL Incorporadora</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh2v">{`À vista: ${fmtBRL(r.vgvAvista * jblDiv)}`}</V></small></div><span className="pct"><V k="sh2p">{pctTxt(jblDiv)}</V></span></div>
                       <div className="share"><span className="dot" style={{ background: "var(--line)" }} /><div><b><T k="sh3">Infraestrutura (obras)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh3v">{`À vista: ${fmtBRL(r.custoInfra)}`}</V></small></div><span className="pct"><V k="sh3p">{pctTxt(r.infraPct)}</V></span></div>
-                      {corr > 0 && <div className="share"><span className="dot" style={{ background: "var(--corretor)" }} /><div><b><T k="sh4">Corretor (intermediação)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh4v">{`À vista: ${fmtBRL(r.vgvAvista * corr)}`}</V></small></div><span className="pct"><V k="sh4p">{pctTxt(corr)}</V></span></div>}
+                      {corr > 0 && <div className="share"><span className="dot" style={{ background: "var(--corretor)" }} /><div><b><T k="sh4">Corretor (intermediação)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh4v">{`À vista: ${fmtBRL(r.vgvAvista * corr)} · ${corrNota}`}</V></small></div><span className="pct"><V k="sh4p">{pctTxt(corr)}</V></span></div>}
                     </div>
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
@@ -1108,7 +1117,7 @@ export default function JblPadrao(props: TemplateProps) {
                   {/* o aviso de registro (intentAside2) fica embaixo do botão de enviar, no formulário */}
                 </div>
                 <hr className="intent-sep" />
-                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} contatos={contatos} />
+                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} contatos={contatos} protocoloEnviado={props.cartaProtocolo ?? null} />
               </div>
             </Sec>
           )}

@@ -277,24 +277,16 @@
 }
 
 /* Carta de intenção enviada: o formulário some; aviso + carta preenchida, centralizados */
-.jblt .intent-grid.intent-enviada { display: grid; grid-template-columns: minmax(0, 820px); grid-template-rows: none; justify-content: center; gap: 22px; }
+.jblt .intent-grid.intent-enviada { display: grid; grid-template-columns: minmax(0, 720px); grid-template-rows: none; justify-content: start; gap: 22px; }
 .jblt .intent-grid.intent-enviada > * { grid-column: 1 !important; grid-row: auto !important; }
 /* depois do envio a instrução de preencher não faz mais sentido */
 .jblt .intent:has(.intent-enviada) .intent-lead-full { display: none; }
 .jblt .intent-enviada .protocol { margin: 0; }
 
-/* Comemoração do envio: confetes e mensagem de parabéns por cima da página */
-.festa { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; padding: 20px; background: rgba(18, 42, 69, .28); animation: festa-entra .35s ease-out both; cursor: pointer; }
-.festa.sumindo { animation: festa-sai .8s ease-in both; }
-.festa-confete { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
-.festa-msg { position: relative; max-width: 460px; width: 100%; background: #fff; border-radius: 10px; border-top: 4px solid #C1943D; box-shadow: 0 30px 80px -20px rgba(18, 42, 69, .55); padding: 26px 24px 22px; text-align: center; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #2B3A4A; animation: festa-pula .6s cubic-bezier(.2, 1.4, .4, 1) both; }
-.festa-msg strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: clamp(24px, 6vw, 30px); font-weight: 400; color: #122A45; margin: 4px 0 10px; }
-.festa-msg p { margin: 6px 0 0; font-size: 16px; line-height: 1.55; }
-.festa-ic { font-size: 44px; line-height: 1; }
-@keyframes festa-entra { from { opacity: 0; } to { opacity: 1; } }
-@keyframes festa-sai { to { opacity: 0; } }
-@keyframes festa-pula { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .festa, .festa-msg { animation: none; } }
+/* Prévia da carta: deixa claro que é só a minuta (a assinatura vem depois, pelo gov.br) */
+.jblt .intent-grid .preview .minuta-aviso { display: grid; gap: 2px; margin: -6px 0 16px; padding: 10px 14px; background: var(--gold-soft); border-left: 3px solid var(--gold); border-radius: 4px; font-family: var(--body); text-align: left; }
+.jblt .intent-grid .preview .minuta-aviso strong { font-size: 15px; color: var(--navy); }
+.jblt .intent-grid .preview .minuta-aviso span { font-size: 13px; color: var(--muted); line-height: 1.45; }
 /* divisão no celular: nome e porcentagem sem encostar um no outro */
 @media (max-width: 480px) {
   .jblt .share { grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; padding: 12px 12px; }

@@ -3,6 +3,7 @@ import { ETAPA, FASES, faseDoDocumento, faseEmUso } from "./fases";
 import { entenderTexto, lerDocumento, norm, projetoPorTexto, TIPOS } from "./ia";
 import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
+import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -103,6 +104,9 @@ export async function tratarMensagem(m: Recebida) {
     }
   }
 
+  /* ---------- minuta da carta de intenção: ver minuta / enviar link / enviar email / não ---------- */
+  if (m.texto && (await comandoMinuta(m.texto, m.grupo, responder))) return;
+
   const it = await entenderTexto(m.texto, projetos);
   const projetoId = it.projetoId ?? citado?.id ?? null;
   if (projetoId) await lembrar(projetoId);
@@ -200,4 +204,64 @@ export async function tratarMensagem(m: Recebida) {
     default:
       return;
   }
+}
+
+/**
+ * Comandos da minuta da carta de intenção, respondendo ao aviso de carta recebida:
+ * "ver minuta", "enviar link", "enviar email" e "não". Vale a carta citada pelo nome
+ * (da pessoa ou da proposta) ou, sem nome, a mais recente ainda não assinada.
+ */
+async function comandoMinuta(texto: string, grupo: string, responder: (t: string) => Promise<unknown>) {
+  const n = norm(texto);
+  const acao = /\b(ver|veja|manda|mande|mostra|mostre|envia|envie)\b.{0,25}\bminuta\b/.test(n) || /^minuta\b/.test(n)
+    ? "ver"
+    : /\benvia(r)?\b.{0,12}\blink\b|\bmanda(r)?\b.{0,12}\blink\b/.test(n)
+      ? "link"
+      : /\benvia(r)?\b.{0,12}\be-?mail\b|\bmanda(r)?\b.{0,12}\be-?mail\b/.test(n)
+        ? "email"
+        : /^(nao|não|nao precisa|não precisa)[.!]*$/.test(n)
+          ? "nao"
+          : null;
+  if (!acao) return false;
+  const recentes = await db.intentLetter.findMany({
+    where: { createdAt: { gt: new Date(Date.now() - 60 * 24 * 3600 * 1000) }, proposal: { deletedAt: null } },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+    include: { proposal: { include: { project: true } } },
+  });
+  // "não" só vale logo depois de um aviso de carta (até 24 h)
+  if (acao === "nao") {
+    const ultima = recentes[0];
+    if (!ultima || Date.now() - ultima.createdAt.getTime() > 24 * 3600 * 1000) return false;
+    await responder(`Combinado, nada foi enviado. Quando quiser, a minuta da *${nomeDe(ultima)}* está aqui para revisar: ${linkMinutaPortal(ultima.id)}`);
+    return true;
+  }
+  const citada = recentes.find((c) => [nomeDe(c), c.proposal.name, c.proposal.project.name].some((x) => norm(x).split(/\s+/).some((w) => w.length >= 4 && n.includes(w))));
+  const alvo = citada ?? recentes.find((c) => c.minutaStatus !== "assinada") ?? recentes[0];
+  if (!alvo) {
+    if (acao === "ver") await responder("Ainda não recebi nenhuma carta de intenção para montar a minuta.");
+    return acao === "ver";
+  }
+  const c = (await carregarCarta(alvo.id))!;
+  try {
+    if (acao === "ver") {
+      await responder(`Gerando a minuta da carta de *${nomeDe(c)}* (${c.proposal.project.name})… ⏳`);
+      const pdf = await pdfDaMinuta(c, c.minutaStatus !== "revisao");
+      await enviarArquivo(grupo, {
+        base64: Buffer.from(pdf).toString("base64"),
+        mime: "application/pdf",
+        fileName: nomeArquivo(c),
+        caption: `${ROBO} Minuta da carta de intenção · *${nomeDe(c)}* · ${c.proposal.project.name}\nProtocolo ${c.protocolo}\nPara editar antes de enviar: ${linkMinutaPortal(c.id)}\nPara mandar a ela: responda *enviar link* ou *enviar email*.`,
+      });
+    } else if (acao === "link") {
+      const r = await enviarLinkWhatsapp(c);
+      await responder(`Link de assinatura enviado para *${nomeDe(c)}* no WhatsApp ${r.para}. ✍️\nO texto ficou travado nesta versão. Link: ${r.link}`);
+    } else {
+      const r = await enviarLinkEmail(c);
+      await responder(`Link de assinatura enviado para *${nomeDe(c)}* no e-mail ${r.para}. ✍️\nLink: ${r.link}`);
+    }
+  } catch (e) {
+    await responder(`Não consegui: ${e instanceof Error ? e.message : String(e)}\nA minuta pode ser revisada e enviada pelo portal: ${linkMinutaPortal(c.id)}`);
+  }
+  return true;
 }

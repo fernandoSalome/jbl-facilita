@@ -422,3 +422,29 @@ export async function pdfDaProposta(origin: string, token: string) {
   const r = await job;
   return { ...r, name: p.project.name };
 }
+
+/** PDF A4 de uma página HTML pronta (minuta da carta de intenção) */
+export async function pdfDeHtml(html: string, rodape?: string) {
+  const { chromium } = await import("playwright-core");
+  if (process.env.VERCEL) process.env.AWS_LAMBDA_JS_RUNTIME ??= "nodejs20.x";
+  const vercel = process.env.VERCEL ? (await import("@sparticuz/chromium")).default : null;
+  const browser = await chromium.launch({
+    executablePath: vercel ? await vercel.executablePath() : process.env.CHROMIUM_PATH || undefined,
+    args: vercel ? vercel.args : ["--no-sandbox", "--disable-dev-shm-usage"],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
+    const esc = (rodape ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+    return await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "20mm", bottom: "20mm", left: "20mm", right: "20mm" },
+      displayHeaderFooter: true,
+      headerTemplate: "<div></div>",
+      footerTemplate: `<div style="width:100%;font-family:Arial,sans-serif;font-size:9px;color:#8a929b;padding:0 20mm;display:flex;justify-content:space-between"><span>${esc}</span><span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span></div>`,
+    });
+  } finally {
+    await browser.close();
+  }
+}

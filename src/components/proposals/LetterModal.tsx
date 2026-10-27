@@ -34,13 +34,14 @@ export default function LetterModal({ id, onClose }: { id: string | null; onClos
       open={!!id}
       onClose={onClose}
       size="xl"
-      eyebrow="Carta de intenção assinada"
+      eyebrow="Carta de intenção · dados recebidos"
       title={c ? c.dados.proprietario?.nome || "Carta de intenção" : "Carregando…"}
       footer={
         c && (
           <>
             {c.anexo && <a className="btn-ghost mr-auto" href={`/api/letters/${id}?anexo=1`} target="_blank" rel="noreferrer">📎 Ver matrícula ({c.anexo})</a>}
-            <a className="btn-gold" href={`/api/letters/${id}`} target="_blank" rel="noreferrer">Imprimir / salvar PDF</a>
+            <a className="btn-ghost" href={`/api/letters/${id}`} target="_blank" rel="noreferrer">Imprimir dados</a>
+            <a className="btn-gold" href={`/app/minuta/${id}`}>Minuta e assinatura →</a>
           </>
         )
       }
@@ -50,7 +51,7 @@ export default function LetterModal({ id, onClose }: { id: string | null; onClos
       ) : (
         <div className="grid gap-5">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded bg-emerald-50 px-4 py-3 text-[13px] text-emerald-900 ring-1 ring-emerald-200">
-            <span>✓ Assinada em <b>{fmtDateTime(c.createdAt)}</b></span>
+            <span>✓ Dados recebidos em <b>{fmtDateTime(c.createdAt)}</b></span>
             <span>Protocolo <b className="font-mono">{c.protocolo}</b></span>
             <span>{c.projeto} · {c.proposta}</span>
           </div>
