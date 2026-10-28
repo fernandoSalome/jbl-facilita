@@ -265,7 +265,10 @@ export async function sincronizarAssinaturas(c: Carta, avisar = false): Promise<
     const faltam = agora.filter((a) => !a.assinadoEm).map((a) => a.nome);
     for (const a of agora) {
       const b = antes.find((x) => x.publicId === a.publicId);
-      if (a.assinadoEm && !b?.assinadoEm && !todos) await avisarGrupos(`✍️ *${a.nome}* assinou a carta de intenção de ${quem}.${faltam.length ? `\nFalta: ${faltam.join(", ")}.` : ""}\n${linkMinutaPortal(c.id)}`).catch(() => {});
+      // a própria proprietária: "Ana assinou a carta de intenção (proposta ...)"; os outros: "Bruno (cônjuge) assinou a carta de Ana"
+      const qual = a.papel === "proprietario" ? `a carta de intenção (proposta *${c.proposal.name}*, ${c.proposal.project.name})` : `a carta de intenção de ${quem}`;
+      const papel = a.papel === "conjuge" ? " (cônjuge)" : "";
+      if (a.assinadoEm && !b?.assinadoEm && !todos) await avisarGrupos(`✍️ *${a.nome}*${papel} assinou ${qual}.${faltam.length ? `\nFalta: ${faltam.join(", ")}.` : ""}\n${linkMinutaPortal(c.id)}`).catch(() => {});
       if (a.recusadoEm && !b?.recusadoEm) await avisarGrupos(`⚠️ *${a.nome}* recusou a carta de intenção de ${quem}.${a.motivo ? `\nMotivo: ${a.motivo}` : ""}\n${linkMinutaPortal(c.id)}`).catch(() => {});
     }
   }
