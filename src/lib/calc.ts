@@ -64,7 +64,7 @@ export type StudyInputs = {
   quadraMax: number | null;
   /** Corretor que intermediou a parceria (0–1, geralmente 2%): sobre a parte de quem paga. Vazio = sem corretagem */
   intermediacaoPct: number | null;
-  /** Quem paga o corretor: incorporador (a parte da JBL, sem as obras), terrenista ou os dois */
+  /** Quem paga o corretor: incorporador (sobre os % do incorporador, ex.: 60%; o valor sai da parte da JBL), terrenista ou os dois */
   intermediacaoOrigem?: "inc" | "ter" | "ambos";
   /** Mostrar o corretor na divisão da proposta (falso: a divisão aparece sem ele) */
   mostrarCorretor?: boolean;
@@ -338,11 +338,12 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const areaObras = Math.floor(areaUtil);
   const custoInfra = areaObras * i.custoInfraM2;
   const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
-  // corretor da parceria: o percentual incide sobre a parte de quem paga e sai dela; as obras não mudam
-  // ex.: VGV 100 mi, JBL 30%, obras 30%, terrenista 40%, corretor 2% → JBL 600 mil · terrenista 800 mil · os dois 1,4 mi
+  // corretor da parceria: o percentual incide sobre a parte de quem paga (incorporador inteiro, com as obras, ou
+  // terrenista) e o valor sai da parte da JBL ou do terrenista; as obras não mudam
+  // ex.: VGV 100 mi, incorporador 60% (JBL 30% + obras 30%), terrenista 40%, corretor 2% → do incorporador 1,2 mi · do terrenista 800 mil
   const pctCorretor = i.intermediacaoPct && i.intermediacaoPct > 0 ? i.intermediacaoPct : 0;
   const origem = i.intermediacaoOrigem ?? "inc";
-  const intermediacaoDeInc = origem !== "ter" ? pctCorretor * Math.max(0, inc - infraPct) : 0;
+  const intermediacaoDeInc = origem !== "ter" ? pctCorretor * inc : 0;
   const intermediacaoDeTer = origem !== "inc" ? pctCorretor * ter : 0;
   const intermediacaoPct = intermediacaoDeInc + intermediacaoDeTer;
 

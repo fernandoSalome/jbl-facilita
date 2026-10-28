@@ -237,7 +237,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
             <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100, Number.isInteger(Math.round(r.terrenistaPct * 1e4) / 100) ? 0 : 2)} sufixo="%" strong />
             <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
-            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. O percentual incide sobre a parte de quem paga (a JBL sem as obras, o terrenista ou os dois) e sai dela; as obras não mudam. Vazio = sem corretor" />
+            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
             {r.intermediacaoPct > 0 && (
               <>
                 <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
