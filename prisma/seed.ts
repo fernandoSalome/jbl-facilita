@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, separarEmoji, type QtdCalcKey } from "../src/lib/formatos";
+import { copiarObras, FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, separarEmoji, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -57,6 +57,39 @@ async function main() {
   await cartaDaBrunaDesfeita();
   await minutasComSedeEmBarueri();
   await celularDoMarceloCorrigido();
+  await obrasDoChacreamentoAbertoNoCondominio();
+}
+
+/**
+ * Pedido da equipe (28/10/2026): o chacreamento em condomínio ganha, no template, os itens de
+ * infraestrutura e de infraestrutura complementar do chacreamento aberto (no fim de cada lista,
+ * com os textos de lá). Nada sai do condomínio e obra com o mesmo nome não entra repetida.
+ * Como no "Salvar" do template, só os rascunhos que estavam na versão atual passam para a nova;
+ * as propostas já enviadas ficam como estão. Roda uma vez só: se alguma versão do condomínio já
+ * teve os itens copiados, não faz nada (mesmo que tenham sido tirados depois no editor).
+ */
+async function obrasDoChacreamentoAbertoNoCondominio() {
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    const ultima = (f: string) => db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+    const [vAb, vCc] = [await ultima("chacreamento_aberto"), await ultima("chacreamento_condominio")];
+    if (!vAb || !vCc) continue;
+    const { content, copiados, repetidos } = copiarObras(parseContent(vAb.content, "chacreamento_aberto"), parseContent(vCc.content, "chacreamento_condominio"));
+    if (!copiados.length) continue;
+    const ids = new Set(copiados.map((i) => i.id));
+    const versoes = await db.formatoVersion.findMany({ where: { templateId: t.id, formato: "chacreamento_condominio" }, select: { content: true } });
+    const jaFeito = versoes.some((v) => {
+      const c = parseContent(v.content, "chacreamento_condominio");
+      return [...c.infra, ...c.complementar].some((i) => ids.has(i.id));
+    });
+    if (jaFeito) continue;
+    const v = await db.formatoVersion.create({ data: { templateId: t.id, formato: "chacreamento_condominio", content: content as object } });
+    const n = await db.proposal.updateMany({
+      where: { templateId: t.id, formato: "chacreamento_condominio", formatoVersionId: vCc.id, status: "rascunho" },
+      data: { formatoVersionId: v.id },
+    });
+    console.log(`Chacreamento condomínio com as obras do aberto: ${copiados.map((i) => i.obra).join("; ")} · já tinha: ${repetidos.map((i) => i.obra).join("; ") || "nenhuma"} · ${n.count} rascunho(s)`);
+  }
 }
 
 /**

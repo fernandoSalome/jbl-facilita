@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chaveDoTipo, estavel, FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, qtdTexto, semEmojiHtml, separar, separarEmoji, type FormatoContent } from "./formatos";
+import { chaveDoTipo, copiarObras, estavel, FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, qtdTexto, semEmojiHtml, separar, separarEmoji, type FormatoContent } from "./formatos";
 import { calcular } from "./calc";
 import { cleanOverride } from "./sanitize";
 import { limparConteudo } from "./template-salvar";
@@ -117,5 +117,40 @@ describe("emoji padrão das benfeitorias", () => {
     expect(emojiPadrao("<b>Quadra de beach tennis</b>")).toBe("🎾");
     expect(emojiPadrao("Praça central")).toBe("🌳");
     expect(emojiPadrao("Item qualquer")).toBe("✨");
+  });
+});
+
+describe("obras do chacreamento aberto no condomínio", () => {
+  const ab = FORMATOS_INICIAIS.chacreamento_aberto;
+  const cc = FORMATOS_INICIAIS.chacreamento_condominio;
+
+  it("acrescenta no fim, sem tirar nada e sem repetir obra com o mesmo nome", () => {
+    const { content, copiados, repetidos } = copiarObras(ab, cc);
+    expect(content.infra.slice(0, cc.infra.length)).toEqual(cc.infra);
+    expect(content.complementar.slice(0, cc.complementar.length)).toEqual(cc.complementar);
+    expect(content.benfeitorias).toEqual(cc.benfeitorias);
+    expect(copiados.length + repetidos.length).toBe(ab.infra.length + ab.complementar.length);
+    expect(repetidos.map((i) => i.obra)).toContain("Cronograma de obras");
+    expect(copiados.map((i) => i.obra)).toContain("Poço artesiano");
+    expect(content.complementar.map((i) => i.obra)).toContain("Construção civil: portal de acesso e área de lazer");
+  });
+
+  it("leva junto o texto alterado no template e respeita o nome alterado", () => {
+    const poco = ab.infra.find((i) => i.obra === "Poço artesiano")!;
+    const origem = { ...ab, overrides: { [`li.${poco.id}.desc`]: "Água do subsolo", "txt.a1": "comum" } };
+    const { content } = copiarObras(origem, cc);
+    expect(content.overrides[`li.${poco.id}.desc`]).toBe("Água do subsolo");
+    expect(content.overrides["txt.a1"]).toBeUndefined();
+
+    const pav = cc.infra.find((i) => /paviment/i.test(i.obra))!;
+    const destino = { ...cc, overrides: { [`li.${pav.id}.obra`]: "html:<b>Poço artesiano</b>" } };
+    expect(copiarObras(ab, destino).repetidos.map((i) => i.obra)).toContain("Poço artesiano");
+  });
+
+  it("rodar de novo não acrescenta nada", () => {
+    const uma = copiarObras(ab, cc).content;
+    const duas = copiarObras(ab, uma);
+    expect(duas.copiados).toEqual([]);
+    expect(duas.content.infra).toEqual(uma.infra);
   });
 });

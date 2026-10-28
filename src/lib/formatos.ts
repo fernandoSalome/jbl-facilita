@@ -218,6 +218,37 @@ export function aplicarDiff<T extends { id: string }>(base: T[], diff: unknown):
   return [...base.filter((i) => !removed.has(i.id)), ...((d.added ?? []) as unknown as T[]).filter((i) => !removed.has(i.id))];
 }
 
+/** Nome da obra como aparece na proposta (texto alterado no template, sem HTML), para comparar */
+export function nomeDaObra(it: ObraItem, ov: Overrides) {
+  const t = ov[`li.${it.id}.obra`];
+  return (typeof t === "string" ? t.replace(/^html:/, "") : it.obra)
+    .replace(/<[^>]+>/g, " ").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Coloca no fim das listas de obras (infraestrutura e complementar) do destino os itens da origem,
+ * com os textos e estilos alterados no template. Nada do destino sai. Item que o destino já tem
+ * (mesmo id ou obra com o mesmo nome) não entra de novo.
+ */
+export function copiarObras(origem: FormatoContent, destino: FormatoContent) {
+  const ids = new Set([...destino.infra, ...destino.complementar].map((i) => i.id));
+  const nomes = new Set([...destino.infra, ...destino.complementar].map((i) => nomeDaObra(i, destino.overrides)));
+  const copiados: ObraItem[] = [];
+  const repetidos: ObraItem[] = [];
+  const novos = (itens: ObraItem[]) =>
+    itens.filter((it) => {
+      if (ids.has(it.id) || nomes.has(nomeDaObra(it, origem.overrides))) return !repetidos.push(it);
+      copiados.push(it);
+      return true;
+    });
+  const infra = [...destino.infra, ...novos(origem.infra)];
+  const complementar = [...destino.complementar, ...novos(origem.complementar)];
+  const doCopiado = idsDoTipo({ infra: copiados, complementar: [], benfeitorias: [] });
+  const overrides = { ...destino.overrides };
+  for (const [k, v] of Object.entries(origem.overrides)) if (chaveDoTipo(k, doCopiado)) overrides[k] = v;
+  return { content: { ...destino, infra, complementar, overrides }, copiados, repetidos };
+}
+
 // ------------------------------------------------------------ listas iniciais
 
 let n = 0;
