@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLAUSULA_ELETRONICA, comClausulaEletronica, limparMinuta, minutaInicial, numeroWhatsapp } from "./minuta";
+import { CLAUSULA_ELETRONICA, comClausulaEletronica, cpfValido, limparMinuta, minutaInicial, numeroWhatsapp } from "./minuta";
 
 describe("minuta da carta de intenção", () => {
   it("monta com os dados enviados e marca o que falta", () => {
@@ -22,6 +22,14 @@ describe("minuta da carta de intenção", () => {
     expect(numeroWhatsapp("(18) 99712-3456")).toBe("5518997123456");
     expect(numeroWhatsapp("5518997123456")).toBe("5518997123456");
     expect(numeroWhatsapp("123")).toBe(null);
+    expect(numeroWhatsapp("119040091744")).toBe(null); // um dígito a mais
+    expect(numeroWhatsapp("(11) 3333-4444")).toBe("551133334444");
+    expect(numeroWhatsapp("(55) 99123-4567")).toBe("5555991234567"); // DDD 55
+  });
+  it("CPF válido", () => {
+    expect(cpfValido("123.456.789-09")).toBe(true);
+    expect(cpfValido("111.111.111-11")).toBe(false);
+    expect(cpfValido("123.456.789-00")).toBe(false);
   });
   it("cláusula da assinatura eletrônica antes das assinaturas, uma vez só", () => {
     const h = minutaInicial({ proprietario: { nome: "Bruna Stein" } }, { name: "Rancho Fundo", municipio: "Pontal", uf: "MT", matricula: null }, new Date("2026-10-27T12:00:00"));

@@ -5,7 +5,7 @@
  */
 import { db } from "./db";
 import { LINK_BASE } from "./site";
-import { comClausulaEletronica, documentoMinuta, minutaInicial, novoTokenAssinatura, numeroWhatsapp, type DadosCarta } from "./minuta";
+import { comClausulaEletronica, cpfValido, documentoMinuta, minutaInicial, novoTokenAssinatura, numeroWhatsapp, type DadosCarta } from "./minuta";
 import { pdfDeHtml } from "./pdf";
 import { enviarArquivo, enviarTexto } from "./whatsapp";
 import { apagarDocumento, autentiqueConfigurado, baixarAssinado, criarDocumento, lerDocumento, type Signatario } from "./autentique";
@@ -50,6 +50,9 @@ export const nomeArquivo = (c: Carta, assinada = false) =>
 
 /* ------------------------------------------------------------ assinatura pela Autentique */
 
+/** Assinatura de verdade (o dono da conta pode aparecer na lista sem ação) */
+const assina = (s: { action: { name: string } | null }) => !!s.action && /^SIGN$/i.test(s.action.name);
+
 export type Papel = "proprietario" | "conjuge" | "jbl" | "outro";
 export type Assinatura = {
   papel: Papel;
@@ -67,6 +70,39 @@ export const PAPEL: Record<Papel, string> = { proprietario: "Proprietário(a)", 
 
 const soDigitos = (x?: string) => (x ?? "").replace(/\D/g, "");
 
+/** Avisos antes de mandar para assinatura: dados que a Autentique não aceita (ficam de fora da conferência) */
+export function avisosDoContato(c: Carta): string[] {
+  const d = dadosDe(c);
+  const p = d.proprietario ?? {}, j = d.conjuge ?? {};
+  const a: string[] = [];
+  if (!soDigitos(p.telefone)) a.push("Sem celular: a assinatura vai sem o código por SMS e o link não pode ir pelo WhatsApp.");
+  else if (!numeroWhatsapp(p.telefone ?? "")) a.push(`O celular informado (${p.telefone}) não é válido. Corrija abaixo antes de enviar.`);
+  if (soDigitos(p.cpf) && !cpfValido(p.cpf ?? "")) a.push(`O CPF informado (${p.cpf}) não é válido. Corrija abaixo; sem isso a assinatura vai sem a conferência do CPF.`);
+  if (j.nome?.trim() && soDigitos(j.cpf) && !cpfValido(j.cpf ?? "")) a.push(`O CPF do cônjuge (${j.cpf}) não é válido; a assinatura dele vai sem a conferência do CPF.`);
+  return a;
+}
+
+/** A equipe corrige o contato que a pessoa digitou errado (celular, e-mail, CPF) antes de mandar */
+export async function corrigirContato(c: Carta, novo: { telefone?: string; email?: string; cpf?: string }) {
+  if (c.minutaStatus !== "revisao") throw new Error("A minuta já foi enviada. Reabra para corrigir.");
+  const d = dadosDe(c);
+  const p = { ...(d.proprietario ?? {}) };
+  const limpo = (x: unknown) => (typeof x === "string" ? x.trim().slice(0, 120) : undefined);
+  if (limpo(novo.telefone) !== undefined) {
+    if (limpo(novo.telefone) && !numeroWhatsapp(limpo(novo.telefone)!)) throw new Error("Celular inválido: use DDD + número, ex.: (11) 94009-1744.");
+    p.telefone = limpo(novo.telefone)!;
+  }
+  if (limpo(novo.email) !== undefined) {
+    if (limpo(novo.email) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(limpo(novo.email)!)) throw new Error("E-mail inválido.");
+    p.email = limpo(novo.email)!;
+  }
+  if (limpo(novo.cpf) !== undefined) {
+    if (limpo(novo.cpf) && !cpfValido(limpo(novo.cpf)!)) throw new Error("CPF inválido: confira os números.");
+    p.cpf = limpo(novo.cpf)!;
+  }
+  await db.intentLetter.update({ where: { id: c.id }, data: { data: { ...d, proprietario: p } } });
+}
+
 /**
  * Quem assina: o(a) proprietário(a) (CPF conferido e código por SMS no celular que informou),
  * o(a) cônjuge quando houver (CPF conferido) e, se configurado, quem assina pela JBL (por e-mail).
@@ -74,7 +110,8 @@ const soDigitos = (x?: string) => (x ?? "").replace(/\D/g, "");
 function signatarios(c: Carta): { papel: Papel; nome: string; s: Signatario }[] {
   const d = dadosDe(c);
   const p = d.proprietario ?? {}, j = d.conjuge ?? {};
-  const cpf = (x?: string) => (soDigitos(x).length === 11 ? { configs: { cpf: soDigitos(x) } } : {});
+  // só manda o que a Autentique aceita: CPF e celular inválidos ficam de fora (a tela avisa antes)
+  const cpf = (x?: string) => (cpfValido(x ?? "") ? { configs: { cpf: soDigitos(x) } } : {});
   const tel = numeroWhatsapp(p.telefone ?? "");
   const lista: { papel: Papel; nome: string; s: Signatario }[] = [
     { papel: "proprietario", nome: nomeDe(c), s: { name: nomeDe(c), action: "SIGN", ...cpf(p.cpf), ...(tel ? { security_verifications: [{ type: "SMS", verify_phone: `+${tel}` }] } : {}) } },
@@ -96,9 +133,14 @@ export async function garantirLink(c: Carta) {
   const pdf = await pdfDeHtml(documentoMinuta(texto, { titulo: `Carta de intenção ${c.protocolo}` }), rodapeDe(c, true));
   const quem = signatarios(c);
   const doc = await criarDocumento(`Carta de intenção - ${c.proposal.project.name} - ${nomeDe(c)}`, pdf, nomeArquivo(c).replace(/^Minuta carta/, "Carta"), quem.map((x) => x.s));
-  const assinaturas: Assinatura[] = doc.signatures.map((s, i) => {
-    // a Autentique devolve na mesma ordem; o da JBL também pode ser achado pelo e-mail
-    const q = quem.find((x) => x.s.email && x.s.email.toLowerCase() === (s.email ?? "").toLowerCase()) ?? quem[i];
+  // a Autentique pode incluir o dono da conta (sem ação de assinar) no começo da lista: só valem as de assinar,
+  // achadas pelo nome ou e-mail; o que sobrar, na ordem em que foram mandadas
+  const deAssinar = doc.signatures.filter(assina);
+  const livres = [...quem];
+  const assinaturas: Assinatura[] = deAssinar.map((s) => {
+    const igual = (x: (typeof quem)[number]) => (x.s.name && x.s.name === s.name) || (x.s.email && x.s.email.toLowerCase() === (s.email ?? s.user?.email ?? "").toLowerCase());
+    const i = livres.findIndex(igual);
+    const q = i >= 0 ? livres.splice(i, 1)[0] : livres.shift();
     return { papel: q?.papel ?? "outro", nome: q?.nome ?? s.name ?? s.email ?? "", publicId: s.public_id, link: s.link?.short_link ?? null, vistoEm: null, assinadoEm: null, recusadoEm: null, motivo: null };
   });
   const token = novoTokenAssinatura();
@@ -179,7 +221,7 @@ export async function sincronizarAssinaturas(c: Carta, avisar = false): Promise<
   const doc = await lerDocumento(c.autentiqueId);
   const antes = assinaturasDe(c);
   const agora: Assinatura[] = doc.signatures
-    .filter((s) => !s.action || /sign/i.test(s.action.name))
+    .filter(assina)
     .map((s) => {
       const a = antes.find((x) => x.publicId === s.public_id);
       return {

@@ -37,6 +37,17 @@ export type AssinaturaApi = {
 };
 export type DocumentoApi = { id: string; name: string; files: { original: string | null; signed: string | null } | null; signatures: AssinaturaApi[] };
 
+/** Erro de validação da Autentique em português (ex.: signers.0.configs.cpf: invalid_cpf) */
+function explicar(campo: string, cods: string[]) {
+  const quem = /signers\.(\d+)/.exec(campo);
+  const de = quem ? ` (assinante ${Number(quem[1]) + 1})` : "";
+  if (/verify_phone|phone/.test(campo)) return `o celular informado não é válido${de}`;
+  if (/cpf/.test(campo)) return `o CPF informado não é válido${de}`;
+  if (/email/.test(campo)) return `o e-mail informado não é válido${de}`;
+  if (/file/.test(campo)) return "o arquivo do PDF não foi aceito";
+  return `${campo}: ${cods.join(", ")}`;
+}
+
 async function chamar<T>(body: BodyInit, json: boolean): Promise<T> {
   const token = process.env.AUTENTIQUE_TOKEN;
   if (!token) throw new Error("A Autentique ainda não foi configurada (falta a chave AUTENTIQUE_TOKEN na Vercel).");
@@ -46,9 +57,9 @@ async function chamar<T>(body: BodyInit, json: boolean): Promise<T> {
     body,
     cache: "no-store",
   });
-  const j = (await r.json().catch(() => null)) as { data?: T; errors?: { message: string }[] } | null;
+  const j = (await r.json().catch(() => null)) as { data?: T; errors?: { message: string; extensions?: { validation?: Record<string, string[]> } }[] } | null;
   if (!r.ok || !j || j.errors?.length || !j.data) {
-    const erro = j?.errors?.map((e) => e.message).join("; ") || `HTTP ${r.status}`;
+    const erro = j?.errors?.map((e) => (e.extensions?.validation ? Object.entries(e.extensions.validation).map(([campo, cods]) => explicar(campo, cods)).join("; ") : e.message)).join("; ") || `HTTP ${r.status}`;
     throw new Error(`Autentique: ${erro}`);
   }
   return j.data;

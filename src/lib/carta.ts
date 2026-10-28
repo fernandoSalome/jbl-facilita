@@ -25,8 +25,12 @@ export const CNPJ_JBL = "58.521.773/0001-01";
  */
 export const SOCIO_JBL = "Felipe Stampini Oliveira Lopes, brasileiro, solteiro, engenheiro civil, portador do CPF: n.º 104.945.466-97 e n.º do documento de identidade: CNH: n.º 05625886555 - Órgão Emissor: SNT/MG, nascido em 20/9/1993, natural da cidade de Visconde do Rio Branco/MG";
 
-/** Texto salvo antes do campo do sócio (com os dados dele escritos): passa a usar o campo */
-export const comCampoDoSocio = (t: string) => t.split(SOCIO_JBL).join("{{jbl_socio}}");
+/** Sede da JBL: na carta da proposta, a de São Paulo; na minuta, a matriz em Barueri */
+export const SEDE_CARTA = "Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, São Paulo/SP – CEP: 04549-060";
+export const SEDE_MINUTA = "Matriz - Alameda Rio Negro, n.º 503, Cj. 2011 - 20º Andar - Alphaville Empresarial - Barueri/SP";
+
+/** Texto salvo antes dos campos da JBL (com o sócio e a sede escritos): passa a usar os campos */
+export const comCamposDaJbl = (t: string) => t.split(SOCIO_JBL).join("{{jbl_socio}}").split(SEDE_CARTA).join("{{jbl_sede}}");
 
 /** Valor de campo que já vem em HTML (negrito, lacunas): o editor coloca sem escapar */
 export const VAR_HTML = "\u0001";
@@ -39,7 +43,7 @@ export const BLOCOS_CARTA: BlocoCarta[] = [
   {
     k: "carta.partes",
     texto:
-      `<strong>JBL INCORPORADORA URBANISMO E EMPREENDIMENTOS LTDA,</strong> pessoa jurídica de direito privado, com nome fantasia, <strong>GRUPO JBL INCORPORADORA E URBANISMO</strong>, inscrita no CNPJ sob n.º ${CNPJ_JBL}, com sede jurídica na Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, São Paulo/SP – CEP: 04549-060, representada neste ato pelo sócio administrador, {{jbl_socio}}, doravante <strong>DENOMINADA EMPREENDEDORA PROPONENTE</strong>, propõe nos termos a seguir, a presente carta de intenção, para formalização de uma parceria imobiliária com <strong>{{p_nome_maiusc}}</strong>{{qualificacao}}{{casamento}}, residente(s) e domiciliado(s) na {{p_end}}, <strong>DENOMINADOS PROPRIETÁRIOS TERRENISTAS - COTISTA</strong>.`,
+      `<strong>JBL INCORPORADORA URBANISMO E EMPREENDIMENTOS LTDA,</strong> pessoa jurídica de direito privado, com nome fantasia, <strong>GRUPO JBL INCORPORADORA E URBANISMO</strong>, inscrita no CNPJ sob n.º ${CNPJ_JBL}, com sede jurídica na {{jbl_sede}}, representada neste ato pelo sócio administrador, {{jbl_socio}}, doravante <strong>DENOMINADA EMPREENDEDORA PROPONENTE</strong>, propõe nos termos a seguir, a presente carta de intenção, para formalização de uma parceria imobiliária com <strong>{{p_nome_maiusc}}</strong>{{qualificacao}}{{casamento}}, residente(s) e domiciliado(s) na {{p_end}}, <strong>DENOMINADOS PROPRIETÁRIOS TERRENISTAS - COTISTA</strong>.`,
   },
   { k: "carta.h1", h: true, texto: "I – DA EMPRESA PROPONENTE" },
   { k: "carta.i1", texto: "A empresa <strong>PROPONENTE</strong>, pessoa jurídica de direito privado, com nome fantasia, <strong>GRUPO JBL INCORPORADORA E URBANISMO</strong>, com atividade principal de incorporação de empreendimentos imobiliários, tendo experiência na implantação de Parcelamentos de Solos Urbano e Rural." },
@@ -90,7 +94,7 @@ export const CAMPOS_CARTA: { grupo: string; campos: [campo: string, rotulo: stri
     ],
   },
   { grupo: "Local e data", campos: [["cidade", "Cidade"], ["data", "Data por extenso"]] },
-  { grupo: "JBL", campos: [["jbl_socio", "Sócio administrador (dados completos só na minuta)"]] },
+  { grupo: "JBL", campos: [["jbl_socio", "Sócio administrador (dados completos só na minuta)"], ["jbl_sede", "Sede (na minuta: a matriz em Barueri)"]] },
 ];
 
 /**
@@ -167,6 +171,7 @@ export function valoresCarta(v: Campos, p: Projeto, data?: Date, opcoes: { minut
     situado,
     cidade: esc(mun.split(/[/-]/)[0].trim()),
     data: extenso(data),
+    jbl_sede: esc(opcoes.minuta ? SEDE_MINUTA : SEDE_CARTA),
     jbl_socio: opcoes.minuta
       ? esc(SOCIO_JBL)
       : `${lacuna("nome")}, ${lacuna("nacionalidade")}, ${lacuna("estado civil")}, ${lacuna("profissão")}, portador do CPF: n.º ${lacuna("CPF")} e n.º do documento de identidade: ${lacuna("documento")}, nascido em ${lacuna("data de nascimento")}, natural da cidade de ${lacuna("cidade/UF")}`,
@@ -182,8 +187,8 @@ export function varsDoEditor(valores: Record<string, string>) {
 /** Texto em uso de um parágrafo (o editado, ou o padrão), em HTML com os {{campos}} */
 export function modeloDoBloco(salvo: unknown, padrao: string) {
   if (typeof salvo !== "string" || !salvo.trim()) return padrao;
-  if (salvo.startsWith(HTML_PREFIX)) return comCampoDoSocio(sanitizeHtml(salvo.slice(HTML_PREFIX.length)));
-  return comCampoDoSocio(esc(salvo).replace(/\n/g, "<br>"));
+  if (salvo.startsWith(HTML_PREFIX)) return comCamposDaJbl(sanitizeHtml(salvo.slice(HTML_PREFIX.length)));
+  return comCamposDaJbl(esc(salvo).replace(/\n/g, "<br>"));
 }
 
 /** Troca os {{campos}} pelos valores (campo desconhecido some) */

@@ -55,6 +55,29 @@ async function main() {
   await planilha2026EmTodos();
   await minutasComDadosNovosDaJbl();
   await cartaDaBrunaDesfeita();
+  await minutasComSedeEmBarueri();
+  await celularDoMarceloCorrigido();
+}
+
+/**
+ * Na minuta, a sede da JBL é a matriz em Barueri (na carta da proposta continua a de São Paulo).
+ * Minutas ainda em revisão (não enviadas) que já tinham sido abertas/editadas: troca o endereço.
+ */
+async function minutasComSedeEmBarueri() {
+  const SP = "Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, São Paulo/SP – CEP: 04549-060";
+  const BARUERI = "Matriz - Alameda Rio Negro, n.º 503, Cj. 2011 - 20º Andar - Alphaville Empresarial - Barueri/SP";
+  const cartas = await db.intentLetter.findMany({ where: { minutaStatus: "revisao", minutaHtml: { contains: SP } }, select: { id: true, minutaHtml: true } });
+  for (const c of cartas) await db.intentLetter.update({ where: { id: c.id }, data: { minutaHtml: c.minutaHtml!.split(SP).join(BARUERI) } });
+  if (cartas.length) console.log(`Minutas com a sede em Barueri: ${cartas.length}`);
+}
+
+/** Pedido da equipe (28/10/2026): celular digitado com um dígito a mais na carta JBL-2026-98F118 */
+async function celularDoMarceloCorrigido() {
+  const c = await db.intentLetter.findUnique({ where: { protocolo: "JBL-2026-98F118" }, select: { id: true, data: true } });
+  const d = (c?.data ?? null) as { proprietario?: Record<string, string> } | null;
+  if (!c || !d?.proprietario || d.proprietario.telefone?.replace(/\D/g, "") !== "119040091744") return;
+  await db.intentLetter.update({ where: { id: c.id }, data: { data: { ...d, proprietario: { ...d.proprietario, telefone: "11940091744" } } } });
+  console.log("Celular corrigido na carta JBL-2026-98F118");
 }
 
 /**

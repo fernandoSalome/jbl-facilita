@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { limparMinuta } from "@/lib/minuta";
-import { assinaturasDe, carregarCarta, dadosDe, enviarLinkEmail, enviarLinkWhatsapp, garantirLink, linkAssinatura, minutaAtual, minutaMontada, nomeDe, PAPEL, reabrirMinuta, sincronizarAssinaturas } from "@/lib/minuta-acoes";
+import { assinaturasDe, avisosDoContato, carregarCarta, corrigirContato, dadosDe, enviarLinkEmail, enviarLinkWhatsapp, garantirLink, linkAssinatura, minutaAtual, minutaMontada, nomeDe, PAPEL, reabrirMinuta, sincronizarAssinaturas } from "@/lib/minuta-acoes";
 import { autentiqueConfigurado } from "@/lib/autentique";
 import { emailConfigurado } from "@/lib/email";
 
@@ -32,6 +32,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       projeto: `${c.proposal.project.name} · ${c.proposal.project.municipio}/${c.proposal.project.uf}`,
       telefone: p.telefone ?? "",
       email: p.email ?? "",
+      cpf: p.cpf ?? "",
+      avisos: c.minutaStatus === "revisao" ? avisosDoContato(c) : [],
       emailConfigurado: emailConfigurado(),
       html: await minutaAtual(c),
       editada: !!c.minutaHtml,
@@ -61,12 +63,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   });
 }
 
-/** Ações: link | whatsapp | email | reabrir | restaurar | atualizar */
+/** Ações: link | whatsapp | email | reabrir | restaurar | atualizar | contato (corrige celular, e-mail e CPF) */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {
     const c = await carregarCarta(params.id);
     if (!c) return json({ error: "Carta não encontrada" }, 404);
-    const { acao } = (await req.json().catch(() => ({}))) as { acao?: string };
+    const corpo = (await req.json().catch(() => ({}))) as { acao?: string; telefone?: string; email?: string; cpf?: string };
+    const { acao } = corpo;
     try {
       if (acao === "link") {
         const { token } = await garantirLink(c);
@@ -74,6 +77,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       }
       if (acao === "whatsapp") return json(await enviarLinkWhatsapp(c));
       if (acao === "email") return json(await enviarLinkEmail(c));
+      if (acao === "contato") {
+        await corrigirContato(c, { telefone: corpo.telefone, email: corpo.email, cpf: corpo.cpf });
+        return json({ ok: true });
+      }
       if (acao === "atualizar") {
         const atual = await sincronizarAssinaturas(c, true);
         return json({ status: atual.minutaStatus });

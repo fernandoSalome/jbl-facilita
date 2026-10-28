@@ -157,9 +157,27 @@ footer{margin-top:28px;font:11px Arial,sans-serif;color:#8a929b;text-align:cente
 
 export const novoTokenAssinatura = () => randomBytes(18).toString("base64url");
 
-/** Só os dígitos, com DDI do Brasil quando faltar */
+/**
+ * Celular/telefone do Brasil só com dígitos e o DDI 55, ou null se não for um número válido
+ * (DDD + 8 ou 9 dígitos; com 9 dígitos, começa com 9). Ex.: "119040091744" (um dígito a mais) → null
+ */
 export function numeroWhatsapp(tel: string) {
-  const d = tel.replace(/\D/g, "");
-  if (d.length < 10) return null;
-  return d.startsWith("55") && d.length >= 12 ? d : `55${d}`;
+  let d = tel.replace(/\D/g, "");
+  if (d.startsWith("55") && (d.length === 12 || d.length === 13)) d = d.slice(2);
+  if (d.length !== 10 && d.length !== 11) return null;
+  if (Number(d.slice(0, 2)) < 11 || (d.length === 11 && d[2] !== "9")) return null;
+  return `55${d}`;
+}
+
+/** CPF com os dígitos verificadores certos */
+export function cpfValido(cpf: string) {
+  const d = cpf.replace(/\D/g, "");
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  const dv = (n: number) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(d[i]) * (n + 1 - i);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dv(9) === Number(d[9]) && dv(10) === Number(d[10]);
 }

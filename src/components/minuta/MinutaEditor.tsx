@@ -14,6 +14,8 @@ type Dados = {
   projeto: string;
   telefone: string;
   email: string;
+  cpf: string;
+  avisos: string[];
   emailConfigurado: boolean;
   html: string;
   editada: boolean;
@@ -49,6 +51,25 @@ export default function MinutaEditor({ id }: { id: string }) {
   const [salvo, setSalvo] = useState<"ok" | "salvando" | "erro">("ok");
   const [msg, setMsg] = useState<{ tipo: "ok" | "erro"; txt: string } | null>(null);
   const [ocupado, setOcupado] = useState("");
+  const [contato, setContato] = useState<{ telefone: string; email: string; cpf: string } | null>(null);
+
+  async function salvarContato() {
+    if (!contato) return;
+    setOcupado("contato");
+    setMsg(null);
+    try {
+      const r = await fetch(`/api/letters/${id}/minuta`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "contato", ...contato }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? "Não foi possível salvar.");
+      setContato(null);
+      setMsg({ tipo: "ok", txt: "Contato corrigido." });
+      await carregar();
+    } catch (e) {
+      setMsg({ tipo: "erro", txt: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setOcupado("");
+    }
+  }
   const area = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -170,7 +191,21 @@ export default function MinutaEditor({ id }: { id: string }) {
         {d && (
           <div className="mb-3 grid gap-1 rounded border border-line bg-white px-4 py-3 text-[13px] text-ink">
             <div>Protocolo <b className="font-mono">{d.protocolo}</b> · dados recebidos em {fmt(d.recebidaEm)} · proposta {d.proposta}</div>
-            <div className="text-muted">Contato informado: {d.telefone || "sem telefone"} · {d.email || "sem e-mail"}</div>
+            {contato ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="grid text-[12px] text-muted">Celular<input className="input h-8 w-44 py-1" value={contato.telefone} onChange={(e) => setContato({ ...contato, telefone: e.target.value })} placeholder="(11) 94009-1744" /></label>
+                <label className="grid text-[12px] text-muted">E-mail<input className="input h-8 w-64 py-1" value={contato.email} onChange={(e) => setContato({ ...contato, email: e.target.value })} /></label>
+                <label className="grid text-[12px] text-muted">CPF<input className="input h-8 w-40 py-1" value={contato.cpf} onChange={(e) => setContato({ ...contato, cpf: e.target.value })} /></label>
+                <button className="btn-navy h-8 py-0" disabled={!!ocupado} onClick={salvarContato}>{ocupado === "contato" ? "Salvando…" : "Salvar"}</button>
+                <button className="h-8 px-2 text-[12.5px] font-semibold text-muted hover:text-navy" onClick={() => setContato(null)}>Cancelar</button>
+              </div>
+            ) : (
+              <div className="text-muted">
+                Contato informado: {d.telefone || "sem telefone"} · {d.email || "sem e-mail"}{d.cpf ? ` · CPF ${d.cpf}` : ""}
+                {d.status === "revisao" && <button className="ml-2 font-semibold text-navy underline" onClick={() => setContato({ telefone: d.telefone, email: d.email, cpf: d.cpf })}>corrigir</button>}
+              </div>
+            )}
+            {d.avisos.map((a) => <div key={a} className="rounded bg-amber-50 px-3 py-1.5 text-amber-900 ring-1 ring-amber-200">⚠ {a}</div>)}
             {d.status === "revisao" && (
               <ol className="mt-1 grid gap-0.5 text-muted">
                 <li><b className="text-navy">1. Revise o texto.</b> Edite à vontade (salva sozinho). O que ela não preencheu aparece <span className="rounded bg-[#fff1c2] px-1">[assim]</span>.</li>

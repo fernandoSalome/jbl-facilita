@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { fmtNum } from "@/lib/format";
 import { E } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
-import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, comCampoDoSocio, TITULO, valoresCarta, varsDoEditor, type Campos, type Projeto } from "@/lib/carta";
+import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, comCamposDaJbl, TITULO, valoresCarta, varsDoEditor, type Campos, type Projeto } from "@/lib/carta";
 
 /**
  * Carta de intenção: formulário no layout do site da proposta (campos à esquerda,
@@ -164,7 +164,7 @@ export default function IntentForm({
       {/* cada parágrafo dá para editar (no template: todas as propostas); os dados do formulário ficam travados */}
       {BLOCOS_CARTA.map((b) => (
         <p key={b.k} className={b.h ? "ci-h" : undefined}>
-          <E k={b.k} html vars={varsCarta} campos={CAMPOS_CARTA} limpar={comCampoDoSocio}>{b.texto}</E>
+          <E k={b.k} html vars={varsCarta} campos={CAMPOS_CARTA} limpar={comCamposDaJbl}>{b.texto}</E>
         </p>
       ))}
       {assinaturas.map(([n, s], i) => (
