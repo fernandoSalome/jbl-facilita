@@ -27,8 +27,9 @@ function marcar(r: { key?: { id?: string } } | null) {
   }
 }
 
+/** Texto puro: sem a prévia (imagem grande) que o WhatsApp monta para os links */
 export async function enviarTexto(jid: string, text: string) {
-  marcar(await call(`/message/sendText/${INST()}`, { number: jid, text }));
+  marcar(await call(`/message/sendText/${INST()}`, { number: jid, text, linkPreview: false }));
 }
 
 export async function enviarArquivo(jid: string, f: { base64: string; mime: string; fileName: string; caption: string }) {
