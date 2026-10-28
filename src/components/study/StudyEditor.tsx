@@ -92,7 +92,7 @@ export function useStudyState(initial: StudyInputs) {
     setInputs((s) => ({ ...s, reajusteManual: null }));
   }
   /** Opções do corretor da parceria: quem paga e se aparece na proposta */
-  function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean }) {
+  function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
     setInputs((s) => ({ ...s, ...c }));
   }
   return { inputs, texts, set, setIndice, setEtapa, setEtapaADefinir, clearManual, setCorretor };
@@ -249,11 +249,27 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
                   </select>
                 </label>
                 <Out label="VGV Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />
+                {/* de onde sai: o % do corretor sobre o VGV de quem paga */}
+                <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
+                  {(() => {
+                    const pct = `${fmtNum((i.intermediacaoPct ?? 0) * 100, Number.isInteger(Math.round((i.intermediacaoPct ?? 0) * 1e4) / 100) ? 0 : 2)}%`;
+                    const o = i.intermediacaoOrigem ?? "inc";
+                    const deInc = `${pct} de ${fmtBRL(r.vgvAvistaInc)} (VGV Incorporador) = ${fmtBRL(r.vgvAvista * r.intermediacaoDeInc)}`;
+                    const deTer = `${pct} de ${fmtBRL(r.vgvAvistaTer)} (VGV Terrenista) = ${fmtBRL(r.vgvAvista * r.intermediacaoDeTer)}`;
+                    return o === "inc" ? deInc : o === "ter" ? deTer : `${deInc} + ${deTer}`;
+                  })()}
+                </p>
                 <Out label="Corretor no total (divisão)" value={fmtPct(r.intermediacaoPct)} />
                 <label className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-semibold text-navy">
                   <input type="checkbox" className="accent-[#C1943D]" checked={i.mostrarCorretor !== false} onChange={(e) => s.setCorretor({ mostrarCorretor: e.target.checked })} />
                   Mostrar o corretor na proposta
                 </label>
+                {i.mostrarCorretor !== false && (
+                  <label className="flex items-center gap-2 px-3 py-1.5 pl-8 text-[13px] font-semibold text-navy">
+                    <input type="checkbox" className="accent-[#C1943D]" checked={i.mostrarValorCorretor !== false} onChange={(e) => s.setCorretor({ mostrarValorCorretor: e.target.checked })} />
+                    Mostrar o valor (VGV) do corretor
+                  </label>
+                )}
               </>
             )}
           </Box>

@@ -68,6 +68,8 @@ export type StudyInputs = {
   intermediacaoOrigem?: "inc" | "ter" | "ambos";
   /** Mostrar o corretor na divisão da proposta (falso: a divisão aparece sem ele) */
   mostrarCorretor?: boolean;
+  /** Mostrar o valor em reais do corretor na proposta (falso: aparece só o percentual e de que parte sai) */
+  mostrarValorCorretor?: boolean;
   /** Custo de infraestrutura por m² de área aproveitável (R$) */
   custoInfraM2: number;
   /** Extensão da rede principal de água/esgoto (m). Vazio = estimativa pela área */
