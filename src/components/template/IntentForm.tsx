@@ -67,7 +67,7 @@ export default function IntentForm({
       const salvo = JSON.parse(localStorage.getItem(chave) ?? "null") as { campos?: Campos; aceite?: boolean; protocolo?: string } | null;
       if (salvo?.campos) setV((o) => ({ ...o, ...salvo.campos }));
       if (salvo?.aceite) setAceite(true);
-      if (salvo?.protocolo) setProtocolo(salvo.protocolo);
+      // o protocolo vem só do servidor (carta apagada pela equipe: o formulário volta a aparecer)
     } catch {
       // sem acesso ao armazenamento do navegador: segue sem rascunho
     }
@@ -76,11 +76,11 @@ export default function IntentForm({
   useEffect(() => {
     if (disabled || !lido) return;
     try {
-      localStorage.setItem(chave, JSON.stringify({ campos: v, aceite, protocolo: protocolo || undefined }));
+      localStorage.setItem(chave, JSON.stringify({ campos: v, aceite }));
     } catch {
       // armazenamento cheio ou bloqueado
     }
-  }, [v, aceite, protocolo, lido, chave, disabled]);
+  }, [v, aceite, lido, chave, disabled]);
   const g = (k: string) => (v[k] ?? "").trim();
   const on = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const m = MASCARAS[k];

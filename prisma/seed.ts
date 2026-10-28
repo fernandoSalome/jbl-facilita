@@ -54,6 +54,36 @@ async function main() {
   await planilha2026NoChacreamentoAberto();
   await planilha2026EmTodos();
   await minutasComDadosNovosDaJbl();
+  await cartaDaBrunaDesfeita();
+}
+
+/**
+ * Pedido da equipe (28/10/2026): a proposta da Bruna no Rancho Fundo volta a ficar como se ela
+ * não tivesse mandado nada. Apaga as cartas (e o documento na Autentique, se houver), os registros
+ * de envio e devolve o status. Só o que ela mandou até agora: uma carta nova continua valendo.
+ */
+async function cartaDaBrunaDesfeita() {
+  const ATE = new Date("2026-10-28T05:00:00Z");
+  const propostas = await db.proposal.findMany({
+    where: { project: { name: { contains: "Rancho Fundo", mode: "insensitive" } }, OR: [{ ownerName: { contains: "Bruna", mode: "insensitive" } }, { name: { contains: "Bruna", mode: "insensitive" } }] },
+    select: { id: true, name: true, status: true, firstViewedAt: true, letters: { where: { createdAt: { lt: ATE } }, select: { id: true, autentiqueId: true } } },
+  });
+  for (const p of propostas) {
+    if (!p.letters.length && p.status !== "carta_recebida") continue;
+    for (const l of p.letters) {
+      if (l.autentiqueId && process.env.AUTENTIQUE_TOKEN) {
+        await fetch("https://api.autentique.com.br/v2/graphql", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.AUTENTIQUE_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: `mutation { deleteDocument(id: "${l.autentiqueId.replace(/[^A-Za-z0-9_-]/g, "")}") }` }),
+        }).catch(() => {});
+      }
+    }
+    const cartas = await db.intentLetter.deleteMany({ where: { id: { in: p.letters.map((l) => l.id) } } });
+    const eventos = await db.proposalEvent.deleteMany({ where: { proposalId: p.id, type: { in: ["letter", "letter_start", "letter_signed"] }, createdAt: { lt: ATE } } });
+    if (p.status === "carta_recebida") await db.proposal.update({ where: { id: p.id }, data: { status: p.firstViewedAt ? "aberta" : "enviada" } });
+    console.log(`Carta desfeita: proposta "${p.name}" (${cartas.count} carta(s), ${eventos.count} registro(s))`);
+  }
 }
 
 /**
