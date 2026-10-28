@@ -50,7 +50,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const campos: Record<string, string> = camposDaCarta(d);
   const proj = l.proposal.project;
   const quando = d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data) ? new Date(`${d.data}T12:00:00`) : l.createdAt;
-  const montada = cartaMontada(await textosDaProposta(l.proposal), campos, { name: proj.name, municipio: proj.municipio, uf: proj.uf, matricula: proj.matricula }, quando);
+  const montada = cartaMontada(await textosDaProposta(l.proposal), campos, { name: proj.name, municipio: proj.municipio, uf: proj.uf, matricula: proj.matricula }, quando, { minuta: true });
   const carta = montada.blocos.map((b) => (b.h ? `<h3>${b.html}</h3>` : `<p>${b.html}</p>`)).join("");
   const assinaturas = [
     ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", `CNPJ sob n.º ${CNPJ_JBL}`],

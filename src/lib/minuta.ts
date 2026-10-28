@@ -39,7 +39,7 @@ type Projeto = { name: string; municipio: string; uf: string; matricula: string 
 export function minutaInicial(d: DadosCarta, projeto: Projeto, criadaEm: Date, overrides: Record<string, unknown> = {}): string {
   const campos = camposDaCarta(d);
   const quando = d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data) ? new Date(`${d.data}T12:00:00`) : criadaEm;
-  const carta = cartaMontada(overrides, campos, projeto, quando);
+  const carta = cartaMontada(overrides, campos, projeto, quando, { minuta: true });
   const corpo = carta.blocos.map((b) => (b.h ? `<h3>${b.html}</h3>` : `<p>${b.html}</p>`)).join("\n");
   const assinaturas = [
     ["JBL Incorporadora Urbanismo e Empreendimentos Ltda", `CNPJ sob n.º ${CNPJ_JBL}`],
@@ -53,7 +53,7 @@ export function minutaInicial(d: DadosCarta, projeto: Projeto, criadaEm: Date, o
 
 /** Aceite da assinatura eletrônica: dá validade à carta assinada pela Autentique (MP 2.200-2/2001, art. 10, § 2º) */
 export const CLAUSULA_ELETRONICA =
-  "As partes reconhecem e aceitam como válida a assinatura eletrônica deste documento, realizada por meio da plataforma Autentique, com registro de data, hora, endereço IP e confirmação da identidade de cada signatário, nos termos do art. 10, § 2º, da Medida Provisória n.º 2.200-2/2001.";
+  "As partes reconhecem e aceitam como válida a assinatura eletrônica deste documento, realizada por meio de plataforma de assinatura eletrônica, com registro de data, hora, endereço IP e confirmação da identidade de cada signatário, nos termos do art. 10, § 2º, da Medida Provisória n.º 2.200-2/2001.";
 
 /** Coloca a cláusula antes das assinaturas (uma vez só; se a equipe já tiver o texto, não repete) */
 export function comClausulaEletronica(html: string) {

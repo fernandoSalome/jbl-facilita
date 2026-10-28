@@ -129,7 +129,7 @@ function textoDoLink(carta: Carta, token: string) {
     `Olá, ${primeiroNome(nomeDe(carta))}! Aqui é a JBL Incorporadora.\n\n` +
     `A carta de intenção (${carta.proposal.project.name}) está pronta para assinatura eletrônica:\n${linkDe(token, "proprietario")}\n\n` +
     `É simples:\n1. Abra o link e confira o texto.\n2. Toque em *Assinar* e confirme o seu CPF.\n${temSms ? "3. Digite o código que chega por SMS no seu celular.\n" : ""}` +
-    `\nNão precisa de senha nem de conta gov.br. A assinatura é feita pela Autentique e tem validade jurídica (MP 2.200-2/2001).` +
+    `\nA assinatura eletrônica tem validade jurídica.` +
     (conjuge ? `\n\nLink para *${conjuge.nome}* (cônjuge) assinar:\n${linkDe(token, "conjuge")}` : "")
   );
 }
@@ -161,9 +161,9 @@ export async function enviarLinkEmail(c: Carta) {
       <p>Olá, ${esc(primeiroNome(nomeDe(carta)))}!</p>
       <p>A carta de intenção (<b>${esc(carta.proposal.project.name)}</b>) está pronta para assinatura eletrônica.</p>
       <p><a href="${link}" style="display:inline-block;background:#C1943D;color:#122A45;padding:12px 18px;border-radius:6px;font-weight:bold;text-decoration:none">Abrir e assinar</a></p>
-      <p style="font-size:14px">É simples: abra o link, confira o texto, toque em <b>Assinar</b>, confirme o seu CPF e digite o código que chega por SMS no seu celular. Não precisa de senha nem de conta gov.br.</p>
+      <p style="font-size:14px">É simples: abra o link, confira o texto, toque em <b>Assinar</b>, confirme o seu CPF e digite o código que chega por SMS no seu celular.</p>
       ${conjuge ? `<p style="font-size:14px">Link para <b>${esc(conjuge.nome)}</b> (cônjuge) assinar: <a href="${linkDe(token, "conjuge")}">${linkDe(token, "conjuge")}</a></p>` : ""}
-      <p style="font-size:13px;color:#697683">A assinatura é feita pela Autentique e tem validade jurídica (MP 2.200-2/2001).<br>Link: ${link}</p>
+      <p style="font-size:13px;color:#697683">A assinatura eletrônica tem validade jurídica.<br>Link: ${link}</p>
       <p>Grupo JBL Incorporadora</p></div>`,
   );
   await db.intentLetter.update({ where: { id: c.id }, data: { linkEnviadoEm: new Date() } });

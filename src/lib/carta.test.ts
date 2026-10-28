@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BLOCOS_CARTA, cartaMontada, valoresCarta } from "./carta";
+import { BLOCOS_CARTA, cartaMontada, SOCIO_JBL, valoresCarta } from "./carta";
+import { minutaInicial } from "./minuta";
 
 const projeto = { name: "Rancho Fundo", municipio: "Pontal", uf: "MT", matricula: null };
 
@@ -23,5 +24,18 @@ describe("carta de intenção editável", () => {
     expect(v.casamento).toContain("var-vazia");
     expect(v.casamento.replace(/<[^>]+>/g, "")).toBe("");
     expect(v.situado).toBe("na Gleba Rancho Fundo");
+  });
+
+  it("dados do sócio da JBL só na minuta; na proposta ficam lacunas (também em texto editado antes)", () => {
+    const proposta = cartaMontada({}, {}, projeto).blocos[1].html;
+    expect(proposta).not.toContain("Felipe");
+    expect(proposta).not.toContain("104.945.466-97");
+    expect(proposta).toContain('<span class="lacuna">[nome]</span>');
+    expect(proposta).toContain("58.521.773/0001-01");
+    const minuta = minutaInicial({}, projeto, new Date("2026-10-28T12:00:00"));
+    expect(minuta).toContain(SOCIO_JBL);
+    const editado = { "carta.partes": `html:Texto editado com ${SOCIO_JBL} no meio.` };
+    expect(cartaMontada(editado, {}, projeto).blocos[1].html).not.toContain("Felipe");
+    expect(cartaMontada(editado, {}, projeto, undefined, { minuta: true }).blocos[1].html).toContain(SOCIO_JBL);
   });
 });

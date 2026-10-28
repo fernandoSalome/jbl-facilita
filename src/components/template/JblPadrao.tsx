@@ -390,7 +390,14 @@ export default function JblPadrao(props: TemplateProps) {
   const jblDiv = Math.max(r.jblPct + (mostraCorr ? 0 : r.intermediacaoDeInc), 0);
   const origemCorr = r.inputs.intermediacaoOrigem ?? "inc";
   const corrNota = `${fmtNum((r.inputs.intermediacaoPct ?? 0) * 100, Number.isInteger(Math.round((r.inputs.intermediacaoPct ?? 0) * 1e4) / 100) ? 0 : 2)}% sobre a parte ${origemCorr === "inc" ? "da JBL" : origemCorr === "ter" ? "dos proprietários" : "da JBL e dos proprietários"}`;
-  const pie = [terDiv, jblDiv, r.infraPct, corr].map((p) => (p * circ).toFixed(2));
+  // Percentuais na tela: o do corretor (ex.: 2%) é tirado do percentual de quem paga (terrenista 40% → 38%).
+  // Os valores em reais continuam sobre a parte de quem paga (2% de 40% = 0,8% do total): terDiv, jblDiv e corr.
+  const pctCorr = mostraCorr ? r.inputs.intermediacaoPct ?? 0 : 0;
+  const tiraTer = origemCorr !== "inc", tiraInc = origemCorr !== "ter";
+  const terTela = Math.max(r.terrenistaPct - (tiraTer ? pctCorr : 0), 0);
+  const jblTela = Math.max(r.jblPct + r.intermediacaoDeInc - (tiraInc ? pctCorr : 0), 0);
+  const corrTela = pctCorr * ((tiraTer ? 1 : 0) + (tiraInc ? 1 : 0));
+  const pie = [terTela, jblTela, r.infraPct, corrTela].map((p) => (p * circ).toFixed(2));
   const [pdfPages, setPdfPages] = useState(props.pdfPages ?? null);
   const [gerando, setGerando] = useState(false);
   // página pública sem PDF atualizado: gera em segundo plano para mostrar o número de páginas
@@ -839,7 +846,7 @@ export default function JblPadrao(props: TemplateProps) {
               </div></div>
               <div className="content">
                 <div className="pie-row">
-                  <svg viewBox="0 0 200 200" role="img" aria-label={`Gráfico de pizza: ${pctTxt(terDiv)} proprietários, ${pctTxt(jblDiv)} JBL, ${pctTxt(r.infraPct)} obras${corr > 0 ? `, ${pctTxt(corr)} corretor` : ""}`}>
+                  <svg viewBox="0 0 200 200" role="img" aria-label={`Gráfico de pizza: ${pctTxt(terTela)} proprietários, ${pctTxt(jblTela)} JBL, ${pctTxt(r.infraPct)} obras${corr > 0 ? `, ${pctTxt(corrTela)} corretor` : ""}`}>
                     <g transform="translate(100 100) rotate(-90)">
                       <circle r="70" fill="none" stroke="var(--gold)" strokeWidth="56" strokeDasharray={`${pie[0]} ${circ.toFixed(2)}`} />
                       <circle r="70" fill="none" stroke="var(--sky-strong)" strokeWidth="56" strokeDasharray={`${pie[1]} ${circ.toFixed(2)}`} strokeDashoffset={`-${pie[0]}`} />
@@ -847,10 +854,10 @@ export default function JblPadrao(props: TemplateProps) {
                       {corr > 0 && <circle r="70" fill="none" stroke="var(--corretor)" strokeWidth="56" strokeDasharray={`${pie[3]} ${circ.toFixed(2)}`} strokeDashoffset={`-${(Number(pie[0]) + Number(pie[1]) + Number(pie[2])).toFixed(2)}`} />}
                     </g>
                     {[
-                      [terDiv, 0, "var(--navy)"],
-                      [jblDiv, terDiv, "#fff"],
-                      [r.infraPct, terDiv + jblDiv, "var(--navy)"],
-                      [corr, terDiv + jblDiv + r.infraPct, "#fff"],
+                      [terTela, 0, "var(--navy)"],
+                      [jblTela, terTela, "#fff"],
+                      [r.infraPct, terTela + jblTela, "var(--navy)"],
+                      [corrTela, terTela + jblTela + r.infraPct, "#fff"],
                     ].map(([frac, ini, cor], i) => {
                       if ((frac as number) < 0.04) return null;
                       const a = ((ini as number) + (frac as number) / 2) * 2 * Math.PI;
@@ -864,11 +871,11 @@ export default function JblPadrao(props: TemplateProps) {
                     <text x="100" y="116" textAnchor="middle" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" fontSize="12" fill="var(--muted)">Total</text>
                   </svg>
                   <div className="shares">
-                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick(fam ? `Proprietários (${fam})` : "Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvista * terDiv)} · Em ${n} meses: ${fmtBRL(r.terrenistaPct > 0 ? r.principal.carteiraTer * (terDiv / r.terrenistaPct) : 0)}`}</V></small></div><span className="pct"><V k="sh1p">{pctTxt(terDiv)}</V></span></div>
-                    <div className="share-group"><span className="brace" aria-hidden="true" /><span className="brace-lbl">{pctTxt(1 - terDiv)}</span>
-                      <div className="share"><span className="dot" style={{ background: "var(--sky-strong)" }} /><div><b><T k="sh2">JBL Incorporadora</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh2v">{`À vista: ${fmtBRL(r.vgvAvista * jblDiv)}`}</V></small></div><span className="pct"><V k="sh2p">{pctTxt(jblDiv)}</V></span></div>
+                    <div className="share you"><span className="dot" style={{ background: "var(--gold)" }} /><div><b><DT d={d} k="sh1">{d.pick(fam ? `Proprietários (${fam})` : "Proprietários (a família)", d.rotulo)}</DT></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "14.5px" }}><V k="sh1v2" >{`À vista: ${fmtBRL(r.vgvAvista * terDiv)} · Em ${n} meses: ${fmtBRL(r.terrenistaPct > 0 ? r.principal.carteiraTer * (terDiv / r.terrenistaPct) : 0)}`}</V></small></div><span className="pct"><V k="sh1p">{pctTxt(terTela)}</V></span></div>
+                    <div className="share-group"><span className="brace" aria-hidden="true" /><span className="brace-lbl">{pctTxt(1 - terTela)}</span>
+                      <div className="share"><span className="dot" style={{ background: "var(--sky-strong)" }} /><div><b><T k="sh2">JBL Incorporadora</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh2v">{`À vista: ${fmtBRL(r.vgvAvista * jblDiv)}`}</V></small></div><span className="pct"><V k="sh2p">{pctTxt(jblTela)}</V></span></div>
                       <div className="share"><span className="dot" style={{ background: "var(--line)" }} /><div><b><T k="sh3">Infraestrutura (obras)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh3v">{`À vista: ${fmtBRL(r.custoInfra)}`}</V></small></div><span className="pct"><V k="sh3p">{pctTxt(r.infraPct)}</V></span></div>
-                      {corr > 0 && <div className="share"><span className="dot" style={{ background: "var(--corretor)" }} /><div><b><T k="sh4">Corretor (intermediação)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh4v">{`À vista: ${fmtBRL(r.vgvAvista * corr)} · ${corrNota}`}</V></small></div><span className="pct"><V k="sh4p">{pctTxt(corr)}</V></span></div>}
+                      {corr > 0 && <div className="share"><span className="dot" style={{ background: "var(--corretor)" }} /><div><b><T k="sh4">Corretor (intermediação)</T></b><small className="num" style={{ fontWeight: 700, color: "var(--navy)", fontSize: "13.2px" }}><V k="sh4v">{`À vista: ${fmtBRL(r.vgvAvista * corr)} · ${corrNota}`}</V></small></div><span className="pct"><V k="sh4p">{pctTxt(corrTela)}</V></span></div>}
                     </div>
                     <div className="share total"><span /><div><b><T k="shTotal">Total</T></b></div><span className="pct">100%</span></div>
                   </div>
