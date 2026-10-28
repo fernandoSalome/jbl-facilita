@@ -60,7 +60,7 @@ async function main() {
 }
 
 /**
- * Na minuta, a sede da JBL é a matriz em Barueri (na carta da proposta continua a de São Paulo).
+ * A sede da JBL na carta e na minuta é a matriz em Barueri (antes era a de São Paulo).
  * Minutas ainda em revisão (não enviadas) que já tinham sido abertas/editadas: troca o endereço.
  */
 async function minutasComSedeEmBarueri() {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BLOCOS_CARTA, cartaMontada, SEDE_CARTA, SEDE_MINUTA, SOCIO_JBL, valoresCarta } from "./carta";
+import { BLOCOS_CARTA, cartaMontada, SEDE_ANTIGA, SEDE_JBL, SOCIO_JBL, valoresCarta } from "./carta";
 import { minutaInicial } from "./minuta";
 
 const projeto = { name: "Rancho Fundo", municipio: "Pontal", uf: "MT", matricula: null };
@@ -39,13 +39,10 @@ describe("carta de intenção editável", () => {
     expect(cartaMontada(editado, {}, projeto, undefined, { minuta: true }).blocos[1].html).toContain(SOCIO_JBL);
   });
 
-  it("sede: São Paulo na carta da proposta, matriz em Barueri só na minuta", () => {
-    expect(cartaMontada({}, {}, projeto).blocos[1].html).toContain(SEDE_CARTA);
-    expect(cartaMontada({}, {}, projeto).blocos[1].html).not.toContain("Alameda Rio Negro");
-    const minuta = minutaInicial({}, projeto, new Date("2026-10-28T12:00:00"));
-    expect(minuta).toContain(SEDE_MINUTA);
-    expect(minuta).not.toContain("Ribeirão Claro");
-    const editado = { "carta.partes": `html:Sede na ${SEDE_CARTA}.` };
-    expect(cartaMontada(editado, {}, projeto, undefined, { minuta: true }).blocos[1].html).toContain(SEDE_MINUTA);
+  it("sede: a matriz em Barueri na carta e na minuta (texto editado com a sede antiga também muda)", () => {
+    expect(cartaMontada({}, {}, projeto).blocos[1].html).toContain(SEDE_JBL);
+    expect(minutaInicial({}, projeto, new Date("2026-10-28T12:00:00"))).toContain(SEDE_JBL);
+    const editado = { "carta.partes": `html:Sede na ${SEDE_ANTIGA}.` };
+    expect(cartaMontada(editado, {}, projeto).blocos[1].html).toBe(`Sede na ${SEDE_JBL}.`);
   });
 });

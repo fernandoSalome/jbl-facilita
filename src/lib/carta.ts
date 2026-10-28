@@ -25,12 +25,12 @@ export const CNPJ_JBL = "58.521.773/0001-01";
  */
 export const SOCIO_JBL = "Felipe Stampini Oliveira Lopes, brasileiro, solteiro, engenheiro civil, portador do CPF: n.º 104.945.466-97 e n.º do documento de identidade: CNH: n.º 05625886555 - Órgão Emissor: SNT/MG, nascido em 20/9/1993, natural da cidade de Visconde do Rio Branco/MG";
 
-/** Sede da JBL: na carta da proposta, a de São Paulo; na minuta, a matriz em Barueri */
-export const SEDE_CARTA = "Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, São Paulo/SP – CEP: 04549-060";
-export const SEDE_MINUTA = "Matriz - Alameda Rio Negro, n.º 503, Cj. 2011 - 20º Andar - Alphaville Empresarial - Barueri/SP";
+/** Sede da JBL na carta e na minuta (a matriz em Barueri). A de São Paulo era a usada antes */
+export const SEDE_JBL = "Matriz - Alameda Rio Negro, n.º 503, Cj. 2011 - 20º Andar - Alphaville Empresarial - Barueri/SP";
+export const SEDE_ANTIGA = "Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, São Paulo/SP – CEP: 04549-060";
 
 /** Texto salvo antes dos campos da JBL (com o sócio e a sede escritos): passa a usar os campos */
-export const comCamposDaJbl = (t: string) => t.split(SOCIO_JBL).join("{{jbl_socio}}").split(SEDE_CARTA).join("{{jbl_sede}}");
+export const comCamposDaJbl = (t: string) => t.split(SOCIO_JBL).join("{{jbl_socio}}").split(SEDE_ANTIGA).join("{{jbl_sede}}");
 
 /** Valor de campo que já vem em HTML (negrito, lacunas): o editor coloca sem escapar */
 export const VAR_HTML = "\u0001";
@@ -94,7 +94,7 @@ export const CAMPOS_CARTA: { grupo: string; campos: [campo: string, rotulo: stri
     ],
   },
   { grupo: "Local e data", campos: [["cidade", "Cidade"], ["data", "Data por extenso"]] },
-  { grupo: "JBL", campos: [["jbl_socio", "Sócio administrador (dados completos só na minuta)"], ["jbl_sede", "Sede (na minuta: a matriz em Barueri)"]] },
+  { grupo: "JBL", campos: [["jbl_socio", "Sócio administrador (dados completos só na minuta)"], ["jbl_sede", "Sede (matriz em Barueri)"]] },
 ];
 
 /**
@@ -171,7 +171,7 @@ export function valoresCarta(v: Campos, p: Projeto, data?: Date, opcoes: { minut
     situado,
     cidade: esc(mun.split(/[/-]/)[0].trim()),
     data: extenso(data),
-    jbl_sede: esc(opcoes.minuta ? SEDE_MINUTA : SEDE_CARTA),
+    jbl_sede: esc(SEDE_JBL),
     jbl_socio: opcoes.minuta
       ? esc(SOCIO_JBL)
       : `${lacuna("nome")}, ${lacuna("nacionalidade")}, ${lacuna("estado civil")}, ${lacuna("profissão")}, portador do CPF: n.º ${lacuna("CPF")} e n.º do documento de identidade: ${lacuna("documento")}, nascido em ${lacuna("data de nascimento")}, natural da cidade de ${lacuna("cidade/UF")}`,

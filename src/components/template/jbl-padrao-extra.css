@@ -303,7 +303,7 @@
 }
 
 /* Nome da JBL sempre em azul-escuro (nos fundos escuros continua na cor clara do bloco) */
-.jblt .marca-jbl { color: var(--navy); }
+.jblt .marca-jbl { color: var(--navy); font-weight: 700; }
 .jblt :is(.cover-cta, .dl, .s-lots, .photo-bar, .photo figcaption, .tbl th, .badge, .nav .cta, .mv.mv-hl, .vs .tile.gold, .prazo-max .pm-ic, .tab[aria-pressed="true"]) .marca-jbl { color: inherit; }
 
 /* carta de intenção: lacunas ([CPF]) e trechos opcionais vazios (só aparecem na edição) */
