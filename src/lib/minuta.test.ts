@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { limparMinuta, mesmoTelefone, minutaInicial, numeroWhatsapp, pdfAssinado } from "./minuta";
+import { CLAUSULA_ELETRONICA, comClausulaEletronica, limparMinuta, minutaInicial, numeroWhatsapp } from "./minuta";
 
 describe("minuta da carta de intenção", () => {
   it("monta com os dados enviados e marca o que falta", () => {
@@ -18,18 +18,16 @@ describe("minuta da carta de intenção", () => {
     expect(l).not.toMatch(/script|onclick|href|<img|<a /);
     expect(l).toContain('<div style="text-align:right">dir</div>');
   });
-  it("telefone: mesmo celular com ou sem 55 e 9", () => {
-    expect(mesmoTelefone("(18) 99712-3456", "5518997123456")).toBe(true);
-    expect(mesmoTelefone("18 9712-3456", "(18) 99712-3456")).toBe(true);
-    expect(mesmoTelefone("(11) 99712-3456", "(18) 99712-3456")).toBe(false);
+  it("telefone com DDI do Brasil", () => {
     expect(numeroWhatsapp("(18) 99712-3456")).toBe("5518997123456");
+    expect(numeroWhatsapp("5518997123456")).toBe("5518997123456");
     expect(numeroWhatsapp("123")).toBe(null);
   });
-  it("reconhece PDF com assinatura digital", () => {
-    const sem = Buffer.from("%PDF-1.7\n1 0 obj <<>> endobj\n%%EOF");
-    const com = Buffer.from("%PDF-1.7\n5 0 obj << /Type /Sig /Filter /Adobe.PPKLite /SubFilter /ETSI.CAdES.detached /Name (BRUNA STEIN:12345678900) /ByteRange [0 100 200 300] >> endobj\n%%EOF");
-    expect(pdfAssinado(sem).ok).toBe(false);
-    expect(pdfAssinado(com)).toEqual({ ok: true, nome: "BRUNA STEIN:12345678900" });
-    expect(pdfAssinado(Buffer.from("nao e pdf")).ok).toBe(false);
+  it("cláusula da assinatura eletrônica antes das assinaturas, uma vez só", () => {
+    const h = minutaInicial({ proprietario: { nome: "Bruna Stein" } }, { name: "Rancho Fundo", municipio: "Pontal", uf: "MT", matricula: null }, new Date("2026-10-27T12:00:00"));
+    expect(h.indexOf(CLAUSULA_ELETRONICA)).toBeGreaterThan(0);
+    expect(h.indexOf(CLAUSULA_ELETRONICA)).toBeLessThan(h.indexOf('class="assinaturas"'));
+    expect(comClausulaEletronica(h)).toBe(h);
+    expect(comClausulaEletronica("<p>texto editado</p>")).toContain(CLAUSULA_ELETRONICA);
   });
 });

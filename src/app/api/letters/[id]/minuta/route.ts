@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { limparMinuta } from "@/lib/minuta";
-import { carregarCarta, dadosDe, enviarLinkEmail, enviarLinkWhatsapp, garantirLink, linkAssinatura, minutaAtual, minutaMontada, nomeDe, reabrirMinuta } from "@/lib/minuta-acoes";
+import { assinaturasDe, carregarCarta, dadosDe, enviarLinkEmail, enviarLinkWhatsapp, garantirLink, linkAssinatura, minutaAtual, minutaMontada, nomeDe, PAPEL, reabrirMinuta, sincronizarAssinaturas } from "@/lib/minuta-acoes";
+import { autentiqueConfigurado } from "@/lib/autentique";
 import { emailConfigurado } from "@/lib/email";
 
 export const maxDuration = 60;
@@ -9,8 +10,17 @@ export const maxDuration = 60;
 /** Minuta da carta para a equipe revisar */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {
-    const c = await carregarCarta(params.id);
+    let c = await carregarCarta(params.id);
     if (!c) return json({ error: "Carta não encontrada" }, 404);
+    // enviada para assinatura: confere na Autentique quem já assinou (se o aviso automático falhar, a tela continua certa)
+    let erroAutentique: string | null = null;
+    if (c.minutaStatus === "enviada" && c.autentiqueId) {
+      try {
+        c = await sincronizarAssinaturas(c);
+      } catch (e) {
+        erroAutentique = e instanceof Error ? e.message : String(e);
+      }
+    }
     const p = dadosDe(c).proprietario ?? {};
     return json({
       id: c.id,
@@ -31,6 +41,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       assinadaEm: c.assinadaEm,
       assinante: c.assinante,
       temPdfAssinado: !!c.pdfAssinadoNome,
+      autentiqueConfigurado: autentiqueConfigurado(),
+      erroAutentique,
+      assinaturas: assinaturasDe(c).map((a) => ({ ...a, papelNome: PAPEL[a.papel] })),
     });
   });
 }
@@ -48,7 +61,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   });
 }
 
-/** Ações: link | whatsapp | email | reabrir | restaurar */
+/** Ações: link | whatsapp | email | reabrir | restaurar | atualizar */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {
     const c = await carregarCarta(params.id);
@@ -61,6 +74,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       }
       if (acao === "whatsapp") return json(await enviarLinkWhatsapp(c));
       if (acao === "email") return json(await enviarLinkEmail(c));
+      if (acao === "atualizar") {
+        const atual = await sincronizarAssinaturas(c, true);
+        return json({ status: atual.minutaStatus });
+      }
       if (acao === "reabrir") {
         await reabrirMinuta(c);
         return json({ ok: true });

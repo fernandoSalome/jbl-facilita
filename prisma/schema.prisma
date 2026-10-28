@@ -157,7 +157,11 @@ model IntentLetter {
   telefoneConfirmado String?
   sessaoHash     String?
   sessaoExpira   DateTime?
-  /// PDF assinado pelo gov.br, enviado de volta pela pessoa
+  /// Documento na Autentique (assinatura eletrônica) e a situação de cada pessoa que assina:
+  /// [{ papel, nome, publicId, link, vistoEm, assinadoEm, recusadoEm, motivo }]
+  autentiqueId   String?   @unique
+  assinaturas    Json?
+  /// Carta assinada por todos (PDF da Autentique, com a página de verificação)
   assinadaEm     DateTime?
   pdfAssinado    Bytes?
   pdfAssinadoNome String?

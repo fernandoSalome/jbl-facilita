@@ -23,13 +23,26 @@ type Dados = {
   assinadaEm: string | null;
   assinante: string | null;
   temPdfAssinado: boolean;
+  autentiqueConfigurado: boolean;
+  erroAutentique: string | null;
+  assinaturas: Assinante[];
 };
+
+type Assinante = { papel: string; papelNome: string; nome: string; link: string | null; vistoEm: string | null; assinadoEm: string | null; recusadoEm: string | null; motivo: string | null };
+
+/** Situação de cada pessoa que assina */
+function Situacao({ a }: { a: Assinante }) {
+  if (a.assinadoEm) return <span className="rounded bg-emerald-50 px-2 py-0.5 text-[12px] font-semibold text-emerald-800 ring-1 ring-emerald-200">✓ Assinou em {fmt(a.assinadoEm)}</span>;
+  if (a.recusadoEm) return <span className="rounded bg-rose-50 px-2 py-0.5 text-[12px] font-semibold text-rose-800 ring-1 ring-rose-200">Recusou em {fmt(a.recusadoEm)}{a.motivo ? `: ${a.motivo}` : ""}</span>;
+  if (a.vistoEm) return <span className="rounded bg-sky-50 px-2 py-0.5 text-[12px] font-semibold text-sky-800 ring-1 ring-sky-200">Abriu em {fmt(a.vistoEm)}, falta assinar</span>;
+  return <span className="rounded bg-amber-50 px-2 py-0.5 text-[12px] font-semibold text-amber-800 ring-1 ring-amber-200">Aguardando</span>;
+}
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) : "");
 
 /**
  * Editor da minuta, parecido com um Word: negrito, itálico, sublinhado, tamanho, cor,
- * alinhamento e listas. Salva sozinho. Ao gerar o link, o texto fica travado.
+ * alinhamento e listas. Salva sozinho. Ao mandar para assinatura (Autentique), o texto fica travado.
  */
 export default function MinutaEditor({ id }: { id: string }) {
   const [d, setD] = useState<Dados | null>(null);
@@ -86,10 +99,13 @@ export default function MinutaEditor({ id }: { id: string }) {
     mudou();
   }
 
-  async function acao(a: "link" | "whatsapp" | "email" | "reabrir" | "restaurar", rotulo: string) {
-    if (a === "reabrir" && !confirm("Reabrir para editar? O link de assinatura enviado deixa de valer e será preciso mandar um novo.")) return;
+  async function acao(a: "link" | "whatsapp" | "email" | "reabrir" | "restaurar" | "atualizar", rotulo: string) {
+    if (a === "reabrir" && !confirm("Reabrir para editar? O pedido de assinatura na Autentique é cancelado e será preciso mandar um novo link.")) return;
     if (a === "restaurar" && !confirm("Voltar ao texto montado com os dados que ela enviou? As suas alterações serão perdidas.")) return;
-    if ((a === "link" || a === "whatsapp" || a === "email") && d?.status === "revisao" && !confirm("Ao gerar o link, o texto fica travado nesta versão (é o que ela vai assinar). Continuar?")) return;
+    if ((a === "link" || a === "whatsapp" || a === "email") && d?.status === "revisao" && !confirm("Ao enviar, o texto fica travado nesta versão e vai para a Autentique (é o que será assinado). Continuar?")) return;
+    // campos em branco ([RG], [endereço]...) iriam assim para a assinatura
+    const lacunas = d?.status === "revisao" ? [...(area.current?.querySelectorAll(".lacuna") ?? [])].map((x) => x.textContent).filter(Boolean) : [];
+    if ((a === "link" || a === "whatsapp" || a === "email") && lacunas.length && !confirm(`Ainda tem campos em branco no texto: ${[...new Set(lacunas)].join(", ")}.\nEles vão assim para a assinatura. Enviar mesmo assim?`)) return;
     if (salvo === "salvando") await salvarAgora();
     setOcupado(rotulo);
     setMsg(null);
@@ -102,6 +118,8 @@ export default function MinutaEditor({ id }: { id: string }) {
         setMsg({ tipo: "ok", txt: `Link de assinatura copiado: ${j.link}` });
       } else if (a === "whatsapp" || a === "email") {
         setMsg({ tipo: "ok", txt: `Link enviado para ${j.para}.` });
+      } else if (a === "atualizar") {
+        setMsg({ tipo: "ok", txt: j.status === "assinada" ? "Assinada por todos. O PDF assinado já está aqui." : "Situação atualizada." });
       } else if (a === "restaurar" && area.current) {
         area.current.innerHTML = j.html;
       }
@@ -136,11 +154,12 @@ export default function MinutaEditor({ id }: { id: string }) {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {d && <span className="text-[12.5px] text-muted">{editavel ? (salvo === "salvando" ? "Salvando…" : salvo === "erro" ? "⚠ Não foi possível salvar" : "✓ Salvo") : d.status === "assinada" ? "✓ Assinada" : "🔒 Texto travado"}</span>}
             <a className="btn-ghost" href={`/api/letters/${id}/minuta/pdf`} target="_blank" rel="noreferrer">Ver PDF</a>
-            {d?.status === "revisao" && <button className="btn-ghost" disabled={!!ocupado} onClick={() => acao("link", "link")}>Gerar link de assinatura</button>}
+            {d?.status === "enviada" && <button className="btn-ghost" disabled={!!ocupado} onClick={() => acao("atualizar", "atualizar")}>{ocupado === "atualizar" ? "Conferindo…" : "↻ Atualizar situação"}</button>}
+            {d?.status === "revisao" && <button className="btn-ghost" disabled={!!ocupado || !d.autentiqueConfigurado} onClick={() => acao("link", "link")}>Copiar link de assinatura</button>}
             {d && d.status !== "assinada" && (
               <>
-                <button className="btn-ghost" disabled={!!ocupado || !d.email || !d.emailConfigurado} title={!d.email ? "Ela não informou e-mail" : !d.emailConfigurado ? "Envio por e-mail ainda não configurado" : `Enviar para ${d.email}`} onClick={() => acao("email", "email")}>Enviar por e-mail</button>
-                <button className="btn-gold" disabled={!!ocupado || !d.telefone} title={d.telefone ? `Enviar para ${d.telefone}` : "Ela não informou telefone"} onClick={() => acao("whatsapp", "whatsapp")}>{ocupado === "whatsapp" ? "Enviando…" : "Enviar no WhatsApp"}</button>
+                <button className="btn-ghost" disabled={!!ocupado || !d.email || !d.emailConfigurado || !d.autentiqueConfigurado} title={!d.email ? "Ela não informou e-mail" : !d.emailConfigurado ? "Envio por e-mail ainda não configurado" : `Enviar para ${d.email}`} onClick={() => acao("email", "email")}>{d.status === "enviada" ? "Reenviar por e-mail" : "Enviar por e-mail"}</button>
+                <button className="btn-gold" disabled={!!ocupado || !d.telefone || !d.autentiqueConfigurado} title={d.telefone ? `Enviar para ${d.telefone}` : "Ela não informou telefone"} onClick={() => acao("whatsapp", "whatsapp")}>{ocupado === "whatsapp" ? "Enviando…" : d.status === "enviada" ? "Reenviar no WhatsApp" : "Enviar para assinar no WhatsApp"}</button>
               </>
             )}
           </div>
@@ -152,18 +171,43 @@ export default function MinutaEditor({ id }: { id: string }) {
           <div className="mb-3 grid gap-1 rounded border border-line bg-white px-4 py-3 text-[13px] text-ink">
             <div>Protocolo <b className="font-mono">{d.protocolo}</b> · dados recebidos em {fmt(d.recebidaEm)} · proposta {d.proposta}</div>
             <div className="text-muted">Contato informado: {d.telefone || "sem telefone"} · {d.email || "sem e-mail"}</div>
-            {d.status === "revisao" && <div className="text-muted">Revise e edite à vontade (salva sozinho). Os campos que ela não preencheu aparecem <span className="rounded bg-[#fff1c2] px-1">[assim]</span>. Ao gerar ou enviar o link, o texto fica travado.</div>}
+            {d.status === "revisao" && (
+              <ol className="mt-1 grid gap-0.5 text-muted">
+                <li><b className="text-navy">1. Revise o texto.</b> Edite à vontade (salva sozinho). O que ela não preencheu aparece <span className="rounded bg-[#fff1c2] px-1">[assim]</span>.</li>
+                <li><b className="text-navy">2. Envie no WhatsApp ou por e-mail.</b> O texto trava nesta versão e vai para a Autentique (assinatura eletrônica com validade jurídica).</li>
+                <li><b className="text-navy">3. Ela assina pelo celular:</b> abre o link, confere, toca em Assinar, confirma o CPF e digita o código que chega por SMS. Não precisa de gov.br.</li>
+                <li><b className="text-navy">4. Pronto:</b> quando todos assinarem, o PDF assinado aparece aqui e é enviado no grupo e no WhatsApp dela.</li>
+              </ol>
+            )}
+            {d.status !== "assinada" && !d.autentiqueConfigurado && (
+              <div className="mt-1 rounded bg-amber-50 px-3 py-2 text-amber-900 ring-1 ring-amber-200">A Autentique ainda não foi ligada ao sistema: falta colocar a chave <b>AUTENTIQUE_TOKEN</b> na Vercel. Até lá, dá para revisar e baixar o PDF.</div>
+            )}
+            {d.erroAutentique && <div className="mt-1 rounded bg-rose-50 px-3 py-2 text-rose-800 ring-1 ring-rose-200">Não foi possível conferir na Autentique agora: {d.erroAutentique}</div>}
             {d.status === "enviada" && (
               <div className="flex flex-wrap items-center gap-2 text-sky-900">
-                🔒 Link de assinatura {d.linkEnviadoEm ? `enviado em ${fmt(d.linkEnviadoEm)}` : "gerado"}: <a className="font-semibold underline" href={d.link ?? "#"} target="_blank" rel="noreferrer">{d.link}</a>
+                🔒 Enviada para assinatura na Autentique{d.linkEnviadoEm ? ` (link mandado em ${fmt(d.linkEnviadoEm)})` : ""}. Link dela: <a className="font-semibold underline" href={d.link ?? "#"} target="_blank" rel="noreferrer">{d.link}</a>
                 <button className="font-semibold text-navy underline" onClick={() => acao("reabrir", "reabrir")}>Reabrir para editar</button>
               </div>
             )}
             {d.status === "assinada" && (
               <div className="flex flex-wrap items-center gap-2 text-emerald-800">
-                ✓ Assinada em {fmt(d.assinadaEm)}{d.assinante ? ` · ${d.assinante}` : ""}
+                ✓ Assinada por todos em {fmt(d.assinadaEm)}
                 {d.temPdfAssinado && <a className="font-semibold underline" href={`/api/letters/${id}/minuta/pdf?assinada=1`} target="_blank" rel="noreferrer">Baixar PDF assinado</a>}
-                <a className="text-muted underline" href="https://validar.iti.gov.br" target="_blank" rel="noreferrer">validar assinatura no ITI</a>
+                <span className="text-muted">(a última página do PDF é a verificação da Autentique: data, hora, IP e confirmação de cada pessoa)</span>
+              </div>
+            )}
+            {d.status !== "revisao" && d.assinaturas.length > 0 && (
+              <div className="mt-1.5 grid gap-1.5 border-t border-line pt-2">
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Quem assina</div>
+                {d.assinaturas.map((a) => (
+                  <div key={a.nome + a.papel} className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-[180px] font-semibold text-navy">{a.nome} <span className="font-normal text-muted">· {a.papelNome}</span></span>
+                    <Situacao a={a} />
+                    {d.status === "enviada" && !a.assinadoEm && a.link && d.link && (
+                      <button className="text-[12px] font-semibold text-navy underline" onClick={() => { const l = a.papel === "proprietario" ? d.link! : `${d.link}?p=${a.papel}`; navigator.clipboard?.writeText(l).catch(() => {}); setMsg({ tipo: "ok", txt: `Link de ${a.nome} copiado: ${l}` }); }}>copiar link</button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

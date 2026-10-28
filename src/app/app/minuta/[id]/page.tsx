@@ -5,7 +5,7 @@ import MinutaEditor from "@/components/minuta/MinutaEditor";
 
 export const dynamic = "force-dynamic";
 
-/** Minuta da carta de intenção: revisar, editar e mandar para assinatura (gov.br) */
+/** Minuta da carta de intenção: revisar, editar e mandar para assinatura (Autentique) */
 export default async function MinutaPage({ params }: { params: { id: string } }) {
   await requireSession();
   const c = await db.intentLetter.findUnique({ where: { id: params.id }, select: { id: true } });

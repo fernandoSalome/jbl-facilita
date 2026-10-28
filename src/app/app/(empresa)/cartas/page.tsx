@@ -44,7 +44,7 @@ export default async function CartasPage() {
   });
   return (
     <>
-      <PageHeader eyebrow="JBL Incorporadora" title="Cartas recebidas" subtitle="Dados enviados pelas cartas de intenção das propostas, a minuta de cada uma e a assinatura pelo gov.br." />
+      <PageHeader eyebrow="JBL Incorporadora" title="Cartas recebidas" subtitle="Dados enviados pelas cartas de intenção das propostas, a minuta de cada uma e a assinatura eletrônica (Autentique)." />
       <div className="p-4 sm:p-8">
         <CartasRecebidas linhas={linhas} />
       </div>

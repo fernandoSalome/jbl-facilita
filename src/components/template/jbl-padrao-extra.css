@@ -283,7 +283,7 @@
 .jblt .intent:has(.intent-enviada) .intent-lead-full { display: none; }
 .jblt .intent-enviada .protocol { margin: 0; }
 
-/* Prévia da carta: deixa claro que é só a minuta (a assinatura vem depois, pelo gov.br) */
+/* Prévia da carta: deixa claro que é só a minuta (a assinatura vem depois, pela Autentique) */
 .jblt .intent-grid .preview .minuta-aviso { display: grid; gap: 2px; margin: -6px 0 16px; padding: 10px 14px; background: var(--gold-soft); border-left: 3px solid var(--gold); border-radius: 4px; font-family: var(--body); text-align: left; }
 .jblt .intent-grid .preview .minuta-aviso strong { font-size: 15px; color: var(--navy); }
 .jblt .intent-grid .preview .minuta-aviso span { font-size: 13px; color: var(--muted); line-height: 1.45; }

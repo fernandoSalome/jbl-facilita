@@ -1,8 +1,8 @@
 /**
  * Minuta da carta de intenção: o texto oficial montado com os dados que a pessoa enviou.
- * A equipe revisa e edita (como num Word) e manda o link para assinatura pelo gov.br.
+ * A equipe revisa e edita (como num Word) e manda para assinatura eletrônica na Autentique.
  */
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { cartaMontada, CNPJ_JBL, type Campos } from "./carta";
 
 export type DadosCarta = {
@@ -48,7 +48,19 @@ export function minutaInicial(d: DadosCarta, projeto: Projeto, criadaEm: Date, o
   ]
     .map(([n, c]) => `<div class="sig"><strong>${esc(n)}</strong>${c ? `<br><small>${esc(c)}</small>` : ""}</div>`)
     .join("");
-  return `<h2 class="titulo">${esc(carta.titulo)}</h2>\n${corpo}\n<div class="assinaturas">${assinaturas}</div>`;
+  return comClausulaEletronica(`<h2 class="titulo">${esc(carta.titulo)}</h2>\n${corpo}\n<div class="assinaturas">${assinaturas}</div>`);
+}
+
+/** Aceite da assinatura eletrônica: dá validade à carta assinada pela Autentique (MP 2.200-2/2001, art. 10, § 2º) */
+export const CLAUSULA_ELETRONICA =
+  "As partes reconhecem e aceitam como válida a assinatura eletrônica deste documento, realizada por meio da plataforma Autentique, com registro de data, hora, endereço IP e confirmação da identidade de cada signatário, nos termos do art. 10, § 2º, da Medida Provisória n.º 2.200-2/2001.";
+
+/** Coloca a cláusula antes das assinaturas (uma vez só; se a equipe já tiver o texto, não repete) */
+export function comClausulaEletronica(html: string) {
+  if (html.includes("2.200-2/2001")) return html;
+  const p = `<p>${CLAUSULA_ELETRONICA}</p>`;
+  const i = html.indexOf('<div class="assinaturas">');
+  return i >= 0 ? `${html.slice(0, i)}${p}\n${html.slice(i)}` : `${html}\n${p}`;
 }
 
 // ------------------------------------------------------------------ limpeza do HTML editado
@@ -141,36 +153,13 @@ footer{margin-top:28px;font:11px Arial,sans-serif;color:#8a929b;text-align:cente
 @media print{.minuta .lacuna{background:none}}
 `;
 
-// ------------------------------------------------------------------ link e código de confirmação
+// ------------------------------------------------------------------ link de assinatura
 
 export const novoTokenAssinatura = () => randomBytes(18).toString("base64url");
-export const hash = (s: string) => createHash("sha256").update(s).digest("hex");
-export const novoCodigo = () => String(randomInt(0, 1_000_000)).padStart(6, "0");
-export const novaSessao = () => randomBytes(24).toString("base64url");
 
 /** Só os dígitos, com DDI do Brasil quando faltar */
 export function numeroWhatsapp(tel: string) {
   const d = tel.replace(/\D/g, "");
   if (d.length < 10) return null;
   return d.startsWith("55") && d.length >= 12 ? d : `55${d}`;
-}
-
-/** Os dois números são o mesmo celular? (compara DDD + número, ignorando o 9 extra e o 55) */
-export function mesmoTelefone(a: string, b: string) {
-  const n = (x: string) => {
-    let d = x.replace(/\D/g, "");
-    if (d.startsWith("55") && d.length >= 12) d = d.slice(2);
-    // DDD + 8 últimos dígitos (com ou sem o 9 na frente)
-    return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d;
-  };
-  return n(a).length >= 10 && n(a) === n(b);
-}
-
-/** O PDF tem assinatura digital? (gov.br e ICP-Brasil gravam um campo /Sig com /ByteRange) */
-export function pdfAssinado(buf: Buffer): { ok: boolean; nome: string | null } {
-  if (buf.subarray(0, 5).toString("latin1") !== "%PDF-") return { ok: false, nome: null };
-  const txt = buf.toString("latin1");
-  const ok = /\/ByteRange\s*\[/.test(txt) && /\/Type\s*\/Sig\b|\/SubFilter\s*\/(adbe\.pkcs7|ETSI\.CAdES)/.test(txt);
-  const nome = txt.match(/\/Name\s*\(([^)]{3,120})\)/)?.[1] ?? null;
-  return { ok, nome };
 }

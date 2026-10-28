@@ -12,6 +12,9 @@ import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, TITULO, valoresCarta, varsDoEdito
  * aparece como "Assinada" na lista de propostas.
  */
 
+/** Texto salvo antes da troca da assinatura (gov.br → Autentique) */
+const trocarGovBr = (t: string) => t.replace(/,?\s*pelo gov\.br,?/gi, ", de forma eletrônica pela Autentique,");
+
 const MASCARAS: Record<string, string | ((digitos: string) => string)> = {
   p_cpf: CPF,
   j_cpf: CPF,
@@ -154,7 +157,7 @@ export default function IntentForm({
     <div className="preview" aria-live="polite">
       <div className="minuta-aviso">
         <strong><E k="form.minutaTitulo">Veja como vai ficar a minuta</E></strong>
-        <span><E k="form.minutaNota">Aqui você só envia os seus dados. A assinatura será feita depois, pelo gov.br, quando a JBL enviar a minuta.</E></span>
+        <span><E k="form.minutaNota" limpar={trocarGovBr}>Aqui você só envia os seus dados. A assinatura será feita depois, de forma eletrônica pela Autentique (pelo celular, sem precisar de gov.br), quando a JBL enviar a minuta.</E></span>
       </div>
       <h3><E k="carta.titulo">{TITULO}</E></h3>
       {/* cada parágrafo dá para editar (no template: todas as propostas); os dados do formulário ficam travados */}
