@@ -29,6 +29,17 @@ function parse(text: string, kind: Kind): number | null {
   return kind === "pct" ? n / 100 : n;
 }
 
+/**
+ * Valor que a conta usa para o que está escrito no campo: a conta segue sempre o que aparece na tela.
+ * Campo apagado = sem valor (opcionais) ou zero (os outros). undefined = ainda não é número ("-", ","): espera.
+ */
+export function valorDoCampo(text: string, kind: Kind, opcional: boolean): number | null | undefined {
+  const v = parse(text, kind);
+  if (v !== null) return v;
+  if (opcional) return null;
+  return text.trim() ? undefined : 0;
+}
+
 const KINDS: Partial<Record<NumKey, Kind>> = {
   areaTotal: "m2", aproveitamento: "pct", metragemLote: "m2", incorporadorPct: "pct", valorM2: "brl", corretorPct: "pct",
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
@@ -60,18 +71,18 @@ export function useStudyState(initial: StudyInputs) {
   function set(key: NumKey, text: string) {
     const kind = KINDS[key]!;
     setTexts((s) => ({ ...s, [key]: text }));
-    const v = parse(text, kind);
-    if (v !== null || OPTIONAL.includes(key)) {
-      setInputs((s) => {
-        const n = { ...s, [key]: v };
-        // com o comprimento do lote, a metragem é frente × comprimento (guardada junto: a proposta usa ela)
-        if ((key === "compLote" || key === "frenteLote") && n.compLote && n.compLote > 0 && n.frenteLote > 0) {
-          n.metragemLote = Math.round(n.frenteLote * n.compLote * 100) / 100;
-          setTexts((t) => ({ ...t, metragemLote: toText(n.metragemLote, "m2") }));
-        }
-        return n;
-      });
-    }
+    const v = valorDoCampo(text, kind, OPTIONAL.includes(key));
+    if (v === undefined) return;
+    setInputs((s) => {
+      const n = { ...s, [key]: v };
+      // a metragem é frente × comprimento (guardada junto: a proposta usa ela); sem um dos dois, fica zero
+      // (o campo fica em vermelho), para a proposta não seguir com o lote antigo
+      if (key === "compLote" || key === "frenteLote") {
+        n.metragemLote = n.compLote && n.compLote > 0 && n.frenteLote > 0 ? Math.round(n.frenteLote * n.compLote * 100) / 100 : 0;
+        setTexts((t) => ({ ...t, metragemLote: toText(n.metragemLote, "m2") }));
+      }
+      return n;
+    });
   }
   function setIndice(v: string) {
     setInputs((s) => ({ ...s, indice: v }));
@@ -237,7 +248,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
             <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100, Number.isInteger(Math.round(r.terrenistaPct * 1e4) / 100) ? 0 : 2)} sufixo="%" strong />
             <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
-            <In s={s} k="intermediacaoPct" label="Corretor da parceria (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
+            <In s={s} k="intermediacaoPct" label="Corretor da intermediação (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
             {r.intermediacaoPct > 0 && (
               <>
                 <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
