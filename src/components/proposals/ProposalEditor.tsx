@@ -69,69 +69,6 @@ function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (
   );
 }
 
-/* ---------------- planilha no painel lateral ---------------- */
-
-const LARGURA_KEY = "jbl-planilha-largura";
-const LARGURA_PADRAO = 600;
-
-/**
- * Painel da planilha à direita: altura abaixo da barra do topo e largura que se puxa pela borda
- * (guardada neste aparelho). Em tela estreita o painel cobre a proposta em vez de empurrá-la.
- */
-function usePainelLateral() {
-  const barra = useRef<HTMLDivElement>(null);
-  const [topo, setTopo] = useState(66);
-  const [tela, setTela] = useState(1440);
-  const [largura, setLargura] = useState(LARGURA_PADRAO);
-  useEffect(() => {
-    try {
-      const salva = Number(localStorage.getItem(LARGURA_KEY));
-      if (salva > 0) setLargura(salva);
-    } catch {}
-    const onResize = () => setTela(window.innerWidth);
-    onResize();
-    window.addEventListener("resize", onResize);
-    const el = barra.current;
-    const ro = el ? new ResizeObserver(() => setTopo(el.getBoundingClientRect().height)) : null;
-    if (el) ro!.observe(el);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      ro?.disconnect();
-    };
-  }, []);
-  const limitar = (w: number, t = tela) => Math.round(Math.min(Math.max(w, 360), Math.max(360, t * 0.85)));
-  const guardar = (w: number) => {
-    try {
-      localStorage.setItem(LARGURA_KEY, String(w));
-    } catch {}
-  };
-  function puxar(e: React.PointerEvent) {
-    e.preventDefault();
-    let ultima = largura;
-    const mover = (ev: PointerEvent) => {
-      ultima = limitar(window.innerWidth - ev.clientX);
-      setLargura(ultima);
-    };
-    const soltar = () => {
-      document.removeEventListener("pointermove", mover);
-      document.removeEventListener("pointerup", soltar);
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-      guardar(ultima);
-    };
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "col-resize";
-    document.addEventListener("pointermove", mover);
-    document.addEventListener("pointerup", soltar);
-  }
-  const padrao = () => {
-    setLargura(LARGURA_PADRAO);
-    guardar(LARGURA_PADRAO);
-  };
-  const empurra = tela >= 900;
-  return { barra, topo, largura: empurra ? limitar(largura) : tela, empurra, puxar, padrao };
-}
-
 /* ------------------------------------------------------------ tela */
 
 export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado, carta }: Props) {
@@ -153,7 +90,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
-  const lateral = usePainelLateral();
 
   const ovRef = useRef(overrides);
   ovRef.current = overrides;
@@ -314,7 +250,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   return (
     <div className="min-h-screen bg-alt">
       {/* barra do topo */}
-      <div ref={lateral.barra} className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
+      <div className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
         <div className="flex flex-wrap items-center gap-3 px-6 py-3">
           <Link href={back} className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-semibold text-navy hover:bg-alt">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
@@ -379,35 +315,17 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         </div>
       </div>
 
-      {/* planilha no lado direito, em pé: a proposta continua à vista e muda enquanto se digita.
-          A borda da esquerda puxa para aumentar ou diminuir a largura. */}
       {numbersOpen && (
-        <aside
-          className="fixed bottom-0 right-0 z-30 flex border-l border-gold-line bg-white shadow-[-24px_0_50px_-30px_rgba(18,42,69,.55)]"
-          style={{ top: lateral.topo, width: lateral.largura }}
-        >
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Puxe para mudar a largura da planilha"
-            title="Puxe para os lados para mudar a largura"
-            onPointerDown={lateral.puxar}
-            onDoubleClick={lateral.padrao}
-            className="group relative w-2.5 shrink-0 cursor-col-resize touch-none bg-gold/30 hover:bg-gold/60"
-          >
-            <span className="absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold group-hover:bg-gold-deep" />
+        <div className="sticky top-[66px] z-30 mx-6 mt-4 max-h-[56vh] overflow-auto rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white p-5 shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="eyebrow">Dados da planilha</div>
+            <span className="text-[12.5px] text-muted">Salva sozinho. A proposta logo abaixo muda enquanto você digita.</span>
           </div>
-          <div className="min-w-0 flex-1 overflow-auto p-5">
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <div className="eyebrow">Dados da planilha</div>
-              <span className="text-[12.5px] text-muted">Salva sozinho. A proposta ao lado muda enquanto você digita.</span>
-            </div>
-            <NumbersPanel key={numbersKey} value={data} onChange={changeData} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
-          </div>
-        </aside>
+          <NumbersPanel key={numbersKey} value={data} onChange={changeData} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
+        </div>
       )}
 
-      <div className="px-6 pb-12 pt-5" style={numbersOpen && lateral.empurra ? { paddingRight: lateral.largura + 24 } : undefined}>
+      <div className="px-6 pb-12 pt-5">
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <DestinatarioPicker compact value={data.meta.options.destinatario} onChange={(dest) => changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, destinatario: dest } } })} />
           {mode === "edit" && (
