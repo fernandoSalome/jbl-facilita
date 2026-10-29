@@ -23,6 +23,9 @@ const MASCARAS: Record<string, string | ((digitos: string) => string)> = {
   j_rg: RG,
 };
 
+/** Propostas cujo rascunho antigo neste aparelho era teste da equipe: some na próxima visita */
+const RASCUNHOS_DE_TESTE = new Set(["4VFNQjebUd66"]);
+
 function readFile(file: File): Promise<{ name: string; type: string; data: string }> {
   return new Promise((res, rej) => {
     const fr = new FileReader();
@@ -49,12 +52,14 @@ export default function IntentForm({
   /** Protocolo da carta já enviada para esta proposta (vem do servidor: vale em qualquer aparelho) */
   protocoloEnviado?: string | null;
 }) {
-  const [v, setV] = useState<Campos>(() => ({
+  const inicial = (): Campos => ({
     i_area: fmtNum(areaHa, 4),
     i_municipio: `${project.municipio}/${project.uf}`,
     i_matriculas: project.matricula ?? "",
-  }));
+  });
+  const [v, setV] = useState<Campos>(inicial);
   const [file, setFile] = useState<File | null>(null);
+  const arquivo = useRef<HTMLInputElement>(null);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
   const [protocolo, setProtocolo] = useState(disabled ? "" : protocoloEnviado ?? "");
@@ -65,7 +70,11 @@ export default function IntentForm({
   useEffect(() => {
     if (disabled) return;
     try {
-      const salvo = JSON.parse(localStorage.getItem(chave) ?? "null") as { campos?: Campos; aceite?: boolean; protocolo?: string } | null;
+      let salvo = JSON.parse(localStorage.getItem(chave) ?? "null") as { v?: number; campos?: Campos; aceite?: boolean; protocolo?: string } | null;
+      if (salvo && !salvo.v && RASCUNHOS_DE_TESTE.has(token)) {
+        localStorage.removeItem(chave);
+        salvo = null;
+      }
       if (salvo?.campos) setV((o) => ({ ...o, ...salvo.campos }));
       if (salvo?.aceite) setAceite(true);
       // o protocolo vem só do servidor (carta apagada pela equipe: o formulário volta a aparecer)
@@ -73,11 +82,11 @@ export default function IntentForm({
       // sem acesso ao armazenamento do navegador: segue sem rascunho
     }
     setLido(true);
-  }, [chave, disabled]);
+  }, [chave, disabled, token]);
   useEffect(() => {
     if (disabled || !lido) return;
     try {
-      localStorage.setItem(chave, JSON.stringify({ campos: v, aceite }));
+      localStorage.setItem(chave, JSON.stringify({ v: 2, campos: v, aceite }));
     } catch {
       // armazenamento cheio ou bloqueado
     }
@@ -116,6 +125,24 @@ export default function IntentForm({
     fetch(`/api/public/${token}/carta/inicio`, { method: "POST", keepalive: true }).catch(() => {});
   }
 
+  function limparRascunho() {
+    try {
+      localStorage.removeItem(chave);
+    } catch {
+      // armazenamento bloqueado
+    }
+  }
+
+  function limpar() {
+    if (!window.confirm("Apagar tudo o que foi preenchido neste formulário?")) return;
+    setV(inicial());
+    setAceite(false);
+    setFile(null);
+    if (arquivo.current) arquivo.current.value = "";
+    setErr("");
+    limparRascunho();
+  }
+
   async function enviar() {
     if (disabled) return setErr("Pré-visualização: o formulário só envia na página pública da proposta.");
     if (!aceite) return setErr("Marque a confirmação antes de enviar.");
@@ -138,6 +165,7 @@ export default function IntentForm({
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Não foi possível enviar.");
       setProtocolo(d.protocolo);
+      limparRascunho();
       // a carta enviada fica à vista no lugar do formulário
       requestAnimationFrame(() => document.getElementById("intencao")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (e) {
@@ -227,7 +255,7 @@ export default function IntentForm({
           <div className="row2">{I({ k: "i_cartorio", label: "Cartório de Registro de Imóveis" })}{I({ k: "i_car", lk: "i_car2", label: "Número do CAR, quando aplicável" })}</div>
           <div className="field">
             <L k="arquivo">Matrícula atualizada (opcional neste primeiro envio)</L>
-            <input id="ci-arquivo" type="file" accept="application/pdf,image/png,image/jpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <input ref={arquivo} id="ci-arquivo" type="file" accept="application/pdf,image/png,image/jpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <small><E k="form.arquivoNota">PDF, PNG ou JPEG, até 6 MB. O arquivo segue junto com a carta para a JBL.</E></small>
           </div>
           <div className="field"><L k="obs">Observações</L><textarea id="ci-obs" value={v.obs ?? ""} onChange={on("obs")} /></div>
@@ -247,6 +275,7 @@ export default function IntentForm({
 
         <div className="actions">
           <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar3">Enviar dados para a minuta ↗</E>}</button>
+          <button type="button" className="dl" onClick={limpar} disabled={sending || disabled}>Limpar formulário</button>
         </div>
         <p className="note intent-registro"><E k="txt.intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</E></p>
       </form>
