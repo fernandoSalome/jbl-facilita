@@ -428,11 +428,11 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
         <div>
           <div className="mb-2 text-[12.5px] font-semibold text-navy">Divisão na proposta (sobre o VGV à vista)</div>
           <div className="flex h-9 overflow-hidden rounded text-[11.5px] font-bold">
-            <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct - r.intermediacaoDeTer, 0) * 100}%` }}>{fmtPct(r.terrenistaPct - r.intermediacaoDeTer, 0)}</div>
-            <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct, 0)}</div>
-            <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct, 0)}</div>
+            <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct - r.intermediacaoDeTer, 0) * 100}%` }}>{fmtPct(r.terrenistaPct - r.intermediacaoDeTer)}</div>
+            <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct)}</div>
+            <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct)}</div>
             {r.intermediacaoPct > 0 && (
-              <div className="grid place-items-center bg-[#6F86A3] text-white" style={{ width: `${r.intermediacaoPct * 100}%`, minWidth: 30 }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`}>{fmtPct(r.intermediacaoPct, 0)}</div>
+              <div className="grid place-items-center bg-[#6F86A3] text-white" style={{ width: `${r.intermediacaoPct * 100}%`, minWidth: 46 }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`}>{fmtPct(r.intermediacaoPct)}</div>
             )}
           </div>
           <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span>{r.intermediacaoPct > 0 && <span>Corretor</span>}</div>

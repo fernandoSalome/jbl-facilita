@@ -389,7 +389,7 @@ export default function JblPadrao(props: TemplateProps) {
   const terDiv = r.terrenistaPct - (mostraCorr ? r.intermediacaoDeTer : 0);
   const jblDiv = Math.max(r.jblPct + (mostraCorr ? 0 : r.intermediacaoDeInc), 0);
   const origemCorr = r.inputs.intermediacaoOrigem ?? "inc";
-  const corrNota = `${fmtNum((r.inputs.intermediacaoPct ?? 0) * 100, Number.isInteger(Math.round((r.inputs.intermediacaoPct ?? 0) * 1e4) / 100) ? 0 : 2)}% sobre a parte ${origemCorr === "inc" ? "do incorporador" : origemCorr === "ter" ? "dos proprietários" : "do incorporador e dos proprietários"}`;
+  const corrNota = `${fmtNum((r.inputs.intermediacaoPct ?? 0) * 100, Number.isInteger(Math.round((r.inputs.intermediacaoPct ?? 0) * 1e4) / 100) ? 0 : 2)}% sobre a parte ${origemCorr === "inc" ? "da incorporadora" : origemCorr === "ter" ? "dos proprietários" : "da incorporadora e dos proprietários"}`;
   // Percentuais na tela: o do corretor (ex.: 2%) é tirado do percentual de quem paga (terrenista 40% → 38%).
   // Os valores em reais continuam sobre a parte de quem paga (2% de 40% = 0,8% do total): terDiv, jblDiv e corr.
   const pctCorr = mostraCorr ? r.inputs.intermediacaoPct ?? 0 : 0;
