@@ -687,6 +687,23 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
           {`${q.quarteiroes} quadras · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
         </text>
       </svg>
+      {/* legenda: só o que aparece neste desenho */}
+      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-navy">
+        {[
+          { tem: true, nome: "Quadra (cada risco é a divisa de um lote)", st: { background: "repeating-linear-gradient(90deg, #F7F2E7 0 5px, #C1943D 5px 6px)", border: "1.5px solid #C1943D", borderRadius: 3 } },
+          { tem: t.some((x) => x.tipo === "rua"), nome: "Rua entre as quadras", st: { background: "#DDE3E9" } },
+          { tem: t.some((x) => x.tipo === "obrig"), nome: "Ruas contínuas vindas de fora (descontadas do perímetro)", st: { background: "repeating-linear-gradient(-45deg, #EAF1FB 0 3px, rgba(46,109,180,.45) 3px 5px)", border: "1px dashed #2E6DB4" } },
+          { tem: t.some((x) => x.tipo === "desconto"), nome: "Outras medidas descontadas (sem lotes)", st: { background: "repeating-linear-gradient(45deg, #fff 0 3px, rgba(192,57,43,.45) 3px 5px)", border: "1px dashed #C0392B" } },
+          { tem: t.some((x) => x.tipo === "sobra"), nome: "Sobra (não cabe outra quadra)", st: { background: "#F7F2E7", border: "1px dashed #ECE1C4" } },
+        ]
+          .filter((l) => l.tem)
+          .map((l) => (
+            <span key={l.nome} className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="inline-block h-3.5 w-6 shrink-0" style={l.st} />
+              {l.nome}
+            </span>
+          ))}
+      </div>
     </div>
   );
 }

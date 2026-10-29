@@ -58,20 +58,10 @@ function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (
   const setMeta = (patch: Partial<Meta>) => onChange({ ...value, meta: { ...m, ...patch } });
   return (
     <div className="grid gap-5">
-      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto_auto]">
+      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr]">
         <label><span className="label">Nome da proposta</span><input className="input" value={m.name} onChange={(e) => setMeta({ name: e.target.value })} /></label>
         <label><span className="label">Proprietário</span><input className="input" value={m.ownerName} onChange={(e) => setMeta({ ownerName: e.target.value })} /></label>
         <label><span className="label">WhatsApp</span><input className="input" value={m.ownerPhone} onChange={(e) => setMeta({ ownerPhone: e.target.value })} /></label>
-        <ValidadeField
-          dias={m.options.validadeDias}
-          semValidade={m.options.semValidade}
-          onDias={(v) => setMeta({ options: { ...m.options, validadeDias: Number(v) || 0 } })}
-          onSemValidade={(v) => setMeta({ options: { ...m.options, semValidade: v } })}
-        />
-        <label className="flex items-end gap-2 pb-2.5 text-sm font-semibold text-navy">
-          <input type="checkbox" checked={m.options.cartaIntencao} onChange={(e) => setMeta({ options: { ...m.options, cartaIntencao: e.target.checked } })} className="h-4 w-4 accent-[#A2782F]" />
-          Carta de intenção
-        </label>
       </div>
       <DataField value={m.options.data} atual={dataAtual} onChange={(v) => setMeta({ options: { ...m.options, data: v } })} />
       <StudyEditor state={study} />
@@ -166,6 +156,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
       patch(bodyFor(dataRef.current));
     }, 700);
   }
+
+  const setOptions = (o: Partial<ProposalOptions>) => changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, ...o } } });
 
   function setDataAndSave(d: Data) {
     setData(d);
@@ -278,6 +270,21 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
           {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
           <ModoToggle mode={mode} onChange={setMode} />
+
+          {/* validade e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
+          <div className="flex flex-wrap items-center gap-3">
+            <ValidadeField
+              compact
+              dias={data.meta.options.validadeDias}
+              semValidade={data.meta.options.semValidade}
+              onDias={(v) => setOptions({ validadeDias: Number(v) || 0 })}
+              onSemValidade={(v) => setOptions({ semValidade: v })}
+            />
+            <label className="flex items-center gap-2 whitespace-nowrap text-[13px] font-semibold text-navy">
+              <input type="checkbox" checked={data.meta.options.cartaIntencao} onChange={(e) => setOptions({ cartaIntencao: e.target.checked })} className="h-4 w-4 accent-[#A2782F]" />
+              Carta de intenção
+            </label>
+          </div>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <span className={`text-[12.5px] ${saved === "erro" ? "font-semibold text-rose-700" : "text-muted"}`}>{status}</span>

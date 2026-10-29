@@ -17,7 +17,7 @@ function readTime(s: number) {
   return `${Math.round(s / 60)} min`;
 }
 
-function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: boolean; onEdit: () => void; onDelete: () => void }) {
+function RowMenu({ p, isAdmin, fixada, onFixar, onEdit, onDelete }: { p: ProposalRow; isAdmin: boolean; fixada: boolean; onFixar: () => void; onEdit: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -65,6 +65,7 @@ function RowMenu({ p, isAdmin, onEdit, onDelete }: { p: ProposalRow; isAdmin: bo
           ) : (
             <>
               <Link className={item} href={`/app/proposta/${p.id}`}>Abrir proposta</Link>
+              <button className={item} onClick={() => { setOpen(false); onFixar(); }}>{fixada ? "Desafixar do topo" : "Fixar no topo"}</button>
               <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar dados da planilha</button>
               <button className={item} onClick={duplicate}>Duplicar</button>
               {p.status !== "rascunho" && (
@@ -106,7 +107,20 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState("");
 
-  const list = rows.filter((p) => `${p.name} ${p.ownerName} ${p.project.name}`.toLowerCase().includes(q.toLowerCase()));
+  // fixadas ficam no topo, na ordem em que foram fixadas; a troca aparece na hora (sem esperar o servidor)
+  const [fixadas, setFixadas] = useState<Record<string, string | null>>({});
+  const fixadaEm = (p: ProposalRow) => (p.id in fixadas ? fixadas[p.id] : p.pinnedAt);
+  const list = rows
+    .filter((p) => `${p.name} ${p.ownerName} ${p.project.name}`.toLowerCase().includes(q.toLowerCase()))
+    .map((p, i) => ({ p, i, f: !p.deletedAt ? fixadaEm(p) : null }))
+    .sort((a, b) => (a.f && b.f ? a.f.localeCompare(b.f) : a.f ? -1 : b.f ? 1 : a.i - b.i))
+    .map((x) => x.p);
+
+  async function fixar(p: ProposalRow, fixada: boolean) {
+    setFixadas((o) => ({ ...o, [p.id]: fixada ? new Date().toISOString() : null }));
+    await fetch(`/api/proposals/${p.id}/fixar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fixada }) });
+    router.refresh();
+  }
 
   async function confirmDelete() {
     if (!deleting) return;
@@ -167,10 +181,23 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
               <tr
                 key={p.id}
                 onClick={() => !p.deletedAt && router.push(`/app/proposta/${p.id}`)}
-                className={`group border-b border-line last:border-0 ${p.deletedAt ? "bg-rose-50/40 opacity-60" : "cursor-pointer hover:bg-gold-soft/50"}`}
+                className={`group border-b border-line last:border-0 ${p.deletedAt ? "bg-rose-50/40 opacity-60" : "cursor-pointer hover:bg-gold-soft/50"} ${fixadaEm(p) && !p.deletedAt ? "bg-gold-soft/40 shadow-[inset_3px_0_0_#C1943D]" : ""}`}
               >
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-navy group-hover:text-gold-deep">{p.name}</div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="font-semibold text-navy group-hover:text-gold-deep">{p.name}</span>
+                    {!p.deletedAt && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); fixar(p, !fixadaEm(p)); }}
+                        title={fixadaEm(p) ? "Desafixar (volta para a ordem normal)" : "Fixar no topo da lista"}
+                        aria-label={fixadaEm(p) ? "Desafixar proposta" : "Fixar proposta no topo"}
+                        className={`-mt-0.5 rounded px-1 text-[14px] leading-6 transition ${fixadaEm(p) ? "text-gold-deep" : "text-muted opacity-0 hover:text-navy group-hover:opacity-60 focus:opacity-100"}`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill={fixadaEm(p) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M9 3h6l-1 6 4 3v2h-5v7l-1 1-1-1v-7H6v-2l4-3z" /></svg>
+                      </button>
+                    )}
+                  </div>
                   <div className="text-[12.5px] text-muted">
                     {p.ownerName} · {FORMATOS_INICIAIS[parseFormato(p.formato)].label}
                     {p.overridesCount > 0 && <span className="ml-1.5 rounded-sm bg-[#fff6d6] px-1 text-[11px] text-amber-800 ring-1 ring-[#e0a800]">✎ {p.overridesCount}</span>}
@@ -215,7 +242,7 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
                 </td>
                 <td className="px-3 py-3 text-[12.5px] text-muted">{fmtDate(p.updatedAt)}</td>
                 <td className="pr-3">
-                  <RowMenu p={p} isAdmin={isAdmin} onEdit={() => setEditing(p)} onDelete={() => setDeleting(p)} />
+                  <RowMenu p={p} isAdmin={isAdmin} fixada={!!fixadaEm(p)} onFixar={() => fixar(p, !fixadaEm(p))} onEdit={() => setEditing(p)} onDelete={() => setDeleting(p)} />
                 </td>
               </tr>
             ))}

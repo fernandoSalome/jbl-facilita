@@ -104,6 +104,8 @@ model Proposal {
   pdfData       Bytes?
   pdfPages      Int?
   pdfKey        String?
+  /// Fixada no topo da lista de propostas (vazio = não fixada)
+  pinnedAt      DateTime?
   viewCount     Int             @default(0)
   firstViewedAt DateTime?
   lastViewedAt  DateTime?
