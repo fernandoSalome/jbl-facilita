@@ -1,4 +1,6 @@
+import { createHmac } from "node:crypto";
 import { db } from "./db";
+import { displayStatus } from "./proposals";
 
 /**
  * PDF da proposta em slides: página deitada 16:9 (13,333 × 7,5 pol., como um slide de
@@ -74,6 +76,11 @@ const CSS = `
 `;
 
 /** Chave que muda sempre que a proposta (ou o template aplicado a ela) muda */
+/** Senha da impressão feita pelo próprio servidor: só ela abre rascunho e proposta vencida no modo de impressão */
+export function chaveDeImpressao(token: string) {
+  return createHmac("sha256", process.env.AUTH_SECRET ?? "dev-secret-jbl-facilita").update(`impressao:${token}`).digest("hex").slice(0, 32);
+}
+
 export function pdfKeyOf(p: { updatedAt: Date; formatoVersionId: string | null; options?: unknown }) {
   return `a4:${p.updatedAt.getTime()}:${p.formatoVersionId ?? ""}`;
 }
@@ -94,7 +101,7 @@ async function imprimir(origin: string, token: string, rodape: string, paginas?:
   });
   try {
     const page = await browser.newPage({ viewport: { width: W, height: 900 } });
-    await page.goto(`${origin}/p/${token}?print=1${paginas ? `&pages=${paginas}` : ""}`, { waitUntil: "networkidle", timeout: 60000 });
+    await page.goto(`${origin}/p/${token}?print=1&k=${chaveDeImpressao(token)}${paginas ? `&pages=${paginas}` : ""}`, { waitUntil: "networkidle", timeout: 60000 });
     await page.emulateMedia({ media: "screen" });
     await page.addStyleTag({ content: CSS });
     // a fonte de emoji só baixa quando usada: carrega antes de medir e imprimir
@@ -395,9 +402,11 @@ function montarSlides({ H }: { H: number }) {
 const emAndamento = new Map<string, Promise<{ data: Buffer; pages: number }>>();
 
 /** Devolve o PDF da proposta (do cache, ou gera agora). O número de páginas entra no próprio texto da proposta. */
-export async function pdfDaProposta(origin: string, token: string) {
+export async function pdfDaProposta(origin: string, token: string, { soNoAr = false } = {}) {
   const p = await db.proposal.findFirst({ where: { publicToken: token, deletedAt: null }, include: { project: true } });
   if (!p) return null;
+  // quem não é da equipe só baixa proposta que está no ar (rascunho e vencida ficam de fora)
+  if (soNoAr && (p.status === "rascunho" || displayStatus(p) === "expirada")) return null;
   const key = pdfKeyOf(p);
   if (p.pdfData && p.pdfKey === key && p.pdfPages) return { data: Buffer.from(p.pdfData), pages: p.pdfPages, name: p.project.name };
 

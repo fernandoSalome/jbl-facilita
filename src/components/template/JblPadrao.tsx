@@ -36,6 +36,8 @@ export type TemplateProps = {
   pdfPages?: number | null;
   /** Endereço do PDF pronto (página pública); sem ele o botão abre a impressão */
   pdfUrl?: string;
+  /** Editor: muda a cada gravação; o PDF é refeito em segundo plano para atualizar o número de páginas */
+  pdfVersao?: number;
   /** Renderização para o PDF: sem rastreio de leitura */
   printing?: boolean;
   /** Editor do template: nome do tipo de loteamento, para marcar as partes que mudam por tipo */
@@ -396,11 +398,20 @@ export default function JblPadrao(props: TemplateProps) {
   const pie = [terTela, jblTela, r.infraPct, corrTela].map((p) => (p * circ).toFixed(2));
   const [pdfPages, setPdfPages] = useState(props.pdfPages ?? null);
   const [gerando, setGerando] = useState(false);
-  // página pública sem PDF atualizado: gera em segundo plano para mostrar o número de páginas
+  // sem PDF atualizado: gera em segundo plano para mostrar o número de páginas.
+  // No editor, refaz alguns segundos depois da última gravação (enquanto isso fica o número anterior).
   useEffect(() => {
-    if (mode !== "public" || props.printing || props.pdfPages || !props.pdfUrl) return;
-    fetch(`${props.pdfUrl}?info=1`).then((r) => (r.ok ? r.json() : null)).then((j) => j?.pages && setPdfPages(j.pages)).catch(() => {});
-  }, [mode, props.printing, props.pdfPages, props.pdfUrl]);
+    if (props.printing || !props.pdfUrl) return;
+    if (props.pdfPages && !props.pdfVersao) return;
+    let vivo = true;
+    const t = setTimeout(() => {
+      fetch(`${props.pdfUrl}?info=1`).then((r) => (r.ok ? r.json() : null)).then((j) => vivo && j?.pages && setPdfPages(j.pages)).catch(() => {});
+    }, props.pdfVersao ? 4000 : 0);
+    return () => {
+      vivo = false;
+      clearTimeout(t);
+    };
+  }, [props.printing, props.pdfPages, props.pdfUrl, props.pdfVersao]);
   // PDF em A4 (em pé)
   async function abrirPdf() {
     if (!props.pdfUrl || mode !== "public") return window.print();

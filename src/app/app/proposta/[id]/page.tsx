@@ -5,6 +5,7 @@ import { displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/
 import { contentForProposal, latestVersion } from "@/lib/formato-server";
 import { parseFormato } from "@/lib/formatos";
 import ProposalEditor from "@/components/proposals/ProposalEditor";
+import { pdfKeyOf } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function PropostaPage({ params }: { params: { id: string } 
         overrides: parseOverrides(p.overrides),
         lockedAt: p.lockedAt?.toISOString() ?? null,
         lockedBy: p.lockedBy,
+        pdfPages: p.pdfKey === pdfKeyOf(p) ? p.pdfPages : null,
       }}
       project={{
         id: p.project.id,

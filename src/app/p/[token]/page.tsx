@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
 import { contentForProposal } from "@/lib/formato-server";
-import { pdfKeyOf } from "@/lib/pdf";
+import { chaveDeImpressao, pdfKeyOf } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +43,14 @@ function Unavailable({ title, text }: { title: string; text: string }) {
   );
 }
 
-export default async function PublicProposal({ params, searchParams }: { params: { token: string }; searchParams: { print?: string; pages?: string } }) {
+export default async function PublicProposal({ params, searchParams }: { params: { token: string }; searchParams: { print?: string; pages?: string; k?: string } }) {
   const p = await load(params.token);
-  if (!p || p.status === "rascunho") {
+  // impressão feita pelo próprio servidor (PDF): sai também de rascunho e de proposta vencida
+  const interna = searchParams.print === "1" && searchParams.k === chaveDeImpressao(params.token);
+  if (!p || (p.status === "rascunho" && !interna)) {
     return <Unavailable title="Proposta indisponível" text="Este link não está mais ativo. Fale com a equipe da JBL para receber uma versão atualizada." />;
   }
-  if (displayStatus(p) === "expirada") {
+  if (displayStatus(p) === "expirada" && !interna) {
     return <Unavailable title="Proposta expirada" text="O prazo de validade desta proposta terminou. Fale com a JBL para prorrogar." />;
   }
   const formato = await contentForProposal(p);

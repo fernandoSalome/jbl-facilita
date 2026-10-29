@@ -40,6 +40,8 @@ type Props = {
     inputs: StudyInputs; options: ProposalOptions; overrides: Overrides;
     /** Bloqueada para edição (só visualização) e quem bloqueou */
     lockedAt?: string | null; lockedBy?: string | null;
+    /** Páginas do último PDF, se ainda vale para a proposta como está */
+    pdfPages?: number | null;
   };
   project: { id: string; name: string; tipo: string; municipio: string; uf: string; matricula: string | null; aerialImage: string | null };
 };
@@ -134,6 +136,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   const [pos, setPos] = useState(0); // quantas entradas do histórico estão aplicadas
   const [pending, setPending] = useState(0);
   const [saved, setSaved] = useState<"ok" | "erro" | null>(null);
+  const [gravacoes, setGravacoes] = useState(0); // refaz o número de páginas do PDF depois de gravar
   const [sendOpen, setSendOpen] = useState(false);
   const [published, setPublished] = useState(p.rawStatus !== "rascunho");
   // prazo do link: vence no envio + dias. A data gravada vale enquanto o prazo não muda aqui
@@ -167,6 +170,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
       try {
         const r = await fetch(`/api/proposals/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         setSaved(r.ok ? "ok" : "erro");
+        if (r.ok) setGravacoes((n) => n + 1);
       } catch {
         setSaved("erro");
       } finally {
@@ -479,6 +483,9 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             key={mode}
             mode={mode}
             token={p.publicToken}
+            pdfUrl={`/api/public/${p.publicToken}/pdf`}
+            pdfPages={p.pdfPages}
+            pdfVersao={gravacoes}
             formato={formato}
             project={project}
             ownerName={data.meta.ownerName}
