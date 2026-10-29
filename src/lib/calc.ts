@@ -103,9 +103,12 @@ export type StudyInputs = {
   /** Comprimento (fundo) do lote do estudo (m). Preenchido: metragem do lote = frente × comprimento */
   compLote: number | null;
   /**
-   * Primeira etapa: financiamento próprio (é outra etapa, com outras taxas). Vazio = o do estudo.
-   * Mesmas contas do quadro de reajuste e recebimentos do estudo.
+   * Primeira etapa: financiamento próprio (é outra etapa, com outras taxas). Mesmas contas do
+   * quadro de reajuste e recebimentos do estudo. Com finE1Exigido (etapa ligada a partir de
+   * 29/10/2026) os 6 números são obrigatórios, mesmo que zero: faltando um, a etapa a prazo fica
+   * "a definir". Sem ele (propostas antigas), vazio = o do estudo.
    */
+  finE1Exigido?: boolean;
   indiceE1: string | null;
   ipcaE1: number | null;
   jurosAnoE1: number | null;
@@ -174,6 +177,28 @@ export const DEFAULT_INPUTS: StudyInputs = {
   taxaAplicacao: 0.01,
   reajusteManual: null,
 };
+
+/** Números do financiamento da 1ª etapa (obrigatórios com finE1Exigido) */
+export const FIN_E1 = ["ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1"] as const;
+
+/**
+ * Divisão mostrada na proposta (e na planilha): o percentual do corretor aparece como foi digitado
+ * (ex.: 2%) e é tirado do percentual de quem paga (terrenista 40% → 38%; JBL perde os 2%).
+ * Os valores em reais continuam sobre a parte de quem paga (2% de 60% = 1,2% do total).
+ * mostrar = false: a divisão aparece sem o corretor (a parte dele fica com a JBL).
+ */
+export function divisaoNaTela(r: StudyResult, mostrar = r.inputs.mostrarCorretor !== false) {
+  const ve = mostrar && r.intermediacaoPct > 0;
+  const pct = ve ? r.inputs.intermediacaoPct ?? 0 : 0;
+  const origem = r.inputs.intermediacaoOrigem ?? "inc";
+  const tiraTer = origem !== "inc", tiraInc = origem !== "ter";
+  return {
+    ter: Math.max(r.terrenistaPct - (tiraTer ? pct : 0), 0),
+    jbl: Math.max(r.jblPct + r.intermediacaoDeInc - (tiraInc ? pct : 0), 0),
+    obras: r.infraPct,
+    corretor: pct * ((tiraTer ? 1 : 0) + (tiraInc ? 1 : 0)),
+  };
+}
 
 /** Prazos da tabela "Outros Períodos de Parcelamento" + 13 anos da proposta, em meses */
 export const PRAZOS_MESES = [36, 60, 96, 120, 156, 180, 216, 240] as const;
@@ -267,13 +292,13 @@ export type StudyResult = {
    */
   etapa1: {
     lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; avista: number;
-    /** VGV a prazo da etapa, com o financiamento dela (fin.cenario.carteiraEmp) */
-    prazo: number;
-    /** Reajuste e recebimentos da etapa (campos vazios = os do estudo) */
+    /** VGV a prazo da etapa, com o financiamento dela (fin.cenario.carteiraEmp). null = financiamento não preenchido */
+    prazo: number | null;
+    /** Reajuste e recebimentos da etapa. null = falta preencher (obrigatório) */
     fin: {
       indice: string; reajuste: number; valorLote: number; entrada: number; nParcelas: number; parcela: number;
       parcelaContrato: number; valorLoteContrato: number; cenario: Cenario;
-    };
+    } | null;
     /** Pelas medidas da fileira de quadras (null = proposta sem as medidas) */
     quadras: {
       linha: number; rua: number; fundo: number; frente: number; comp: number;
@@ -445,6 +470,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     if (qtd > 0 || quadras) {
       // financiamento da etapa: as mesmas contas do estudo, com as taxas dela (vazio = a do estudo).
       // Com tudo vazio dá o mesmo que antes (carteira do estudo na proporção do VGV à vista).
+      const falta = !!i.finE1Exigido && FIN_E1.some((k) => i[k] === null || i[k] === undefined);
       const taxasProprias = i.ipcaE1 !== null || i.jurosAnoE1 !== null || i.jurosMesE1 !== null;
       const reajE = taxasProprias ? (i.ipcaE1 ?? i.ipca) + (i.jurosAnoE1 ?? i.jurosAno) + (i.jurosMesE1 ?? i.jurosMes) * 12 : reajuste;
       const multE = i.multiplicadorE1 ?? i.multiplicador;
@@ -456,8 +482,8 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       const cen = nE > 0 ? cenario(nE, valorLoteE - entradaE, multE, qtd, reajE, inc, nova2026 ? entradaE * qtd : 0) : cenario(1, 0, 0, 0, 0, 0);
       etapa1 = {
         lotes: qtd, lote, valorM2: valorM2E, areaUtil: qtd * lote, pct: (qtd * lote) / areaUtil, avista, quadras,
-        prazo: cen.carteiraEmp,
-        fin: {
+        prazo: falta ? null : cen.carteiraEmp,
+        fin: falta ? null : {
           indice: i.indiceE1 || i.indice, reajuste: reajE, valorLote: valorLoteE, entrada: entradaE, nParcelas: nE, parcela: parcelaE,
           parcelaContrato: parcelaContratoE, valorLoteContrato: parcelaContratoE * nE + entradaE, cenario: cen,
         },

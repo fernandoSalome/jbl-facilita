@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { calcular, INDICES, type StudyInputs } from "@/lib/calc";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { calcular, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 
 /**
@@ -59,6 +59,18 @@ function comComprimentos(i: StudyInputs): StudyInputs {
   const frenteE1 = n.frenteE1 && n.frenteE1 > 0 ? n.frenteE1 : n.frenteLote;
   const loteE1 = n.loteEtapa1 && n.loteEtapa1 > 0 ? n.loteEtapa1 : n.metragemLote;
   if (!(n.compLoteE1 && n.compLoteE1 > 0) && frenteE1 > 0 && loteE1 > 0) n.compLoteE1 = loteE1 / frenteE1;
+  // 1ª etapa ligada antes do financiamento próprio ser obrigatório: os campos vêm com os números do
+  // estudo (os que a proposta já usava) e passam a ser obrigatórios. A proposta não muda.
+  if ((n.primeiraEtapa || n.lotesEtapa1) && !n.etapaADefinir && !n.finE1Exigido) {
+    const fixo = n.reajusteManual; // reajuste fixo antigo: vira o índice, sem juros (o total é o mesmo)
+    n.ipcaE1 ??= fixo ?? n.ipca;
+    n.jurosAnoE1 ??= fixo !== null ? 0 : n.jurosAno;
+    n.jurosMesE1 ??= fixo !== null ? 0 : n.jurosMes;
+    n.entradaPctE1 ??= n.entradaPct;
+    n.multiplicadorE1 ??= n.multiplicador;
+    n.anosE1 ??= n.anos;
+    n.finE1Exigido = true;
+  }
   return n;
 }
 
@@ -97,7 +109,17 @@ export function useStudyState(initial: StudyInputs) {
   function setEtapa(on: boolean) {
     // desligada, a quantidade de lotes some (senão a proposta voltaria com a etapa ligada)
     if (!on) setTexts((s) => ({ ...s, lotesEtapa1: "" }));
-    setInputs((s) => ({ ...s, primeiraEtapa: on, ...(on ? { etapaADefinir: false } : { lotesEtapa1: null }) }));
+    setInputs((s) => {
+      // ligada pela 1ª vez: reajuste e recebimentos da etapa vêm vazios e são obrigatórios (mesmo que zero)
+      const novo = on && !s.finE1Exigido;
+      if (novo) setTexts((t) => ({ ...t, ...Object.fromEntries(FIN_E1.map((k) => [k, ""])) }));
+      return {
+        ...s,
+        primeiraEtapa: on,
+        ...(on ? { etapaADefinir: false } : { lotesEtapa1: null }),
+        ...(novo ? { finE1Exigido: true, ...Object.fromEntries(FIN_E1.map((k) => [k, null])) } : {}),
+      };
+    });
   }
   /** Primeira etapa existente, mas sem os números ainda: a proposta mostra "a definir". Um ou outro. */
   function setEtapaADefinir(on: boolean) {
@@ -217,21 +239,42 @@ function Out({ label, value, strong, navy, nota, sufixo }: { label: string; valu
   );
 }
 
-export default function StudyEditor({ state, compact }: { state: State; compact?: boolean }) {
+/**
+ * Largura da própria planilha (não da tela): no painel lateral ela fica estreita e as colunas
+ * se empilham; na janela larga ficam lado a lado.
+ */
+const LarguraCtx = createContext(1200);
+function useLarguraDe(ref: React.RefObject<HTMLElement>) {
+  const [w, setW] = useState(1200);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return w;
+}
+
+export default function StudyEditor({ state }: { state: State; compact?: boolean }) {
   const s = state;
+  const raiz = useRef<HTMLDivElement>(null);
+  const w = useLarguraDe(raiz);
   const r = useMemo(() => calcular(s.inputs), [s.inputs]);
   const i = r.inputs;
   const invalid = r.jblPct < 0;
+  const dv = divisaoNaTela(r);
 
   return (
-    <div className="grid gap-5">
+    <LarguraCtx.Provider value={w}>
+    <div ref={raiz} className="grid gap-5">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-muted">
         <span className="flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm border border-[#9DC3E6] bg-[#DDEBF7]" /> campos para preencher (as células azuis da planilha)</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm border border-line bg-white" /> calculado automaticamente</span>
         <span className="ml-auto flex items-center gap-1.5"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> calculando ao vivo</span>
       </div>
 
-      <div className={`grid gap-4 ${compact ? "lg:grid-cols-3" : "lg:grid-cols-3"}`}>
+      <div className={`grid gap-4 ${w >= 1000 ? "grid-cols-3" : w >= 720 ? "grid-cols-2" : ""}`}>
         {/* coluna 1 */}
         <div className="grid content-start gap-4">
           <Box title="Dados do Parcelamento de Solo" right="Dados">
@@ -276,7 +319,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
                     return o === "inc" ? deInc : o === "ter" ? deTer : `${deInc} + ${deTer}`;
                   })()}
                 </p>
-                <Out label="Corretor no total (divisão)" value={fmtPct(r.intermediacaoPct)} />
+                <Out label="Corretor na divisão" value={fmtPct(divisaoNaTela(r).corretor)} />
                 <label className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-semibold text-navy">
                   <input type="checkbox" className="accent-[#C1943D]" checked={i.mostrarCorretor !== false} onChange={(e) => s.setCorretor({ mostrarCorretor: e.target.checked })} />
                   Mostrar o corretor na proposta
@@ -390,8 +433,8 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
       </div>
 
       {/* Outros períodos */}
-      <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
-        <table className="w-full text-[13px]">
+      <div className="overflow-x-auto rounded-sm border border-gold/70 bg-white">
+        <table className="w-full min-w-[560px] text-[13px]">
           <thead>
             <tr className="bg-navy text-[12px] text-white">
               <th colSpan={2} className="px-3 py-1.5 text-left font-bold">Outros Períodos de Parcelamento</th>
@@ -430,21 +473,22 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
       </div>
 
       {/* Resumo da proposta */}
-      <div className="grid gap-4 rounded-md border border-line bg-alt p-4 md:grid-cols-[minmax(0,340px)_1fr]">
+      <div className={`grid gap-4 rounded-md border border-line bg-alt p-4 ${w >= 760 ? "grid-cols-[minmax(0,340px)_1fr]" : ""}`}>
         <div>
           <div className="mb-2 text-[12.5px] font-semibold text-navy">Divisão na proposta (sobre o VGV à vista)</div>
+          {/* a mesma divisão da proposta: o corretor com o percentual digitado (2%), tirado de quem paga */}
           <div className="flex h-9 overflow-hidden rounded text-[11.5px] font-bold">
-            <div className="grid place-items-center bg-gold text-navy" style={{ width: `${Math.max(r.terrenistaPct - r.intermediacaoDeTer, 0) * 100}%` }}>{fmtPct(r.terrenistaPct - r.intermediacaoDeTer)}</div>
-            <div className="grid place-items-center bg-navy text-white" style={{ width: `${Math.max(r.jblPct, 0) * 100}%` }}>{fmtPct(r.jblPct)}</div>
-            <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(r.infraPct, 0) * 100}%` }}>{fmtPct(r.infraPct)}</div>
-            {r.intermediacaoPct > 0 && (
-              <div className="grid place-items-center bg-[#6F86A3] text-white" style={{ width: `${r.intermediacaoPct * 100}%`, minWidth: 46 }} title={`Corretor ${fmtPct(r.intermediacaoPct)}`}>{fmtPct(r.intermediacaoPct)}</div>
+            <div className="grid place-items-center bg-gold text-navy" style={{ width: `${dv.ter * 100}%` }}>{fmtPct(dv.ter)}</div>
+            <div className="grid place-items-center bg-navy text-white" style={{ width: `${dv.jbl * 100}%` }}>{fmtPct(dv.jbl)}</div>
+            <div className="grid place-items-center bg-[#C9D3DE] text-navy" style={{ width: `${Math.max(dv.obras, 0) * 100}%` }}>{fmtPct(dv.obras)}</div>
+            {dv.corretor > 0 && (
+              <div className="grid place-items-center bg-[#6F86A3] text-white" style={{ width: `${dv.corretor * 100}%`, minWidth: 46 }} title={`Corretor ${fmtPct(dv.corretor)}`}>{fmtPct(dv.corretor)}</div>
             )}
           </div>
-          <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span>{r.intermediacaoPct > 0 && <span>Corretor</span>}</div>
+          <div className="mt-1.5 flex justify-between text-[11.5px] text-muted"><span>Proprietários</span><span>JBL</span><span>Obras</span>{dv.corretor > 0 && <span>Corretor</span>}</div>
           {invalid && <p className="mt-2 rounded border-l-[3px] border-rose-500 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-700">O custo das obras passa da parte do incorporador.</p>}
         </div>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded border border-line bg-line lg:grid-cols-4">
+        <div className={`grid gap-px overflow-hidden rounded border border-line bg-line ${w >= 1000 ? "grid-cols-4" : "grid-cols-2"}`}>
           {[
             ["VGV à vista", fmtBRL0(r.vgvAvista)],
             [`VGV global · ${r.nParcelas} meses`, fmtBRL0(r.principal.carteiraEmp)],
@@ -459,6 +503,7 @@ export default function StudyEditor({ state, compact }: { state: State; compact?
         </div>
       </div>
     </div>
+    </LarguraCtx.Provider>
   );
 }
 
@@ -469,6 +514,7 @@ function Titulo({ children }: { children: React.ReactNode }) {
 /** Bloco da primeira etapa: medidas (azuis), quadras, áreas e resultado */
 function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const i = r.inputs;
+  const largo = useContext(LarguraCtx) >= 760;
   const off = !!i.etapaADefinir;
   const q = r.etapa1?.quadras ?? null;
   // lote da etapa = frente (vazia = a do estudo) × comprimento; com zero ou vazio não calcula
@@ -478,7 +524,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const m2 = (n: number) => `${fmtNum(n)} m²`;
   return (
     <div>
-    <div className="grid divide-gold/30 md:grid-cols-2 md:divide-x">
+    <div className={`grid divide-gold/30 ${largo ? "grid-cols-2 divide-x" : ""}`}>
       <div className="divide-y divide-gold/30">
         <Titulo>Medidas da 1ª etapa</Titulo>
         <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
@@ -524,7 +570,11 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         />
         <Out label="Da área aproveitável" value={off ? "a definir" : r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
         <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
-        <Out label={`VGV parcial em ${r.etapa1?.fin.nParcelas ?? r.nParcelas} meses`} value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
+        <Out
+          label={r.etapa1?.fin ? `VGV parcial em ${r.etapa1.fin.nParcelas} meses` : "VGV parcial a prazo"}
+          value={off ? "a definir" : r.etapa1?.prazo != null ? fmtBRL(r.etapa1.prazo) : r.etapa1 ? "a definir (preencha o reajuste e os recebimentos)" : "—"}
+          strong
+        />
       </div>
     </div>
     {!off && <FinanciamentoEtapa s={s} r={r} />}
@@ -535,16 +585,19 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
 
 /**
  * Reajuste e recebimentos da 1ª etapa: é outra etapa, com outras taxas. Mesmas contas do quadro do
- * estudo; campo vazio = o valor do estudo (aparece apagado no campo).
+ * estudo. Os 6 números são obrigatórios (mesmo que zero): faltando um, a etapa a prazo fica "a definir".
  */
 function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const i = r.inputs;
+  const largo = useContext(LarguraCtx) >= 760;
   const f = r.etapa1?.fin ?? null;
-  const est = (k: NumKey) => `${toText(i[k] as number, KINDS[k]!)} (estudo)`;
-  const v = (x: (f: NonNullable<typeof r.etapa1>["fin"]) => string) => (f ? x(f) : "—");
+  const exigido = !!i.finE1Exigido;
+  const falta = (k: (typeof FIN_E1)[number]) => (exigido && (i[k] === null || i[k] === undefined) ? "Obrigatório (mesmo que seja zero)" : null);
+  const est = (k: NumKey) => (exigido ? "obrigatório" : `${toText(i[k] as number, KINDS[k]!)} (estudo)`);
+  const v = (x: (f: NonNullable<NonNullable<typeof r.etapa1>["fin"]>) => string) => (f ? x(f) : "a definir");
   const indice = i.indiceE1 || i.indice;
   return (
-    <div className="grid border-t border-gold/30 md:grid-cols-2 md:divide-x md:divide-gold/30">
+    <div className={`grid border-t border-gold/30 ${largo ? "grid-cols-2 divide-x divide-gold/30" : ""}`}>
       <div className="divide-y divide-gold/30">
         <Titulo>Reajuste da 1ª etapa</Titulo>
         <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
@@ -558,18 +611,18 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
             {INDICES.map((x) => <option key={x}>{x}</option>)}
           </select>
         </label>
-        <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} />
-        <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} />
-        <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} />
+        <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />
+        <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
+        <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} erro={falta("jurosMesE1")} />
         <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo>Recebimentos da 1ª etapa</Titulo>
         <Out label="Valor do Lote da 1ª etapa" value={v((f) => fmtBRL(f.valorLote))} strong />
-        <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} />
+        <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} erro={falta("entradaPctE1")} />
         <Out label="Valor da Entrada" value={v((f) => fmtBRL(f.entrada))} />
-        <In s={s} k="multiplicadorE1" label="Multiplicador para encontrar a Parcela" ph={est("multiplicador")} />
-        <In s={s} k="anosE1" label="Em quantos Anos ocorrerá o Parcelamento" ph={est("anos")} />
+        <In s={s} k="multiplicadorE1" label="Multiplicador para encontrar a Parcela" ph={est("multiplicador")} erro={falta("multiplicadorE1")} />
+        <In s={s} k="anosE1" label="Em quantos Anos ocorrerá o Parcelamento" ph={est("anos")} erro={falta("anosE1")} />
         <Out label="Número de Parcelas" value={v((f) => String(f.nParcelas))} />
         <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={v((f) => fmtBRL(f.parcela))} strong />
         <Out label="Valor da Parcela que vai para o Contrato" value={v((f) => fmtBRL(f.parcelaContrato))} />

@@ -7,7 +7,7 @@
 export default function ValidadeField({ dias, semValidade, onDias, onSemValidade, compact }: { dias: string | number; semValidade?: boolean; onDias: (v: string) => void; onSemValidade: (v: boolean) => void; compact?: boolean }) {
   return (
     <div className={compact ? "flex items-center gap-2" : ""}>
-      <span className={compact ? "text-[12.5px] font-semibold text-navy" : "label"}>Validade</span>
+      <span className={compact ? "whitespace-nowrap text-[12.5px] font-semibold text-navy" : "label"}>{compact ? "Expirar proposta" : "Validade"}</span>
       <div className="flex items-stretch gap-2">
         {!semValidade && (
           <label className="flex items-stretch">

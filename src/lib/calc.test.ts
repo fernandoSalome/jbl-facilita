@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseInputs } from "./proposals";
-import { calcular } from "./calc";
+import { calcular, divisaoNaTela } from "./calc";
 
 // Valores copiados da planilha PLANILHA_ORÇAM_TERRENISTA_OFICIAL.xlsx (aba "Dados do Parcelamento de Solo")
 describe("planilha oficial", () => {
@@ -148,12 +148,12 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     const base = { ...r.inputs, planilhaInfra: "2026" as const, primeiraEtapa: true, lotesEtapa1: 100, loteEtapa1: 250, valorM2Etapa1: 600 };
     const igual = calcular(base);
     // tudo vazio: as contas do estudo, na proporção do VGV à vista (como era antes)
-    expect(igual.etapa1!.fin.reajuste).toBe(igual.reajuste);
-    expect(igual.etapa1!.fin.nParcelas).toBe(igual.nParcelas);
+    expect(igual.etapa1!.fin!.reajuste).toBe(igual.reajuste);
+    expect(igual.etapa1!.fin!.nParcelas).toBe(igual.nParcelas);
     expect(igual.etapa1!.prazo).toBeCloseTo(igual.etapa1!.avista * (igual.principal.carteiraEmp / igual.vgvAvista), 2);
 
     const e = calcular({ ...base, ipcaE1: 0.04, jurosAnoE1: 0, jurosMesE1: 0.0066, entradaPctE1: 0.1, multiplicadorE1: 1.5, anosE1: 10, indiceE1: "INCC" });
-    const f = e.etapa1!.fin;
+    const f = e.etapa1!.fin!;
     expect(f.indice).toBe("INCC");
     expect(f.reajuste).toBeCloseTo(0.04 + 0.0066 * 12, 12); // 11,92%
     expect(f.valorLote).toBeCloseTo(250 * 600, 6);
@@ -164,12 +164,44 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     let p = f.parcela, soma = 0;
     for (let ano = 0; ano < 10; ano++) { soma += p * 100 * 12; p += p * f.reajuste; }
     expect(e.etapa1!.prazo).toBeCloseTo(soma + 15000 * 100, 2);
-    expect(f.cenario.carteiraTer).toBeCloseTo(e.etapa1!.prazo * e.terrenistaPct, 2);
+    expect(f.cenario.carteiraTer).toBeCloseTo(e.etapa1!.prazo! * e.terrenistaPct, 2);
     // o estudo não muda
     expect(e.principal.carteiraEmp).toBe(igual.principal.carteiraEmp);
     expect(e.reajuste).toBe(igual.reajuste);
     // só uma taxa preenchida: as outras vêm do estudo
-    expect(calcular({ ...base, jurosMesE1: 0 }).etapa1!.fin.reajuste).toBeCloseTo(r.inputs.ipca + r.inputs.jurosAno, 12);
+    expect(calcular({ ...base, jurosMesE1: 0 }).etapa1!.fin!.reajuste).toBeCloseTo(r.inputs.ipca + r.inputs.jurosAno, 12);
+  });
+
+  it("primeira etapa ligada agora: os 6 números do financiamento são obrigatórios (zero vale)", () => {
+    const base = { ...r.inputs, primeiraEtapa: true, lotesEtapa1: 100, loteEtapa1: 250, valorM2Etapa1: 600, finE1Exigido: true };
+    const cheio = { ipcaE1: 0, jurosAnoE1: 0, jurosMesE1: 0, entradaPctE1: 0, multiplicadorE1: 1, anosE1: 10 };
+    // falta um: a prazo fica "a definir"; o à vista continua
+    const falta = calcular({ ...base, ...cheio, anosE1: null });
+    expect(falta.etapa1!.prazo).toBeNull();
+    expect(falta.etapa1!.fin).toBeNull();
+    expect(falta.etapa1!.avista).toBeCloseTo(100 * 250 * 600, 2);
+    // tudo zero (preenchido): calcula, sem reajuste nem entrada
+    const zero = calcular({ ...base, ...cheio });
+    expect(zero.etapa1!.fin!.reajuste).toBe(0);
+    expect(zero.etapa1!.fin!.entrada).toBe(0);
+    expect(zero.etapa1!.prazo).toBeGreaterThan(0);
+  });
+
+  it("divisão na tela: o corretor aparece com o percentual digitado, tirado de quem paga", () => {
+    const corr = { ...r.inputs, incorporadorPct: 0.6, intermediacaoPct: 0.02 };
+    const inc = calcular({ ...corr, intermediacaoOrigem: "inc" });
+    const d = divisaoNaTela(inc);
+    expect(d.corretor).toBeCloseTo(0.02, 12);
+    expect(d.ter).toBeCloseTo(0.4, 12);
+    expect(d.jbl).toBeCloseTo(0.6 - inc.infraPct - 0.02, 12);
+    expect(d.ter + d.jbl + d.obras + d.corretor).toBeCloseTo(1, 12);
+    const ter = divisaoNaTela(calcular({ ...corr, intermediacaoOrigem: "ter" }));
+    expect([ter.ter, ter.corretor]).toEqual([expect.closeTo(0.38, 12), expect.closeTo(0.02, 12)]);
+    const ambos = divisaoNaTela(calcular({ ...corr, intermediacaoOrigem: "ambos" }));
+    expect(ambos.corretor).toBeCloseTo(0.04, 12);
+    expect(ambos.ter + ambos.jbl + ambos.obras + ambos.corretor).toBeCloseTo(1, 12);
+    // escondido na proposta: sem corretor na divisão
+    expect(divisaoNaTela(inc, false).corretor).toBe(0);
   });
 
   it("primeira etapa e antecipação", () => {

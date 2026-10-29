@@ -3,7 +3,7 @@
 import "./jbl-padrao.css";
 import "./jbl-padrao-extra.css";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { calcular, type StudyInputs } from "@/lib/calc";
+import { calcular, divisaoNaTela, type StudyInputs } from "@/lib/calc";
 import { extensoReais, fmtBRL, fmtBRL0, fmtLongDate, fmtNum, fmtPct } from "@/lib/format";
 import type { Overrides, ProposalOptions } from "@/lib/proposals";
 import type { FormatoContent } from "@/lib/formatos";
@@ -392,11 +392,7 @@ export default function JblPadrao(props: TemplateProps) {
   const corrNota = `${fmtNum((r.inputs.intermediacaoPct ?? 0) * 100, Number.isInteger(Math.round((r.inputs.intermediacaoPct ?? 0) * 1e4) / 100) ? 0 : 2)}% sobre a parte ${origemCorr === "inc" ? "da incorporadora" : origemCorr === "ter" ? "dos proprietários" : "da incorporadora e dos proprietários"}`;
   // Percentuais na tela: o do corretor (ex.: 2%) é tirado do percentual de quem paga (terrenista 40% → 38%).
   // Os valores em reais continuam sobre a parte de quem paga (2% de 40% = 0,8% do total): terDiv, jblDiv e corr.
-  const pctCorr = mostraCorr ? r.inputs.intermediacaoPct ?? 0 : 0;
-  const tiraTer = origemCorr !== "inc", tiraInc = origemCorr !== "ter";
-  const terTela = Math.max(r.terrenistaPct - (tiraTer ? pctCorr : 0), 0);
-  const jblTela = Math.max(r.jblPct + r.intermediacaoDeInc - (tiraInc ? pctCorr : 0), 0);
-  const corrTela = pctCorr * ((tiraTer ? 1 : 0) + (tiraInc ? 1 : 0));
+  const { ter: terTela, jbl: jblTela, corretor: corrTela } = divisaoNaTela(r, mostraCorr);
   const pie = [terTela, jblTela, r.infraPct, corrTela].map((p) => (p * circ).toFixed(2));
   const [pdfPages, setPdfPages] = useState(props.pdfPages ?? null);
   const [gerando, setGerando] = useState(false);
@@ -832,7 +828,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <p className="tip gold tip-full"><T k="e1t2" html vars={nv} limpar={etapaComNumeros}>{"Identificada a possibilidade de lançamento da primeira etapa para <strong>{{e1Lotes}}</strong> lotes de <strong>{{e1Lote}}</strong> m², utilizando <strong>{{e1Area}}</strong> m² (<strong>{{e1Pct}}</strong>%) da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura."}</T></p>
                 <div className="tiles two" style={{ marginTop: 22 }}>
                   <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{r.etapa1 ? fmtBRL(r.etapa1.avista) : "a definir"}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
-                  <div className="tile hl"><div className="k"><T k="e1k2" vars={{ ...nv, n: String(r.etapa1?.fin.nParcelas ?? n) }}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
+                  <div className="tile hl"><div className="k"><T k="e1k2" vars={{ ...nv, n: r.etapa1?.fin ? String(r.etapa1.fin.nParcelas) : "—" }}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1?.prazo != null ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
                 </div>
               </div>
             </Sec>}
