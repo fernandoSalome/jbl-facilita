@@ -832,7 +832,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <p className="tip gold tip-full"><T k="e1t2" html vars={nv} limpar={etapaComNumeros}>{"Identificada a possibilidade de lançamento da primeira etapa para <strong>{{e1Lotes}}</strong> lotes de <strong>{{e1Lote}}</strong> m², utilizando <strong>{{e1Area}}</strong> m² (<strong>{{e1Pct}}</strong>%) da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura."}</T></p>
                 <div className="tiles two" style={{ marginTop: 22 }}>
                   <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{r.etapa1 ? fmtBRL(r.etapa1.avista) : "a definir"}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
-                  <div className="tile hl"><div className="k"><T k="e1k2" vars={nv}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
+                  <div className="tile hl"><div className="k"><T k="e1k2" vars={{ ...nv, n: String(r.etapa1?.fin.nParcelas ?? n) }}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1 ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>
                 </div>
               </div>
             </Sec>}

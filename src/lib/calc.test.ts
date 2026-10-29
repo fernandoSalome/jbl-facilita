@@ -144,6 +144,34 @@ describe("site São Judas Tadeu II (planilha atual)", () => {
     expect(cen(240).carteiraTer).toBeCloseTo(83193993.54, 1);
   });
 
+  it("primeira etapa com financiamento próprio (vazio = o do estudo)", () => {
+    const base = { ...r.inputs, planilhaInfra: "2026" as const, primeiraEtapa: true, lotesEtapa1: 100, loteEtapa1: 250, valorM2Etapa1: 600 };
+    const igual = calcular(base);
+    // tudo vazio: as contas do estudo, na proporção do VGV à vista (como era antes)
+    expect(igual.etapa1!.fin.reajuste).toBe(igual.reajuste);
+    expect(igual.etapa1!.fin.nParcelas).toBe(igual.nParcelas);
+    expect(igual.etapa1!.prazo).toBeCloseTo(igual.etapa1!.avista * (igual.principal.carteiraEmp / igual.vgvAvista), 2);
+
+    const e = calcular({ ...base, ipcaE1: 0.04, jurosAnoE1: 0, jurosMesE1: 0.0066, entradaPctE1: 0.1, multiplicadorE1: 1.5, anosE1: 10, indiceE1: "INCC" });
+    const f = e.etapa1!.fin;
+    expect(f.indice).toBe("INCC");
+    expect(f.reajuste).toBeCloseTo(0.04 + 0.0066 * 12, 12); // 11,92%
+    expect(f.valorLote).toBeCloseTo(250 * 600, 6);
+    expect(f.entrada).toBeCloseTo(15000, 6);
+    expect(f.nParcelas).toBe(120);
+    expect(f.parcela).toBeCloseTo(((150000 - 15000) * 1.5) / 120, 6);
+    // carteira: 10 anos de parcelas com o reajuste da etapa + a entrada de todos os lotes (planilha 2026)
+    let p = f.parcela, soma = 0;
+    for (let ano = 0; ano < 10; ano++) { soma += p * 100 * 12; p += p * f.reajuste; }
+    expect(e.etapa1!.prazo).toBeCloseTo(soma + 15000 * 100, 2);
+    expect(f.cenario.carteiraTer).toBeCloseTo(e.etapa1!.prazo * e.terrenistaPct, 2);
+    // o estudo não muda
+    expect(e.principal.carteiraEmp).toBe(igual.principal.carteiraEmp);
+    expect(e.reajuste).toBe(igual.reajuste);
+    // só uma taxa preenchida: as outras vêm do estudo
+    expect(calcular({ ...base, jurosMesE1: 0 }).etapa1!.fin.reajuste).toBeCloseTo(r.inputs.ipca + r.inputs.jurosAno, 12);
+  });
+
   it("primeira etapa e antecipação", () => {
     expect(r.etapa1!.avista).toBeCloseTo(10638000, 2);
     expect(r.etapa1!.prazo).toBeCloseTo(64440631.07, 0);

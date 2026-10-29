@@ -102,6 +102,17 @@ export type StudyInputs = {
   compLoteE1: number | null;
   /** Comprimento (fundo) do lote do estudo (m). Preenchido: metragem do lote = frente × comprimento */
   compLote: number | null;
+  /**
+   * Primeira etapa: financiamento próprio (é outra etapa, com outras taxas). Vazio = o do estudo.
+   * Mesmas contas do quadro de reajuste e recebimentos do estudo.
+   */
+  indiceE1: string | null;
+  ipcaE1: number | null;
+  jurosAnoE1: number | null;
+  jurosMesE1: number | null;
+  entradaPctE1: number | null;
+  multiplicadorE1: number | null;
+  anosE1: number | null;
   /** Deságio médio na antecipação de recebíveis (0–1) */
   desagio: number;
   /** Taxa mensal da aplicação financeira simulada (0–1) */
@@ -152,6 +163,13 @@ export const DEFAULT_INPUTS: StudyInputs = {
   frenteE1: null,
   compLoteE1: null,
   compLote: null,
+  indiceE1: null,
+  ipcaE1: null,
+  jurosAnoE1: null,
+  jurosMesE1: null,
+  entradaPctE1: null,
+  multiplicadorE1: null,
+  anosE1: null,
   desagio: 0.66667,
   taxaAplicacao: 0.01,
   reajusteManual: null,
@@ -248,7 +266,14 @@ export type StudyResult = {
    * à vista = lotes × lote × m² da etapa; a prazo com o financiamento do estudo.
    */
   etapa1: {
-    lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; avista: number; prazo: number;
+    lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; avista: number;
+    /** VGV a prazo da etapa, com o financiamento dela (fin.cenario.carteiraEmp) */
+    prazo: number;
+    /** Reajuste e recebimentos da etapa (campos vazios = os do estudo) */
+    fin: {
+      indice: string; reajuste: number; valorLote: number; entrada: number; nParcelas: number; parcela: number;
+      parcelaContrato: number; valorLoteContrato: number; cenario: Cenario;
+    };
     /** Pelas medidas da fileira de quadras (null = proposta sem as medidas) */
     quadras: {
       linha: number; rua: number; fundo: number; frente: number; comp: number;
@@ -418,10 +443,24 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     const valorM2E = i.valorM2Etapa1!;
     const avista = qtd * lote * valorM2E;
     if (qtd > 0 || quadras) {
+      // financiamento da etapa: as mesmas contas do estudo, com as taxas dela (vazio = a do estudo).
+      // Com tudo vazio dá o mesmo que antes (carteira do estudo na proporção do VGV à vista).
+      const taxasProprias = i.ipcaE1 !== null || i.jurosAnoE1 !== null || i.jurosMesE1 !== null;
+      const reajE = taxasProprias ? (i.ipcaE1 ?? i.ipca) + (i.jurosAnoE1 ?? i.jurosAno) + (i.jurosMesE1 ?? i.jurosMes) * 12 : reajuste;
+      const multE = i.multiplicadorE1 ?? i.multiplicador;
+      const nE = Math.round((i.anosE1 ?? i.anos) * 12);
+      const valorLoteE = lote * valorM2E;
+      const entradaE = (i.entradaPctE1 ?? i.entradaPct) * valorLoteE;
+      const parcelaE = nE > 0 ? ((valorLoteE - entradaE) * multE) / nE : 0;
+      const parcelaContratoE = nova2026 ? parcelaE / 0.9 : parcelaE;
+      const cen = nE > 0 ? cenario(nE, valorLoteE - entradaE, multE, qtd, reajE, inc, nova2026 ? entradaE * qtd : 0) : cenario(1, 0, 0, 0, 0, 0);
       etapa1 = {
         lotes: qtd, lote, valorM2: valorM2E, areaUtil: qtd * lote, pct: (qtd * lote) / areaUtil, avista, quadras,
-        // a prazo com o mesmo financiamento do estudo: carteira ÷ VGV à vista
-        prazo: vgvAvista > 0 ? avista * (principal.carteiraEmp / vgvAvista) : 0,
+        prazo: cen.carteiraEmp,
+        fin: {
+          indice: i.indiceE1 || i.indice, reajuste: reajE, valorLote: valorLoteE, entrada: entradaE, nParcelas: nE, parcela: parcelaE,
+          parcelaContrato: parcelaContratoE, valorLoteContrato: parcelaContratoE * nE + entradaE, cenario: cen,
+        },
       };
     }
   }

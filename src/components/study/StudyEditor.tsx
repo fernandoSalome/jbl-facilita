@@ -13,12 +13,13 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual"];
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual", "ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
   const n = kind === "pct" ? v * 100 : v;
-  return n.toLocaleString("pt-BR", kind === "brl" ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 2 });
+  // até 4 casas: o campo mostra o número que a conta usa (0,6625 não aparece como 0,66)
+  return n.toLocaleString("pt-BR", kind === "brl" ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 4 });
 }
 
 function parse(text: string, kind: Kind): number | null {
@@ -45,6 +46,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   ipca: "pct", jurosAno: "pct", jurosMes: "pct", valorArea: "brl", entradaPct: "pct", multiplicador: "num", anos: "anos",
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", intermediacaoPct: "pct", custoInfraM2: "brl", extensaoRede: "m",
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", compLote: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
+  ipcaE1: "pct", jurosAnoE1: "pct", jurosMesE1: "pct", entradaPctE1: "pct", multiplicadorE1: "num", anosE1: "anos",
 };
 
 /**
@@ -87,6 +89,10 @@ export function useStudyState(initial: StudyInputs) {
   function setIndice(v: string) {
     setInputs((s) => ({ ...s, indice: v }));
   }
+  /** Índice da 1ª etapa (vazio = o do estudo) */
+  function setIndiceE1(v: string) {
+    setInputs((s) => ({ ...s, indiceE1: v || null }));
+  }
   /** Liga/desliga a primeira etapa (desmembramento) */
   function setEtapa(on: boolean) {
     // desligada, a quantidade de lotes some (senão a proposta voltaria com a etapa ligada)
@@ -106,7 +112,7 @@ export function useStudyState(initial: StudyInputs) {
   function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
     setInputs((s) => ({ ...s, ...c }));
   }
-  return { inputs, texts, set, setIndice, setEtapa, setEtapaADefinir, clearManual, setCorretor };
+  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -160,7 +166,7 @@ function useCelula() {
 /** Números que a planilha precisa (vazio ou zero quebra as contas): ficam em vermelho com aviso */
 const OBRIGATORIOS: NumKey[] = ["areaTotal", "aproveitamento", "frenteLote", "compLote", "valorM2", "incorporadorPct", "multiplicador", "anos", "larguraVia"];
 
-function In({ s, k, label, disabled, nota, erro: erroProp }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null }) {
+function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string }) {
   const kind = KINDS[k]!;
   const celula = useCelula();
   const valor = s.inputs[k] as number | null;
@@ -181,7 +187,7 @@ function In({ s, k, label, disabled, nota, erro: erroProp }: { s: State; k: NumK
           disabled={disabled}
           value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
-          placeholder={disabled ? "a definir" : k === "valorM2Etapa1" ? "obrigatório" : OPTIONAL.includes(k) ? "opcional" : ""}
+          placeholder={disabled ? "a definir" : ph ? ph : k === "valorM2Etapa1" ? "obrigatório" : OPTIONAL.includes(k) ? "opcional" : ""}
           aria-invalid={!!erro}
           className={`tabular w-full rounded-sm border ${erro ? "border-rose-500 bg-rose-50 ring-1 ring-rose-300" : "border-[#9DC3E6] bg-[#DDEBF7]"} py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 pl-2 ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
         />
@@ -518,10 +524,60 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         />
         <Out label="Da área aproveitável" value={off ? "a definir" : r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
         <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
-        <Out label={`VGV parcial em ${r.nParcelas} meses`} value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
+        <Out label={`VGV parcial em ${r.etapa1?.fin.nParcelas ?? r.nParcelas} meses`} value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.prazo) : "—"} strong />
       </div>
     </div>
+    {!off && <FinanciamentoEtapa s={s} r={r} />}
     {q && !off && <Desenho q={q} lote={r.etapa1!.lote} />}
+    </div>
+  );
+}
+
+/**
+ * Reajuste e recebimentos da 1ª etapa: é outra etapa, com outras taxas. Mesmas contas do quadro do
+ * estudo; campo vazio = o valor do estudo (aparece apagado no campo).
+ */
+function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+  const i = r.inputs;
+  const f = r.etapa1?.fin ?? null;
+  const est = (k: NumKey) => `${toText(i[k] as number, KINDS[k]!)} (estudo)`;
+  const v = (x: (f: NonNullable<typeof r.etapa1>["fin"]) => string) => (f ? x(f) : "—");
+  const indice = i.indiceE1 || i.indice;
+  return (
+    <div className="grid border-t border-gold/30 md:grid-cols-2 md:divide-x md:divide-gold/30">
+      <div className="divide-y divide-gold/30">
+        <Titulo>Reajuste da 1ª etapa</Titulo>
+        <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
+          <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
+          <select
+            value={i.indiceE1 ?? ""}
+            onChange={(e) => s.setIndiceE1(e.target.value)}
+            className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
+          >
+            <option value="">{i.indice} (estudo)</option>
+            {INDICES.map((x) => <option key={x}>{x}</option>)}
+          </select>
+        </label>
+        <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} />
+        <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} />
+        <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} />
+        <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
+      </div>
+      <div className="divide-y divide-gold/30">
+        <Titulo>Recebimentos da 1ª etapa</Titulo>
+        <Out label="Valor do Lote da 1ª etapa" value={v((f) => fmtBRL(f.valorLote))} strong />
+        <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} />
+        <Out label="Valor da Entrada" value={v((f) => fmtBRL(f.entrada))} />
+        <In s={s} k="multiplicadorE1" label="Multiplicador para encontrar a Parcela" ph={est("multiplicador")} />
+        <In s={s} k="anosE1" label="Em quantos Anos ocorrerá o Parcelamento" ph={est("anos")} />
+        <Out label="Número de Parcelas" value={v((f) => String(f.nParcelas))} />
+        <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={v((f) => fmtBRL(f.parcela))} strong />
+        <Out label="Valor da Parcela que vai para o Contrato" value={v((f) => fmtBRL(f.parcelaContrato))} />
+        <Out label="Valor do Lote em Contrato" value={v((f) => fmtBRL(f.valorLoteContrato))} />
+        <Out label={`VGV a prazo da 1ª etapa (${f?.nParcelas ?? r.nParcelas} meses)`} value={v((f) => fmtBRL(f.cenario.carteiraEmp))} strong />
+        <Out label="Parte do Incorporador" value={v((f) => fmtBRL(f.cenario.carteiraInc))} navy />
+        <Out label="Parte do Terrenista" value={v((f) => fmtBRL(f.cenario.carteiraTer))} navy />
+      </div>
     </div>
   );
 }
