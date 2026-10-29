@@ -736,7 +736,7 @@ export function Desenho({ q, lote }: { q: Quadras; lote: number }) {
             </g>
           );
         })}
-        <text x={X0} y={160} fontSize="11.5" fill="#122A45">
+        <text x={W / 2} y={160} textAnchor="middle" fontSize="11.5" fill="#122A45">
           {`${q.quarteiroes} quadras · ${q.ruasEntre} ruas de ${n(q.rua)} m · frente ${n(q.frente)} m × fundo ${n(q.fundo, 1)} m = lote ${n(lote)} m²`}
         </text>
       </svg>

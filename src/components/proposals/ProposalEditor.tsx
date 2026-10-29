@@ -69,6 +69,51 @@ function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (
   );
 }
 
+/* ---------------- altura da faixa da planilha ---------------- */
+
+const ALTURA_KEY = "jbl-planilha-altura";
+
+/** Altura da faixa da planilha, puxada pela alça de baixo (guardada neste aparelho). Vazio = 56% da tela. */
+function useAlturaPlanilha() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [altura, setAltura] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const salva = Number(localStorage.getItem(ALTURA_KEY));
+      if (salva > 0) setAltura(Math.min(salva, window.innerHeight - 90));
+    } catch {}
+  }, []);
+  function puxar(e: React.PointerEvent) {
+    e.preventDefault();
+    const topo = ref.current?.getBoundingClientRect().top ?? 0;
+    let ultima = altura;
+    const mover = (ev: PointerEvent) => {
+      ultima = Math.round(Math.min(Math.max(ev.clientY - topo, 160), window.innerHeight - topo - 8));
+      setAltura(ultima);
+    };
+    const soltar = () => {
+      document.removeEventListener("pointermove", mover);
+      document.removeEventListener("pointerup", soltar);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      try {
+        if (ultima) localStorage.setItem(ALTURA_KEY, String(ultima));
+      } catch {}
+    };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "row-resize";
+    document.addEventListener("pointermove", mover);
+    document.addEventListener("pointerup", soltar);
+  }
+  function padrao() {
+    setAltura(null);
+    try {
+      localStorage.removeItem(ALTURA_KEY);
+    } catch {}
+  }
+  return { ref, altura, puxar, padrao };
+}
+
 /* ------------------------------------------------------------ tela */
 
 export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado, carta }: Props) {
@@ -90,6 +135,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
+  const faixa = useAlturaPlanilha();
 
   const ovRef = useRef(overrides);
   ovRef.current = overrides;
@@ -316,12 +362,30 @@ export default function ProposalEditor({ formato, proposal: p, project, template
       </div>
 
       {numbersOpen && (
-        <div className="sticky top-[66px] z-30 mx-6 mt-4 max-h-[56vh] overflow-auto rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white p-5 shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <div className="eyebrow">Dados da planilha</div>
-            <span className="text-[12.5px] text-muted">Salva sozinho. A proposta logo abaixo muda enquanto você digita.</span>
+        <div
+          ref={faixa.ref}
+          className="sticky top-[66px] z-30 mx-6 mt-4 flex flex-col overflow-hidden rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]"
+          style={{ height: faixa.altura ?? "56vh" }}
+        >
+          <div className="min-h-0 flex-1 overflow-auto p-5">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="eyebrow">Dados da planilha</div>
+              <span className="text-[12.5px] text-muted">Salva sozinho. A proposta logo abaixo muda enquanto você digita.</span>
+            </div>
+            <NumbersPanel key={numbersKey} value={data} onChange={changeData} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
           </div>
-          <NumbersPanel key={numbersKey} value={data} onChange={changeData} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
+          {/* alça: puxa para baixo ou para cima para a planilha ficar maior ou menor */}
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Puxe para mudar a altura da planilha"
+            title="Puxe para baixo ou para cima para mudar a altura (dois cliques: tamanho padrão)"
+            onPointerDown={faixa.puxar}
+            onDoubleClick={faixa.padrao}
+            className="group grid h-3.5 shrink-0 cursor-row-resize touch-none place-items-center border-t border-gold-line bg-gold-soft hover:bg-gold/30"
+          >
+            <span className="h-1 w-12 rounded-full bg-gold group-hover:bg-gold-deep" />
+          </div>
         </div>
       )}
 
