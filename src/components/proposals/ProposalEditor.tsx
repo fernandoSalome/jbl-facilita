@@ -323,7 +323,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             </div>
             <div className="text-[12px] text-muted">
               {project.name} · {formato.label} · {data.meta.options.cartaIntencao ? "com carta de intenção" : "sem carta"}
-              {data.meta.options.semValidade ? " · link sem prazo" : venceEm ? ` · link vale até ${fmtDate(venceEm)}` : ""}
+              {data.meta.options.semValidade ? " · não expira" : venceEm ? ` · válida até ${fmtDate(venceEm)}` : ""}
             </div>
           </div>
 
@@ -339,7 +339,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
           {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
           <ModoToggle mode={mode} onChange={setMode} />
 
-          {/* prazo do link e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
+          {/* validade e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
           <div className="flex flex-wrap items-center gap-3">
             <ValidadeField
               compact
@@ -347,8 +347,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               semValidade={data.meta.options.semValidade}
               onDias={(v) => setOptions({ validadeDias: Number(v) || 0 })}
               onSemValidade={(v) => setOptions({ semValidade: v })}
-              enviadaEm={enviadaEm}
-              venceEm={venceGravado}
             />
             <label className="flex items-center gap-2 whitespace-nowrap text-[13px] font-semibold text-navy">
               <input type="checkbox" checked={data.meta.options.cartaIntencao} onChange={(e) => setOptions({ cartaIntencao: e.target.checked })} className="h-4 w-4 accent-[#A2782F]" />
