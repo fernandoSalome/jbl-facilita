@@ -144,6 +144,16 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const faixa = useAlturaPlanilha();
+  // a faixa da planilha gruda logo abaixo da barra do topo (a altura da barra muda com a largura da tela)
+  const barra = useRef<HTMLDivElement>(null);
+  const [alturaBarra, setAlturaBarra] = useState(110);
+  useEffect(() => {
+    const el = barra.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setAlturaBarra(Math.round(el.getBoundingClientRect().height)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const ovRef = useRef(overrides);
   ovRef.current = overrides;
@@ -309,38 +319,42 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   return (
     <div className="min-h-screen bg-alt">
       {/* barra do topo */}
-      <div className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-3 px-6 py-3">
-          <Link href={back} className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-semibold text-navy hover:bg-alt">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-            Voltar
-          </Link>
-          <span className="h-6 w-px bg-line" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="h-display truncate text-lg">{data.meta.name}</h1>
-              <StatusBadge status={p.status === "rascunho" && published ? "enviada" : p.status} />
-            </div>
-            <div className="text-[12px] text-muted">
-              {project.name} · {formato.label} · {data.meta.options.cartaIntencao ? "com carta de intenção" : "sem carta"}
-              {data.meta.options.semValidade ? " · não expira" : venceEm ? ` · válida até ${fmtDate(venceEm)}` : ""}
+      {/* duas linhas: 1) proposta, modo, validade e carta; 2) ações. Cada grupo fica inteiro: quando
+          falta espaço, o grupo da direita desce junto (nunca parte no meio) */}
+      <div ref={barra} className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-6 pb-2 pt-3">
+          <div className="flex min-w-[260px] flex-1 items-center gap-3">
+            <Link href={back} className="flex shrink-0 items-center gap-1.5 rounded px-2 py-1.5 text-sm font-semibold text-navy hover:bg-alt">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+              Voltar
+            </Link>
+            <span className="h-6 w-px shrink-0 bg-line" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="h-display truncate text-lg">{data.meta.name}</h1>
+                <StatusBadge status={p.status === "rascunho" && published ? "enviada" : p.status} />
+              </div>
+              <div className="truncate text-[12px] text-muted">
+                {project.name} · {formato.label} · {data.meta.options.cartaIntencao ? "com carta de intenção" : "sem carta"}
+                {data.meta.options.semValidade ? " · não expira" : venceEm ? ` · válida até ${fmtDate(venceEm)}` : ""}
+              </div>
             </div>
           </div>
 
           {bloqueada ? (
             <span
-              className="rounded border border-rose-200 bg-rose-50 px-3 py-1.5 text-[13px] font-semibold text-rose-800"
+              className="ml-auto shrink-0 rounded border border-rose-200 bg-rose-50 px-3 py-1.5 text-[13px] font-semibold text-rose-800"
               title="Para liberar: na lista de propostas, menu ⋯ → Liberar edição"
             >
               🔒 Bloqueada para edição{p.lockedBy ? ` por ${p.lockedBy}` : ""} · só visualização
             </span>
           ) : (
-          <>
+          <div className="ml-auto flex shrink-0 items-center gap-5">
           {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
           <ModoToggle mode={mode} onChange={setMode} />
 
           {/* validade e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex shrink-0 items-center gap-4">
             <ValidadeField
               compact
               dias={data.meta.options.validadeDias}
@@ -353,10 +367,12 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               Carta de intenção
             </label>
           </div>
-          </>
+          </div>
           )}
+        </div>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+        {/* botões um pouco mais compactos que o normal: cabem numa linha até em telas de ~1100 px */}
+        <div className="flex flex-wrap items-center justify-end gap-2 px-6 pb-3 [&_.btn-ghost]:px-3 [&_.btn-ghost]:py-2 [&_.btn-gold]:px-3.5 [&_.btn-gold]:py-2 [&_.btn-navy]:px-3 [&_.btn-navy]:py-2">
             {!bloqueada && <>
             <span className={`text-[12.5px] ${saved === "erro" ? "font-semibold text-rose-700" : "text-muted"}`}>{status}</span>
             <div className="flex overflow-hidden rounded border border-line bg-white">
@@ -385,15 +401,14 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             ) : (
               <button className="btn-gold" onClick={publish}>Publicar e enviar</button>
             )}
-          </div>
         </div>
       </div>
 
       {numbersOpen && (
         <div
           ref={faixa.ref}
-          className="sticky top-[66px] z-30 mx-6 mt-4 flex flex-col overflow-hidden rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]"
-          style={{ height: faixa.altura ?? "56vh" }}
+          className="sticky z-30 mx-6 mt-4 flex flex-col overflow-hidden rounded-md border border-gold-line border-t-[3px] border-t-gold bg-white shadow-[0_24px_50px_-24px_rgba(18,42,69,.55)]"
+          style={{ top: alturaBarra, height: faixa.altura ?? "56vh" }}
         >
           <div className="min-h-0 flex-1 overflow-auto p-5">
             <div className="mb-4 flex flex-wrap items-center gap-3">
