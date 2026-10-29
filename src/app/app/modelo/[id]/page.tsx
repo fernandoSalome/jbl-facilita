@@ -28,10 +28,10 @@ export default async function ModeloPage({ params, searchParams }: { params: { i
   const propostas = (
     await db.proposal.findMany({
       where: { templateId: t.id, deletedAt: null },
-      select: { id: true, name: true, status: true, formato: true, project: { select: { name: true } } },
+      select: { id: true, name: true, status: true, formato: true, lockedAt: true, project: { select: { name: true } } },
       orderBy: { updatedAt: "desc" },
     })
-  ).map((p) => ({ id: p.id, name: p.name, status: p.status, formato: p.formato, projeto: p.project.name }));
+  ).map((p) => ({ id: p.id, name: p.name, status: p.status, formato: p.formato, projeto: p.project.name, bloqueada: !!p.lockedAt }));
   return (
     <TemplateEditor
       propostas={propostas}

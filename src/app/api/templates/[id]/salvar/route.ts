@@ -7,7 +7,7 @@ import { limparConteudo } from "@/lib/template-salvar";
 /**
  * Salva o template inteiro: a parte compartilhada (vale para os 4 tipos de loteamento)
  * e a parte de cada tipo. Cada tipo que mudou ganha uma versão nova.
- *   aplicar = "todas":    todas as propostas do template passam para as versões novas
+ *   aplicar = "todas":    todas as propostas do template passam para as versões novas (menos as bloqueadas)
  *                         (textos personalizados em cada proposta continuam valendo)
  *   aplicar = "proximas": as propostas existentes ficam nas versões anteriores
  *   aplicar = "selecionadas" + propostas: só essas passam para as versões novas (as outras ficam como estão)
@@ -42,10 +42,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           : await db.formatoVersion.create({ data: { templateId: tpl.id, formato, content: content as object, createdById: s.sub } });
       if (b.aplicar === "todas") {
         // inclui as excluídas, para que fiquem certas se forem reativadas; a contagem mostra só as ativas
-        await db.proposal.updateMany({ where: { templateId: tpl.id, formato }, data: { formatoVersionId: v.id } });
-        atualizadas += await db.proposal.count({ where: { templateId: tpl.id, formato, deletedAt: null } });
+        await db.proposal.updateMany({ where: { templateId: tpl.id, formato, lockedAt: null }, data: { formatoVersionId: v.id } });
+        atualizadas += await db.proposal.count({ where: { templateId: tpl.id, formato, deletedAt: null, lockedAt: null } });
       } else if (b.aplicar === "selecionadas" && escolhidas.length) {
-        const r = await db.proposal.updateMany({ where: { templateId: tpl.id, formato, id: { in: escolhidas }, deletedAt: null }, data: { formatoVersionId: v.id } });
+        const r = await db.proposal.updateMany({ where: { templateId: tpl.id, formato, id: { in: escolhidas }, deletedAt: null, lockedAt: null }, data: { formatoVersionId: v.id } });
         atualizadas += r.count;
       }
     }

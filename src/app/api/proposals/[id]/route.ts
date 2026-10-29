@@ -17,6 +17,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
       const p = await tx.proposal.findFirst({ where: { id: params.id, deletedAt: null } });
       if (!p) return json({ error: "Proposta não encontrada" }, 404);
 
+      // bloqueada: só o desfecho (status) e "expirar agora" passam; os dados dela não mudam
+      if (p.lockedAt) {
+        const mexe = ["name", "ownerName", "ownerPhone", "inputs", "options", "overrides", "atualizarTemplate", "resetOverrides"].filter((k) => b[k] !== undefined);
+        if (mexe.length) return json({ error: "Proposta bloqueada para edição. Libere na lista de propostas." }, 423);
+      }
       const data: Record<string, unknown> = {};
       if (typeof b.name === "string" && b.name.trim()) data.name = b.name.trim();
       if (typeof b.ownerName === "string" && b.ownerName.trim()) data.ownerName = b.ownerName.trim();
@@ -26,9 +31,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
         const antes = parseOptions(p.options);
         const depois = parseOptions({ ...(p.options as object), ...b.options });
         data.options = depois;
-        // ligou/desligou "não expira" numa proposta já publicada: o prazo acompanha
-        if (p.status !== "rascunho" && !!antes.semValidade !== !!depois.semValidade) {
-          data.expiresAt = depois.semValidade ? null : new Date(Date.now() + depois.validadeDias * 864e5);
+        // proposta já enviada: o link vence no envio + dias (mudou o prazo ou ligou/desligou "sem prazo")
+        const mudouPrazo = !!antes.semValidade !== !!depois.semValidade || antes.validadeDias !== depois.validadeDias;
+        if (p.status !== "rascunho" && mudouPrazo) {
+          data.expiresAt = depois.semValidade ? null : new Date((p.publishedAt ?? new Date()).getTime() + depois.validadeDias * 864e5);
         }
       }
       // Expirar agora: o link passa a mostrar "proposta expirada" (reabrir = prorrogar)

@@ -104,6 +104,9 @@ model Proposal {
   pdfData       Bytes?
   pdfPages      Int?
   pdfKey        String?
+  /// Bloqueada para edição: só visualização (nada dela muda até liberar). Quem bloqueou
+  lockedAt      DateTime?
+  lockedBy      String?
   /// Fixada no topo da lista de propostas (vazio = não fixada)
   pinnedAt      DateTime?
   viewCount     Int             @default(0)

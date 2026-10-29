@@ -43,6 +43,8 @@ export default async function PropostaPage({ params }: { params: { id: string } 
         inputs: parseInputs(p.inputs),
         options: parseOptions(p.options),
         overrides: parseOverrides(p.overrides),
+        lockedAt: p.lockedAt?.toISOString() ?? null,
+        lockedBy: p.lockedBy,
       }}
       project={{
         id: p.project.id,

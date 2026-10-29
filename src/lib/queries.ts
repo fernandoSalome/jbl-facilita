@@ -35,6 +35,8 @@ export async function listProposals(where: { projectId?: string; showDeleted?: b
       lastViewedAt: p.lastViewedAt?.toISOString() ?? null,
       updatedAt: p.updatedAt.toISOString(),
       pinnedAt: p.pinnedAt?.toISOString() ?? null,
+      lockedAt: p.lockedAt?.toISOString() ?? null,
+      lockedBy: p.lockedBy,
       deletedAt: p.deletedAt?.toISOString() ?? null,
       viewCount: p.viewCount,
       readSeconds: seconds,

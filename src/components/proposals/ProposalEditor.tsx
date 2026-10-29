@@ -38,6 +38,8 @@ type Props = {
     id: string; name: string; ownerName: string; ownerPhone: string | null; status: string; rawStatus: string; publicToken: string;
     publishedAt: string | null; expiresAt: string | null; createdAt: string; template: string;
     inputs: StudyInputs; options: ProposalOptions; overrides: Overrides;
+    /** Bloqueada para edição (só visualização) e quem bloqueou */
+    lockedAt?: string | null; lockedBy?: string | null;
   };
   project: { id: string; name: string; tipo: string; municipio: string; uf: string; matricula: string | null; aerialImage: string | null };
 };
@@ -118,7 +120,9 @@ function useAlturaPlanilha() {
 
 export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado, carta }: Props) {
   const [cartaAberta, setCartaAberta] = useState(false);
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  // bloqueada para edição: abre só para ver, sem nenhum controle de edição
+  const bloqueada = !!p.lockedAt;
+  const [mode, setMode] = useState<"edit" | "preview">(bloqueada ? "preview" : "edit");
   const [numbersOpen, setNumbersOpen] = useState(false);
   const [numbersKey, setNumbersKey] = useState(0);
   const [overrides, setOverrides] = useState<Overrides>(p.overrides);
@@ -132,6 +136,10 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   const [saved, setSaved] = useState<"ok" | "erro" | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [published, setPublished] = useState(p.rawStatus !== "rascunho");
+  // prazo do link: vence no envio + dias. A data gravada vale enquanto o prazo não muda aqui
+  // (ex.: depois de "Reabrir +7 dias" ela é diferente da conta)
+  const [enviadaEm, setEnviadaEm] = useState(p.publishedAt);
+  const prazoInicial = useRef({ dias: p.options.validadeDias, sem: !!p.options.semValidade });
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
@@ -280,6 +288,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   async function publish() {
     await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     setPublished(true);
+    setEnviadaEm((e) => e ?? new Date().toISOString());
     setSendOpen(true);
   }
 
@@ -289,6 +298,10 @@ export default function ProposalEditor({ formato, proposal: p, project, template
     setTimeout(() => setCopied(false), 1800);
   }
 
+  const op = data.meta.options;
+  const mesmoPrazo = op.validadeDias === prazoInicial.current.dias && !!op.semValidade === prazoInicial.current.sem;
+  const venceGravado = mesmoPrazo && published ? p.expiresAt : null;
+  const venceEm = op.semValidade ? null : venceGravado ?? (enviadaEm && op.validadeDias > 0 ? new Date(new Date(enviadaEm).getTime() + op.validadeDias * 864e5).toISOString() : null);
   const ownCount = Object.keys(overrides).length;
   const status = pending > 0 ? "Salvando…" : saved === "erro" ? "⚠ Não foi possível salvar" : saved === "ok" ? "✓ Salvo" : "Tudo salvo";
   const back = `/app/projetos/${project.id}/propostas`;
@@ -310,14 +323,23 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             </div>
             <div className="text-[12px] text-muted">
               {project.name} · {formato.label} · {data.meta.options.cartaIntencao ? "com carta de intenção" : "sem carta"}
-              {data.meta.options.semValidade ? " · não expira" : p.expiresAt && ` · válida até ${fmtDate(p.expiresAt)}`}
+              {data.meta.options.semValidade ? " · link sem prazo" : venceEm ? ` · link vale até ${fmtDate(venceEm)}` : ""}
             </div>
           </div>
 
+          {bloqueada ? (
+            <span
+              className="rounded border border-rose-200 bg-rose-50 px-3 py-1.5 text-[13px] font-semibold text-rose-800"
+              title="Para liberar: na lista de propostas, menu ⋯ → Liberar edição"
+            >
+              🔒 Bloqueada para edição{p.lockedBy ? ` por ${p.lockedBy}` : ""} · só visualização
+            </span>
+          ) : (
+          <>
           {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
           <ModoToggle mode={mode} onChange={setMode} />
 
-          {/* validade e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
+          {/* prazo do link e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
           <div className="flex flex-wrap items-center gap-3">
             <ValidadeField
               compact
@@ -325,14 +347,19 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               semValidade={data.meta.options.semValidade}
               onDias={(v) => setOptions({ validadeDias: Number(v) || 0 })}
               onSemValidade={(v) => setOptions({ semValidade: v })}
+              enviadaEm={enviadaEm}
+              venceEm={venceGravado}
             />
             <label className="flex items-center gap-2 whitespace-nowrap text-[13px] font-semibold text-navy">
               <input type="checkbox" checked={data.meta.options.cartaIntencao} onChange={(e) => setOptions({ cartaIntencao: e.target.checked })} className="h-4 w-4 accent-[#A2782F]" />
               Carta de intenção
             </label>
           </div>
+          </>
+          )}
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {!bloqueada && <>
             <span className={`text-[12.5px] ${saved === "erro" ? "font-semibold text-rose-700" : "text-muted"}`}>{status}</span>
             <div className="flex overflow-hidden rounded border border-line bg-white">
               <button onClick={undo} disabled={pos === 0} title="Desfazer (Ctrl+Z)" className="px-3 py-2 text-[13px] font-semibold text-navy hover:bg-alt disabled:opacity-35">↶ Desfazer</button>
@@ -343,9 +370,12 @@ export default function ProposalEditor({ formato, proposal: p, project, template
                 📥 Dados recebidos{carta.minutaStatus === "assinada" ? " · ✓ assinada" : carta.minutaStatus === "enviada" ? " · minuta enviada" : ""}
               </button>
             )}
-            <button className={numbersOpen ? "btn-navy" : "btn-ghost"} onClick={() => setNumbersOpen((v) => !v)}>
-              {numbersOpen ? "Fechar dados da planilha" : "Editar dados da planilha"}
-            </button>
+            </>}
+            {!bloqueada && (
+              <button className={numbersOpen ? "btn-navy" : "btn-ghost"} onClick={() => setNumbersOpen((v) => !v)}>
+                {numbersOpen ? "Fechar dados da planilha" : "Editar dados da planilha"}
+              </button>
+            )}
             {published && (
               <>
                 <button className="btn-ghost" onClick={copy}>{copied ? "✓ Link copiado" : "Copiar link"}</button>
@@ -391,8 +421,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
       <div className="px-6 pb-12 pt-5">
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <DestinatarioPicker compact value={data.meta.options.destinatario} onChange={(dest) => changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, destinatario: dest } } })} />
-          {mode === "edit" && (
+          {!bloqueada && <DestinatarioPicker compact value={data.meta.options.destinatario} onChange={(dest) => changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, destinatario: dest } } })} />}
+          {mode === "edit" && !bloqueada && (
             <span className="basis-full text-[12.5px] text-muted">
               Clique em qualquer texto para editar, numa imagem para trocar, ou passe o mouse numa seção ou tabela.
               {templateDesatualizado && (
@@ -474,11 +504,11 @@ export default function ProposalEditor({ formato, proposal: p, project, template
           onChange={(e) => setMsgEdit(e.target.value)}
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {msgEdit !== null && msgEdit !== (salva ?? message) && (
+          {!bloqueada && msgEdit !== null && msgEdit !== (salva ?? message) && (
             <button className="btn-gold px-3 py-1.5 text-[13px]" onClick={() => salvarMensagem(msgEdit)}>Salvar texto</button>
           )}
           {msgEdit !== null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => setMsgEdit(null)}>Descartar alteração</button>}
-          {salva && msgEdit === null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => salvarMensagem("")}>Voltar à mensagem sugerida</button>}
+          {!bloqueada && salva && msgEdit === null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => salvarMensagem("")}>Voltar à mensagem sugerida</button>}
         </div>
         {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar dados da planilha” para abrir a conversa direto.</p>}
       </Modal>

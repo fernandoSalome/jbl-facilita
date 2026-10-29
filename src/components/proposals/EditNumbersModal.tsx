@@ -8,7 +8,7 @@ import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
 import type { StudyInputs } from "@/lib/calc";
 import type { ProposalOptions } from "@/lib/proposals";
 
-type P = { id: string; name: string; ownerName: string; ownerPhone: string | null; inputs: StudyInputs; options: ProposalOptions; overridesCount: number };
+type P = { id: string; name: string; ownerName: string; ownerPhone: string | null; inputs: StudyInputs; options: ProposalOptions; overridesCount: number; publishedAt?: string | null };
 
 export type Draft = { inputs: StudyInputs; options: ProposalOptions; ownerName: string };
 
@@ -61,7 +61,7 @@ export function ProposalNumbersForm({
         <label><span className="label">Nome da proposta</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label><span className="label">Proprietário</span><input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></label>
         <label><span className="label">WhatsApp</span><input className="input" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} /></label>
-        <ValidadeField dias={validade} semValidade={semValidade} onDias={setValidade} onSemValidade={setSemValidade} />
+        <ValidadeField dias={validade} semValidade={semValidade} onDias={setValidade} onSemValidade={setSemValidade} enviadaEm={proposal.publishedAt} />
         <label className="flex items-end gap-2 pb-2.5 text-sm font-semibold text-navy">
           <input type="checkbox" checked={carta} onChange={(e) => setCarta(e.target.checked)} className="h-4 w-4 accent-[#A2782F]" />
           Carta de intenção

@@ -47,6 +47,12 @@ function RowMenu({ p, isAdmin, fixada, onFixar, onEdit, onDelete }: { p: Proposa
     await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extendDays: 7 }) });
     router.refresh();
   }
+  async function bloquear(bloqueada: boolean) {
+    setOpen(false);
+    const r = await fetch(`/api/proposals/${p.id}/bloquear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloqueada }) });
+    if (!r.ok) alert((await r.json().catch(() => null))?.error ?? "Não foi possível mudar o bloqueio.");
+    router.refresh();
+  }
   async function restore() {
     await fetch(`/api/proposals/${p.id}/restore`, { method: "POST" });
     router.refresh();
@@ -59,20 +65,26 @@ function RowMenu({ p, isAdmin, fixada, onFixar, onEdit, onDelete }: { p: Proposa
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-md border border-line bg-white py-1 shadow-xl">
+        <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-md border border-line bg-white py-1 shadow-xl">
           {p.deletedAt ? (
             isAdmin && <button className={item} onClick={restore}>↺ Reativar proposta</button>
           ) : (
             <>
               <Link className={item} href={`/app/proposta/${p.id}`}>Abrir proposta</Link>
               <button className={item} onClick={() => { setOpen(false); onFixar(); }}>{fixada ? "Desafixar do topo" : "Fixar no topo"}</button>
-              <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar dados da planilha</button>
+              {!p.lockedAt && <button className={item} onClick={() => { setOpen(false); onEdit(); }}>Editar dados da planilha</button>}
               <button className={item} onClick={duplicate}>Duplicar</button>
               {p.status !== "rascunho" && (
                 <button className={item} onClick={() => { navigator.clipboard.writeText(linkProposta(p.publicToken)); setOpen(false); }}>Copiar link</button>
               )}
               {p.status !== "rascunho" && (
                 <>
+                  <div className="my-1 border-t border-line" />
+                  {p.lockedAt ? (
+                    <button className={`${item} font-semibold text-emerald-800`} onClick={() => bloquear(false)}>🔓 Liberar edição</button>
+                  ) : (
+                    <button className={`${item} font-semibold text-rose-800`} onClick={() => bloquear(true)}>🔒 Bloquear edição</button>
+                  )}
                   <div className="my-1 border-t border-line" />
                   <div className="px-3 pb-0.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted">Marcar desfecho</div>
                   <button className={item} onClick={() => desfecho("negociacao")}>Em negociação</button>
@@ -186,6 +198,14 @@ export default function ProposalsTable({ rows, isAdmin, showProject }: { rows: P
                 <td className="px-4 py-3">
                   <div className="flex items-start gap-1.5">
                     <span className="font-semibold text-navy group-hover:text-gold-deep">{p.name}</span>
+                    {p.lockedAt && !p.deletedAt && (
+                      <span
+                        className="mt-0.5 whitespace-nowrap rounded-sm bg-rose-50 px-1.5 text-[11px] font-semibold leading-5 text-rose-800 ring-1 ring-rose-200"
+                        title={`Bloqueada para edição${p.lockedBy ? ` por ${p.lockedBy}` : ""} em ${fmtDate(p.lockedAt)}. Só visualização. Para liberar: menu ⋯ → Liberar edição.`}
+                      >
+                        🔒 Bloqueada
+                      </span>
+                    )}
                     {!p.deletedAt && (
                       <button
                         type="button"

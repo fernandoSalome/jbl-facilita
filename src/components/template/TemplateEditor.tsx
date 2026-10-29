@@ -63,7 +63,8 @@ export default function TemplateEditor({
   formatos: F[];
   counts: Record<string, { total: number; enviadas: number }>;
   inicial: FormatoKey;
-  propostas: { id: string; name: string; status: string; formato: string; projeto: string }[];
+  /** bloqueada: proposta travada para edição (não muda ao salvar o template) */
+  propostas: { id: string; name: string; status: string; formato: string; projeto: string; bloqueada?: boolean }[];
 }) {
   const router = useRouter();
   const [key, setKey] = useState<FormatoKey>(inicial);
@@ -356,7 +357,7 @@ export default function TemplateEditor({
                 <span className="ml-auto flex gap-2 text-[12px]">
                   <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(rascunhos))}>só rascunhos</button>
                   <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set())}>nenhuma</button>
-                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(propostas.map((p) => p.id)))}>todas</button>
+                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(propostas.filter((p) => !p.bloqueada).map((p) => p.id)))}>todas</button>
                 </span>
               </div>
               <div className="max-h-[38vh] overflow-y-auto">
@@ -364,16 +365,18 @@ export default function TemplateEditor({
                   const enviada = p.status !== "rascunho";
                   const on = marcadas.has(p.id);
                   return (
-                    <label key={p.id} className={`flex cursor-pointer items-start gap-2.5 border-b border-line/70 px-3 py-2 text-[13px] last:border-0 ${on && enviada ? "bg-amber-50" : ""}`}>
+                    <label key={p.id} className={`flex items-start gap-2.5 border-b border-line/70 px-3 py-2 text-[13px] last:border-0 ${p.bloqueada ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${on && enviada ? "bg-amber-50" : ""}`} title={p.bloqueada ? "Bloqueada para edição: não muda com o template. Libere na lista de propostas." : undefined}>
                       <input
                         type="checkbox"
                         className="mt-0.5 accent-[#A2782F]"
-                        checked={on}
+                        disabled={p.bloqueada}
+                        checked={on && !p.bloqueada}
                         onChange={(e) => setMarcadas((x) => { const n = new Set(x); if (e.target.checked) n.add(p.id); else n.delete(p.id); return n; })}
                       />
                       <span className="min-w-0 flex-1">
                         <span className="font-semibold text-navy">{p.name}</span> <span className="text-muted">· {p.projeto} · {nomeTipo(p.formato as FormatoKey)}</span>
                         <span className={`ml-1.5 inline-block rounded px-1.5 text-[11px] font-semibold ${enviada ? "bg-slate-100 text-slate-700" : "bg-gold-soft text-gold-ink"}`}>{enviada ? `🔒 ${p.status.replace("_", " ")}` : "rascunho"}</span>
+                        {p.bloqueada && <span className="ml-1.5 inline-block rounded bg-rose-50 px-1.5 text-[11px] font-semibold text-rose-800 ring-1 ring-rose-200">bloqueada para edição</span>}
                       </span>
                     </label>
                   );
