@@ -463,7 +463,7 @@ export default function JblPadrao(props: TemplateProps) {
     e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 2) : r.etapa1ADefinir ? "a definir" : "",
     e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
     // área da etapa: perímetro × fundo (pelas medidas das quadras); o % continua o dos lotes sobre a área aproveitável
-    e1Area: r.etapa1 ? fmtNum(r.etapa1.quadras?.areaTotal ?? r.etapa1.areaUtil) : r.etapa1ADefinir ? "a definir" : "",
+    e1Area: r.etapa1 ? fmtNum(r.etapa1.areaUtil) : r.etapa1ADefinir ? "a definir" : "",
   };
 
   // Primeira etapa só aparece quando a planilha tem a opção ligada; sem ela, as seções seguintes sobem um número
@@ -798,14 +798,14 @@ export default function JblPadrao(props: TemplateProps) {
                   </div>
                   <div className="calc num">
                     <span className="n">3</span><span className="t"><T k="v3t">Saldo financiado a prazo</T></span>
-                    <span className="f"><span className="carry" data-from="v2">{fmtBRL(r.valorLote - r.entrada)}</span><span className="op">×</span><span className="idx"><span><V k="v3b">{fmtNum(inputs.multiplicador, 2)}</V><sup className="fn fn-ast">*</sup></span><small><T k="v3bs">índice multiplicador a prazo</T></small></span><span className="op">=</span><span className="res" id="v3" data-id="v3"><V k="v3r">{fmtBRL(r.saldoPrazo)}</V></span></span>
+                    <span className="f"><span className="carry" data-from="v2">{fmtBRL(r.valorLote - r.entrada)}</span><span className="op">×</span><span className="idx"><span><V k="v3b">{fmtNum(inputs.multiplicador, 2)}</V><sup className="fn">2</sup></span><small><T k="v3bs">índice multiplicador a prazo</T></small></span><span className="op">=</span><span className="res" id="v3" data-id="v3"><V k="v3r">{fmtBRL(r.saldoPrazo)}</V></span></span>
                   </div>
                   <div className="calc num">
                     <span className="n">4</span><span className="t"><T k="v4t">VGV a prazo, antes da projeção</T></span>
                     <span className="f"><span className="carry" data-from="v3">{fmtBRL(r.saldoPrazo)}</span><span className="op">×</span><span><V k="v4b2">{`${lotes2} lotes`}</V></span><span className="op">=</span><span className="res" id="v4" data-id="v4"><V k="v4r">{fmtBRL(r.vgvPrazoSemReajuste)}</V></span></span>
                   </div>
                   <div className="calc num">
-                    <span className="n">5</span><span className="t"><T k="v5t" vars={nv}>{"VGV global projetado ({{n}} meses, com reajuste anual²)"}</T></span>
+                    <span className="n">5</span><span className="t"><T k="v5t" vars={nv}>{"VGV global projetado ({{n}} meses, com reajuste anual³)"}</T></span>
                     <span className="f"><span className="carry" data-from="v4">{fmtBRL(r.vgvPrazoSemReajuste)}</span><span className="op">+</span><span><V k="v5b">{`reajuste de ${reaj} ao ano por ${anos} anos`}</V></span><span className="op">=</span><span className="brk" aria-hidden="true" /><span className="res" id="v6" data-id="v6"><V k="v5r">{fmtBRL(r.principal.carteiraEmp)}</V></span><span className="v6-ext"><V k="v5ext">{ext(r.principal.carteiraEmp)}</V></span></span>
                   </div>
                   <div className="calc num">
@@ -815,8 +815,8 @@ export default function JblPadrao(props: TemplateProps) {
                 </div>
                 <div className="note">
                   <p><T k="v5n1" vars={nv}>{`¹ {{valorM2}}/m²: preço de mercado estimado a partir de corretores da região e pesquisas.`}</T></p>
-                  <p><T k="v5n2" vars={nv}>{`² Reajuste anual de {{reaj}}: {{indice}} de {{ipca}} ao ano{{jurosAnoTxt}} + juros de {{jurosMes}} ao mês ({{jurosAnoEq}} ao ano). As parcelas sobem {{reaj}} a cada 12 meses, por até {{n}} meses, com financiamento próprio e entrada facilitada.`}</T></p>
-                  <p><T k="v5n3" vars={nv}>{"* Índice multiplicador a prazo de {{mult}} aplicado sobre o saldo de {{saldo}} (após a entrada de {{entrada}})."}</T></p>
+                  <p><T k="v5n3" vars={nv}>{"² Índice multiplicador a prazo de {{mult}} aplicado sobre o saldo de {{saldo}} (após a entrada de {{entrada}})."}</T></p>
+                  <p><T k="v5n2" vars={nv}>{`³ Reajuste anual de {{reaj}}: {{indice}} de {{ipca}} ao ano{{jurosAnoTxt}} + juros de {{jurosMes}} ao mês ({{jurosAnoEq}} ao ano). As parcelas sobem {{reaj}} a cada 12 meses, por até {{n}} meses, com financiamento próprio e entrada facilitada.`}</T></p>
                 </div>
                 <h3><T k="v5h3">As condições da projeção</T></h3>
                 <p><T k="v5p2" vars={nv}>{"Os clientes podem comprar com financiamento próprio da JBL em até {{n}} meses no boleto, com entrada facilitada. Os resultados dependem das condições contratuais de {{indice}}, juros e preço a prazo."}</T></p>
@@ -1131,7 +1131,7 @@ export default function JblPadrao(props: TemplateProps) {
                   {/* o aviso de registro (intentAside2) fica embaixo do botão de enviar, no formulário */}
                 </div>
                 <hr className="intent-sep" />
-                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} contatos={contatos} protocoloEnviado={props.cartaProtocolo ?? null} />
+                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} data={new Date(props.date)} contatos={contatos} protocoloEnviado={props.cartaProtocolo ?? null} />
               </div>
             </Sec>
           )}

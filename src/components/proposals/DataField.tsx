@@ -11,7 +11,7 @@ export default function DataField({ value, onChange, atual }: { value?: DataProp
   const dia = value?.modo === "fixa" && value.dia ? value.dia : atual ?? hoje;
   return (
     <label>
-      <span className="label">Data da proposta</span>
+      <span className="label">Escolher data da proposta</span>
       <input type="date" className="input w-auto py-1.5" value={dia} onChange={(e) => e.target.value && onChange({ modo: "fixa", dia: e.target.value })} />
     </label>
   );

@@ -17,7 +17,7 @@ describe("mensagem do WhatsApp", () => {
   });
   it("saudação pela hora de São Paulo", () => {
     expect(saudacao(new Date("2026-10-26T05:59:00-03:00"))).toBe("Bom dia"); // 05h59
-    expect(saudacao(new Date("2026-10-26T02:59:00-03:00"))).toBe("Boa noite");
+    expect(saudacao(new Date("2026-10-26T02:59:00-03:00"))).toBe("Bom dia");
     expect(saudacao(new Date("2026-10-26T03:00:00-03:00"))).toBe("Bom dia");
     expect(saudacao(new Date("2026-10-26T12:00:00-03:00"))).toBe("Boa tarde");
     expect(saudacao(new Date("2026-10-26T18:00:00-03:00"))).toBe("Boa noite");

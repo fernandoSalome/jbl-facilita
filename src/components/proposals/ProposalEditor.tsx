@@ -306,6 +306,16 @@ export default function ProposalEditor({ formato, proposal: p, project, template
     setSendOpen(true);
   }
 
+  // "Enviado": termina a proposta (publica, se ainda for rascunho) e bloqueia a edição
+  async function marcarEnviado() {
+    if (!confirm("Marcar como enviado? A edição desta proposta fica bloqueada (só visualização).")) return;
+    if (burst.current) await new Promise((r) => setTimeout(r, 900));
+    if (!published) await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const r = await fetch(`/api/proposals/${p.id}/bloquear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloqueada: true }) });
+    if (r.ok) window.location.reload();
+    else alert("Não foi possível bloquear a proposta.");
+  }
+
   function copy() {
     navigator.clipboard.writeText(publicUrl);
     setCopied(true);
@@ -396,10 +406,11 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             )}
             {published && (
               <>
-                <button className="btn-ghost" onClick={copy}>{copied ? "✓ Link copiado" : "Copiar link"}</button>
                 <a className="btn-ghost" href={`/p/${p.publicToken}`} target="_blank" rel="noreferrer">Abrir como cliente ↗</a>
+                <button className="btn-ghost" onClick={copy}>{copied ? "✓ Link copiado" : "Copiar link"}</button>
               </>
             )}
+            {!bloqueada && <button className="btn-ghost" onClick={marcarEnviado} title="Termina a proposta e bloqueia a edição">Enviado</button>}
             {published ? (
               <button className="btn-gold" onClick={() => setSendOpen(true)}>Enviar no WhatsApp</button>
             ) : (

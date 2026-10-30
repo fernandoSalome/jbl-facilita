@@ -42,11 +42,14 @@ export default function IntentForm({
   project,
   areaHa,
   contatos,
+  data,
 }: {
   token: string;
   disabled: boolean;
   project: Projeto;
   areaHa: number;
+  /** Data da proposta: a carta de exemplo usa a mesma data */
+  data?: Date;
   /** Contatos exclusivos: embaixo do formulário no computador, embaixo da carta no celular */
   contatos?: React.ReactNode;
   /** Protocolo da carta já enviada para esta proposta (vem do servidor: vale em qualquer aparelho) */
@@ -181,7 +184,7 @@ export default function IntentForm({
     ...(g("j_nome") ? [[g("j_nome"), `CPF: n.º ${g("j_cpf")}`] as [string, string]] : []),
   ];
 
-  const varsCarta = varsDoEditor(valoresCarta(v, project));
+  const varsCarta = varsDoEditor(valoresCarta(v, project, data));
   const carta = (
     <div className="preview" aria-live="polite">
       <div className="minuta-aviso">

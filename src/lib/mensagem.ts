@@ -23,10 +23,10 @@ export const MSG_PADRAO =
   "Colocamo-nos à disposição para esclarecimentos e reunião.\n\n" +
   "[Link]";
 
-/** Bom dia das 3h às 12h, boa tarde das 12h às 18h, boa noite das 18h às 3h (hora de São Paulo) */
+/** Bom dia da 0h às 12h, boa tarde das 12h às 18h, boa noite das 18h às 0h (hora de São Paulo) */
 export function saudacao(agora = new Date()) {
   const hora = Number(agora.toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Sao_Paulo" })) % 24;
-  return hora >= 3 && hora < 12 ? "Bom dia" : hora >= 12 && hora < 18 ? "Boa tarde" : "Boa noite";
+  return hora < 12 ? "Bom dia" : hora >= 12 && hora < 18 ? "Boa tarde" : "Boa noite";
 }
 
 /** Texto do template (ou o padrão) com os campos preenchidos */

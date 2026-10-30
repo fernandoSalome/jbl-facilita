@@ -103,7 +103,15 @@ export function useStudyState(initial: StudyInputs) {
   }
   /** Índice da 1ª etapa (vazio = o do estudo) */
   function setIndiceE1(v: string) {
-    setInputs((s) => ({ ...s, indiceE1: v || null }));
+    // "todas as etapas": a etapa passa a usar o índice e as taxas da gleba geral
+    if (!v) {
+      setInputs((s) => {
+        setTexts((t) => ({ ...t, ipcaE1: toText(s.ipca, "pct"), jurosAnoE1: toText(s.jurosAno, "pct"), jurosMesE1: toText(s.jurosMes, "pct") }));
+        return { ...s, indiceE1: null, ipcaE1: s.ipca, jurosAnoE1: s.jurosAno, jurosMesE1: s.jurosMes };
+      });
+      return;
+    }
+    setInputs((s) => ({ ...s, indiceE1: v }));
   }
   /** Liga/desliga a primeira etapa (desmembramento) */
   function setEtapa(on: boolean) {
@@ -141,16 +149,25 @@ type State = ReturnType<typeof useStudyState>;
 
 /* ---------- peças no visual da planilha ---------- */
 
-function Box({ title, right, children }: { title: string; right?: string; children: React.ReactNode }) {
+function Box({ n, title, right, children }: { n?: number; title: string; right?: string; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
       <div className="flex items-center justify-between bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
-        <span>{title}</span>
+        <span className="flex items-center gap-2">{n && <Num n={n} />}{title}</span>
         {right && <span>{right}</span>}
       </div>
       <div className="divide-y divide-gold/30">{children}</div>
     </div>
   );
+}
+
+function Num({ n }: { n: number }) {
+  return <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gold text-[11px] font-bold text-navy">{n}</span>;
+}
+
+/** Título grande de cada parte da planilha (gleba geral, primeira etapa) */
+function Parte({ children }: { children: React.ReactNode }) {
+  return <h3 className="border-b-2 border-gold pb-1 text-[15px] font-bold uppercase tracking-wider text-navy">{children}</h3>;
 }
 
 function Sub({ children }: { children: React.ReactNode }) {
@@ -209,7 +226,7 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: 
           disabled={disabled}
           value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
-          placeholder={disabled ? "a definir" : ph ? ph : k === "valorM2Etapa1" ? "obrigatório" : OPTIONAL.includes(k) ? "opcional" : ""}
+          placeholder={disabled ? "a definir" : ph ? ph : k === "valorM2Etapa1" ? "obrigatório" : ""}
           aria-invalid={!!erro}
           className={`tabular w-full rounded-sm border ${erro ? "border-rose-500 bg-rose-50 ring-1 ring-rose-300" : "border-[#9DC3E6] bg-[#DDEBF7]"} py-1 text-right text-[13.5px] font-semibold text-navy outline-none transition placeholder:font-normal placeholder:text-navy/35 focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold-soft disabled:cursor-not-allowed disabled:opacity-60 pl-2 ${SUFFIX[kind] ? "pr-10" : "pr-2"}`}
         />
@@ -274,10 +291,12 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
         <span className="ml-auto flex items-center gap-1.5"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> calculando ao vivo</span>
       </div>
 
+      <Parte>Gleba Geral</Parte>
+
       <div className={`grid gap-4 ${w >= 1000 ? "grid-cols-3" : w >= 720 ? "grid-cols-2" : ""}`}>
         {/* coluna 1 */}
         <div className="grid content-start gap-4">
-          <Box title="Dados do Parcelamento de Solo" right="Dados">
+          <Box n={1} title="Dados do Parcelamento de Solo" right="Dados">
             <In s={s} k="areaTotal" label="Tamanho da Área (m²)" />
             <In s={s} k="aproveitamento" label="Aproveitamento %" />
             <Out label="Área Útil (m²)" value={fmtNum(r.areaUtil)} />
@@ -291,7 +310,70 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <In s={s} k="quadraMax" label="Tamanho máximo da quadra (m)" hint="Planilha 2026, C14: entra nos poços de visita, bocas de lobo e bigode. Vazio = esses itens ficam “A projetar”" />
             <Out label="Total de Lotes" value={fmtNum(r.lotes, 2)} strong />
           </Box>
-          <Box title="Parceria do Parcelamento de Solo">
+          <Box n={2} title="Comercialização do Parcelamento de Solo" right="Valor M²">
+            <In s={s} k="valorM2" label="Valor do m² a ser Comercializado" />
+          </Box>
+          <Box n={3} title="Comissionamento" right="Valor">
+            <In s={s} k="corretorPct" label="Corretor (%)" />
+            <Out label="Valor" value={fmtBRL(r.comissao)} />
+          </Box>
+        </div>
+
+        {/* coluna 2 */}
+        <div className="grid content-start gap-4">
+          <Box n={4} title="Reajuste" right="Dados">
+            <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
+              <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
+              <select
+                value={i.indice}
+                onChange={(e) => s.setIndice(e.target.value)}
+                className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
+              >
+                {INDICES.map((x) => <option key={x}>{x}</option>)}
+              </select>
+            </label>
+            <In s={s} k="ipca" label={`${i.indice} ao ano`} />
+            <In s={s} k="jurosAno" label="Juros (Ano)" />
+            <In s={s} k="jurosMes" label="Juros (Mês)" />
+            <Out label="Total do Reajuste" value={fmtPct(r.reajusteCalculado)} strong />
+            {i.reajusteManual !== null && (
+              <div className="bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+                Esta proposta usa um reajuste fixo de <b>{fmtPct(i.reajusteManual)}</b> (como no PDF de jan/2026), no lugar da fórmula.{" "}
+                <button type="button" onClick={s.clearManual} className="font-semibold text-gold-deep underline">Usar a fórmula da planilha</button>
+              </div>
+            )}
+          </Box>
+          <Box n={5} title="Valor da Área" right="Valor">
+            <In s={s} k="valorArea" label="Valor" />
+          </Box>
+          <Box n={6} title="Condição de Venda" right="Dados">
+            <Sub>À Vista</Sub>
+            <Out label="Valor do Lote a ser Comercializado" value={fmtBRL(r.valorLote)} strong />
+            <Sub>Parcelado</Sub>
+            <In s={s} k="entradaPct" label="Entrada (%)" />
+            <Out label="Valor da Entrada" value={fmtBRL(r.entrada)} />
+            <Out label="Entrada parte Corretor" value={fmtBRL(r.entradaCorretor)} />
+            <Out label="Entrada parte Incorporador" value={fmtBRL(r.entradaInc)} />
+            <Out label="Entrada parte Terrenista" value={fmtBRL(r.entradaTer)} />
+            <In s={s} k="multiplicador" label="Multiplicador para encontrar a Parcela" />
+            <In s={s} k="anos" label="Em quantos Anos ocorrerá o Parcelamento" />
+            <Out label="Número de Parcelas" value={String(r.nParcelas)} />
+            <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={fmtBRL(r.parcela)} strong />
+            <Out label="Valor da Parcela que vai para o Contrato" value={fmtBRL(r.parcelaContrato)} />
+            <Out label="Valor do Lote em Contrato" value={fmtBRL(r.valorLoteContrato)} />
+          </Box>
+        </div>
+
+        {/* coluna 3 */}
+        <div className="grid content-start gap-4">
+          {/* Dados que a planilha não tem, usados no site da proposta */}
+          <Box n={7} title="Infraestrutura e securitização">
+            <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
+            <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
+            <In s={s} k="desagio" label="Deságio da antecipação" />
+            <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
+          </Box>
+          <Box n={8} title="Parceria do Parcelamento de Solo">
             {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
@@ -334,70 +416,9 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             )}
           </Box>
         </div>
-
-        {/* coluna 2 */}
-        <div className="grid content-start gap-4">
-          <Box title="Comercialização do Parcelamento de Solo" right="Valor M²">
-            <In s={s} k="valorM2" label="Valor do m² a ser Comercializado" />
-          </Box>
-          <Box title="Comissionamento" right="Valor">
-            <In s={s} k="corretorPct" label="Corretor (%)" />
-            <Out label="Valor" value={fmtBRL(r.comissao)} />
-          </Box>
-          <Box title="Reajuste" right="Dados">
-            <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
-              <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
-              <select
-                value={i.indice}
-                onChange={(e) => s.setIndice(e.target.value)}
-                className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
-              >
-                {INDICES.map((x) => <option key={x}>{x}</option>)}
-              </select>
-            </label>
-            <In s={s} k="ipca" label={`${i.indice} ao ano`} />
-            <In s={s} k="jurosAno" label="Juros (Ano)" />
-            <In s={s} k="jurosMes" label="Juros (Mês)" />
-            <Out label="Total do Reajuste" value={fmtPct(r.reajusteCalculado)} strong />
-            {i.reajusteManual !== null && (
-              <div className="bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
-                Esta proposta usa um reajuste fixo de <b>{fmtPct(i.reajusteManual)}</b> (como no PDF de jan/2026), no lugar da fórmula.{" "}
-                <button type="button" onClick={s.clearManual} className="font-semibold text-gold-deep underline">Usar a fórmula da planilha</button>
-              </div>
-            )}
-          </Box>
-          <Box title="Valor da Área" right="Valor">
-            <In s={s} k="valorArea" label="Valor" />
-          </Box>
-        </div>
-
-        {/* coluna 3 */}
-        <div className="grid content-start gap-4">
-          <Box title="Condição de Venda" right="Dados">
-            <Sub>À Vista</Sub>
-            <Out label="Valor do Lote a ser Comercializado" value={fmtBRL(r.valorLote)} strong />
-            <Sub>Parcelado</Sub>
-            <In s={s} k="entradaPct" label="Entrada (%)" />
-            <Out label="Valor da Entrada" value={fmtBRL(r.entrada)} />
-            <Out label="Entrada parte Corretor" value={fmtBRL(r.entradaCorretor)} />
-            <Out label="Entrada parte Incorporador" value={fmtBRL(r.entradaInc)} />
-            <Out label="Entrada parte Terrenista" value={fmtBRL(r.entradaTer)} />
-            <In s={s} k="multiplicador" label="Multiplicador para encontrar a Parcela" />
-            <In s={s} k="anos" label="Em quantos Anos ocorrerá o Parcelamento" />
-            <Out label="Número de Parcelas" value={String(r.nParcelas)} />
-            <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={fmtBRL(r.parcela)} strong />
-            <Out label="Valor da Parcela que vai para o Contrato" value={fmtBRL(r.parcelaContrato)} />
-            <Out label="Valor do Lote em Contrato" value={fmtBRL(r.valorLoteContrato)} />
-          </Box>
-          {/* Dados que a planilha não tem, usados no site da proposta */}
-          <Box title="Infraestrutura e securitização">
-            <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
-            <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
-            <In s={s} k="desagio" label="Deságio da antecipação" />
-            <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
-          </Box>
-        </div>
       </div>
+
+      <Parte>Primeira Etapa</Parte>
 
       {/* Primeira etapa: uma linha de quadras para começar a vender antes */}
       <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
@@ -507,8 +528,8 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
   );
 }
 
-function Titulo({ children }: { children: React.ReactNode }) {
-  return <div className="bg-navy/90 px-3 py-1 text-[11.5px] font-bold uppercase tracking-wider text-white">{children}</div>;
+function Titulo({ children, n }: { children: React.ReactNode; n?: number }) {
+  return <div className="flex items-center gap-2 bg-navy/90 px-3 py-1 text-[11.5px] font-bold uppercase tracking-wider text-white">{n && <Num n={n} />}{children}</div>;
 }
 
 /** Bloco da primeira etapa: medidas (azuis), quadras, áreas e resultado */
@@ -526,7 +547,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
     <div>
     <div className={`grid divide-gold/30 ${largo ? "grid-cols-2 divide-x" : ""}`}>
       <div className="divide-y divide-gold/30">
-        <Titulo>Medidas da 1ª etapa</Titulo>
+        <Titulo n={1}>Medidas da 1ª etapa</Titulo>
         <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
         <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quadras" disabled={off} />
         <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
@@ -599,7 +620,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
   return (
     <div className={`grid border-t border-gold/30 ${largo ? "grid-cols-2 divide-x divide-gold/30" : ""}`}>
       <div className="divide-y divide-gold/30">
-        <Titulo>Reajuste da 1ª etapa</Titulo>
+        <Titulo n={2}>Reajuste da 1ª etapa</Titulo>
         <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
           <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
           <select
@@ -607,7 +628,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
             onChange={(e) => s.setIndiceE1(e.target.value)}
             className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
           >
-            <option value="">{i.indice} (estudo)</option>
+            <option value="">{i.indice} (todas etapas)</option>
             {INDICES.map((x) => <option key={x}>{x}</option>)}
           </select>
         </label>
@@ -617,7 +638,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
         <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
       </div>
       <div className="divide-y divide-gold/30">
-        <Titulo>Recebimentos da 1ª etapa</Titulo>
+        <Titulo n={3}>Recebimentos da 1ª etapa</Titulo>
         <Out label="Valor do Lote da 1ª etapa" value={v((f) => fmtBRL(f.valorLote))} strong />
         <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} erro={falta("entradaPctE1")} />
         <Out label="Valor da Entrada" value={v((f) => fmtBRL(f.entrada))} />
