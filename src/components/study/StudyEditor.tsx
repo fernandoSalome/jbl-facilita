@@ -153,7 +153,7 @@ function Box({ n, title, right, children }: { n?: number; title: string; right?:
   return (
     <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
       <div className="flex items-center justify-between bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
-        <span className="flex items-center gap-2">{n && <Num n={n} />}{title}</span>
+        <span className="flex items-center gap-2 uppercase">{n && <Num n={n} />}{title}</span>
         {right && <span>{right}</span>}
       </div>
       <div className="divide-y divide-gold/30">{children}</div>
@@ -343,10 +343,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
               </div>
             )}
           </Box>
-          <Box n={5} title="Valor da Área" right="Valor">
-            <In s={s} k="valorArea" label="Valor" />
-          </Box>
-          <Box n={6} title="Condição de Venda" right="Dados">
+          <Box n={5} title="Condição de Venda" right="Dados">
             <Sub>À Vista</Sub>
             <Out label="Valor do Lote a ser Comercializado" value={fmtBRL(r.valorLote)} strong />
             <Sub>Parcelado</Sub>
@@ -367,13 +364,13 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
         {/* coluna 3 */}
         <div className="grid content-start gap-4">
           {/* Dados que a planilha não tem, usados no site da proposta */}
-          <Box n={7} title="Infraestrutura e securitização">
+          <Box n={6} title="Infraestrutura e securitização">
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
             <In s={s} k="desagio" label="Deságio da antecipação" />
             <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
           </Box>
-          <Box n={8} title="Parceria do Parcelamento de Solo">
+          <Box n={7} title="Parceria do Parcelamento de Solo">
             {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
@@ -414,6 +411,9 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
                 )}
               </>
             )}
+          </Box>
+          <Box n={8} title="Valor da Área" right="Valor">
+            <In s={s} k="valorArea" label="Valor" />
           </Box>
         </div>
       </div>
@@ -629,7 +629,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
             className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
           >
             <option value="">{i.indice} (todas etapas)</option>
-            {INDICES.map((x) => <option key={x}>{x}</option>)}
+            {INDICES.map((x) => <option key={x} value={x}>{x === i.indice ? `${x} (segunda Etapa)` : x}</option>)}
           </select>
         </label>
         <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />

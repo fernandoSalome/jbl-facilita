@@ -57,10 +57,9 @@ export function ProposalNumbersForm({
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto_auto]">
+      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_auto_auto]">
         <label><span className="label">Nome da proposta</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label><span className="label">Proprietário</span><input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></label>
-        <label><span className="label">WhatsApp</span><input className="input" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} /></label>
         <ValidadeField dias={validade} semValidade={semValidade} onDias={setValidade} onSemValidade={setSemValidade} />
         <label className="flex items-end gap-2 pb-2.5 text-sm font-semibold text-navy">
           <input type="checkbox" checked={carta} onChange={(e) => setCarta(e.target.checked)} className="h-4 w-4 accent-[#A2782F]" />

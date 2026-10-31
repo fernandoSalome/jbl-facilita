@@ -62,10 +62,9 @@ function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (
   const setMeta = (patch: Partial<Meta>) => onChange({ ...value, meta: { ...m, ...patch } });
   return (
     <div className="grid gap-5">
-      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr]">
+      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr]">
         <label><span className="label">Nome da proposta</span><input className="input" value={m.name} onChange={(e) => setMeta({ name: e.target.value })} /></label>
         <label><span className="label">Proprietário</span><input className="input" value={m.ownerName} onChange={(e) => setMeta({ ownerName: e.target.value })} /></label>
-        <label><span className="label">WhatsApp</span><input className="input" value={m.ownerPhone} onChange={(e) => setMeta({ ownerPhone: e.target.value })} /></label>
       </div>
       <DataField value={m.options.data} atual={dataAtual} onChange={(v) => setMeta({ options: { ...m.options, data: v } })} />
       <StudyEditor state={study} />
@@ -297,7 +296,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
     changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, msgEnvio: v } } });
     setMsgEdit(null);
   };
-  const waLink = `https://wa.me/${data.meta.ownerPhone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(texto)}`;
 
   async function publish() {
     await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
@@ -306,20 +304,21 @@ export default function ProposalEditor({ formato, proposal: p, project, template
     setSendOpen(true);
   }
 
-  // "Enviado": termina a proposta (publica, se ainda for rascunho) e bloqueia a edição
-  async function marcarEnviado() {
-    if (!confirm("Marcar como enviado? A edição desta proposta fica bloqueada (só visualização).")) return;
+  // copia o texto da mensagem (com o link da proposta) para colar no WhatsApp
+  function copiarProposta() {
+    navigator.clipboard.writeText(texto);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
+  // copia o texto e termina a proposta: a edição fica bloqueada (só visualização). Para liberar: lista de propostas, menu ⋯
+  async function copiarEBloquear() {
+    navigator.clipboard.writeText(texto);
     if (burst.current) await new Promise((r) => setTimeout(r, 900));
     if (!published) await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     const r = await fetch(`/api/proposals/${p.id}/bloquear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloqueada: true }) });
     if (r.ok) window.location.reload();
-    else alert("Não foi possível bloquear a proposta.");
-  }
-
-  function copy() {
-    navigator.clipboard.writeText(publicUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    else alert("A proposta foi copiada, mas não foi possível bloqueá-la.");
   }
 
   const op = data.meta.options;
@@ -405,14 +404,10 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               </button>
             )}
             {published && (
-              <>
-                <a className="btn-ghost" href={`/p/${p.publicToken}`} target="_blank" rel="noreferrer">Abrir como cliente ↗</a>
-                <button className="btn-ghost" onClick={copy}>{copied ? "✓ Link copiado" : "Copiar link"}</button>
-              </>
+              <a className="btn-ghost" href={`/p/${p.publicToken}`} target="_blank" rel="noreferrer">Abrir como cliente ↗</a>
             )}
-            {!bloqueada && <button className="btn-ghost" onClick={marcarEnviado} title="Termina a proposta e bloqueia a edição">Enviado</button>}
             {published ? (
-              <button className="btn-gold" onClick={() => setSendOpen(true)}>Enviar no WhatsApp</button>
+              <button className="btn-gold" onClick={() => setSendOpen(true)}>Enviar proposta</button>
             ) : (
               <button className="btn-gold" onClick={publish}>Publicar e enviar</button>
             )}
@@ -516,12 +511,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         title="Enviar para a família"
         footer={
           <>
-            <button className="btn-ghost" onClick={copy}>{copied ? "✓ Copiado" : "Copiar link"}</button>
-            {data.meta.ownerPhone ? (
-              <a className="btn-gold" href={waLink} target="_blank" rel="noreferrer">Abrir WhatsApp</a>
-            ) : (
-              <button className="btn-gold" onClick={() => { navigator.clipboard.writeText(texto); setCopied(true); }}>Copiar mensagem</button>
-            )}
+            {!bloqueada && <button className="btn-gold" onClick={copiarEBloquear} title="Copia a mensagem e bloqueia a edição da proposta (só visualização)">Copiar proposta e bloquear</button>}
+            <button className="btn-ghost" onClick={copiarProposta}>{copied ? "✓ Copiada" : "Copiar proposta apenas"}</button>
           </>
         }
       >
@@ -541,7 +532,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
           {msgEdit !== null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => setMsgEdit(null)}>Descartar alteração</button>}
           {!bloqueada && salva && msgEdit === null && <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => salvarMensagem("")}>Voltar à mensagem sugerida</button>}
         </div>
-        {!data.meta.ownerPhone && <p className="mt-3 text-[12.5px] text-amber-800">Sem WhatsApp cadastrado. Adicione em “Editar dados da planilha” para abrir a conversa direto.</p>}
       </Modal>
       {carta && <LetterModal id={cartaAberta ? carta.id : null} onClose={() => setCartaAberta(false)} />}
     </div>

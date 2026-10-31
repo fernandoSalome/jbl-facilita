@@ -185,10 +185,9 @@ export default function NewProposalForm({
       </Step>
 
       <Step n={2} title="Dados básicos">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <label><span className="label">Nome da proposta *</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
           <label><span className="label">Proprietário / família *</span><input className="input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></label>
-          <label><span className="label">WhatsApp do proprietário</span><input className="input" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} /></label>
         </div>
       </Step>
 
