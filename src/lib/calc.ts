@@ -109,6 +109,8 @@ export type StudyInputs = {
    * "a definir". Sem ele (propostas antigas), vazio = o do estudo.
    */
   finE1Exigido?: boolean;
+  /** Taxas digitadas no índice próprio da etapa, guardadas enquanto ela usa "todas as etapas" */
+  taxasE1Proprias?: { ipca: number | null; jurosAno: number | null; jurosMes: number | null } | null;
   indiceE1: string | null;
   ipcaE1: number | null;
   jurosAnoE1: number | null;

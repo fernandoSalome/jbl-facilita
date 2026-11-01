@@ -412,6 +412,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             )}
             {published && (
               <a className="btn-ghost" href={`/p/${p.publicToken}`} target="_blank" rel="noreferrer">Abrir como cliente ↗</a>
+              <button className="btn-ghost" onClick={copiarLink} title="Copia só o link da proposta, sem o texto">{linkCopiado ? "✓ Link copiado" : "Copiar link"}</button>
             )}
             {published ? (
               <button className="btn-gold" onClick={() => setSendOpen(true)}>Enviar proposta</button>
@@ -521,7 +522,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
           <div className="flex w-full flex-nowrap items-center gap-2 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:whitespace-nowrap [&>button]:px-2.5 [&>button]:text-[12.5px]">
             {!bloqueada && <button className="btn-gold" onClick={copiarEBloquear} title="Copia a mensagem e bloqueia a edição da proposta (só visualização)">Copiar proposta e bloquear</button>}
             <button className="btn-ghost" onClick={copiarProposta}>{copied ? "✓ Copiada" : "Copiar proposta apenas"}</button>
-            <button className="btn-ghost" onClick={copiarLink} title="Copia só o link da proposta, sem o texto">{linkCopiado ? "✓ Link copiado" : "Copiar link"}</button>
           </div>
         }
       >

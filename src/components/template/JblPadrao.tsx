@@ -994,6 +994,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <div className="tbl tbl-pay tbl-bank"><table>
                   <thead><tr><th><T k="s9th1">Indicador da simulação</T></th><th className="r"><T k="s9th2">Valor informado</T></th></tr></thead>
                   <tbody>
+                    <tr><td data-label="Indicador da simulação"><T k="s9l0">Valor total à vista aplicado</T></td><td data-label="Valor informado" className="r"><V k="s9v0">{fmtBRL(r.antecipacao.valor)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l1" vars={nv}>{"Aplicação a {{taxa}}: juros no primeiro mês"}</T></td><td data-label="Valor informado" className="r"><V k="s9v1">{fmtBRL(r.antecipacao.jurosMes1)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l2" vars={nv}>{"Aplicação a {{taxa}} composto: última parcela base ({{anos}} anos)"}</T></td><td data-label="Valor informado" className="r"><V k="s9v2">{fmtBRL(r.antecipacao.ultimaBase)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l3">Multiplicador de rentabilidade final</T></td><td data-label="Valor informado" className="r"><V k="s9v3">{`${fmtNum(r.antecipacao.multiplicador, 4)} vezes`}</V></td></tr>

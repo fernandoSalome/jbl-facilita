@@ -111,14 +111,21 @@ export function useStudyState(initial: StudyInputs) {
   /** Índice da 1ª etapa (vazio = o do estudo) */
   function setIndiceE1(v: string) {
     // "todas as etapas": a etapa passa a usar o índice e as taxas da gleba geral
+    // os números digitados na própria etapa ficam guardados e voltam ao escolher de novo o índice da etapa
     if (!v) {
       setInputs((s) => {
         setTexts((t) => ({ ...t, ipcaE1: toText(s.ipca, "pct"), jurosAnoE1: toText(s.jurosAno, "pct"), jurosMesE1: toText(s.jurosMes, "pct") }));
-        return { ...s, indiceE1: null, ipcaE1: s.ipca, jurosAnoE1: s.jurosAno, jurosMesE1: s.jurosMes };
+        const guardadas = s.indiceE1 ? { ipca: s.ipcaE1, jurosAno: s.jurosAnoE1, jurosMes: s.jurosMesE1 } : s.taxasE1Proprias;
+        return { ...s, indiceE1: null, ipcaE1: s.ipca, jurosAnoE1: s.jurosAno, jurosMesE1: s.jurosMes, taxasE1Proprias: guardadas };
       });
       return;
     }
-    setInputs((s) => ({ ...s, indiceE1: v }));
+    setInputs((s) => {
+      const g = !s.indiceE1 ? s.taxasE1Proprias : null;
+      if (!g) return { ...s, indiceE1: v };
+      setTexts((t) => ({ ...t, ipcaE1: toText(g.ipca, "pct"), jurosAnoE1: toText(g.jurosAno, "pct"), jurosMesE1: toText(g.jurosMes, "pct") }));
+      return { ...s, indiceE1: v, ipcaE1: g.ipca, jurosAnoE1: g.jurosAno, jurosMesE1: g.jurosMes };
+    });
   }
   /** Liga/desliga a primeira etapa (desmembramento) */
   function setEtapa(on: boolean) {
@@ -159,7 +166,7 @@ type State = ReturnType<typeof useStudyState>;
 function Box({ n, title, right, children }: { n?: number; title: string; right?: string; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
-      <div className="flex items-center justify-between bg-navy px-3 py-1 text-[10px] font-bold tracking-wider text-white">
+      <div className="flex items-center justify-between bg-navy px-3 py-1 text-[11px] font-bold tracking-wider text-white">
         <span className="flex items-center gap-2 uppercase">{n && <Num n={n} />}{title}</span>
         {right && <span>{right}</span>}
       </div>
@@ -178,7 +185,7 @@ function Parte({ children }: { children: React.ReactNode }) {
 }
 
 function Sub({ children, n }: { children: React.ReactNode; n?: number }) {
-  return <div className="flex items-center justify-center gap-2 bg-navy/90 px-3 py-1 text-center text-[12px] font-bold text-white">{n && <Num n={n} />}{children}</div>;
+  return <div className="flex items-center gap-2 bg-navy/90 px-3 py-1 text-left text-[12px] font-bold text-white">{n && <Num n={n} />}{children}</div>;
 }
 
 /**
@@ -382,6 +389,8 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
             <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100)} sufixo="%" strong />
             <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
+            <Out label={`VGV Incorporador a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.principal.carteiraInc)} navy />
+            <Out label={`VGV Terrenista a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.principal.carteiraTer)} navy />
             <In s={s} k="intermediacaoPct" label="Corretor da intermediação (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
             {r.intermediacaoPct > 0 && (
               <>
