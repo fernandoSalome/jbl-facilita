@@ -411,8 +411,10 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               </button>
             )}
             {published && (
+              <>
               <a className="btn-ghost" href={`/p/${p.publicToken}`} target="_blank" rel="noreferrer">Abrir como cliente ↗</a>
               <button className="btn-ghost" onClick={copiarLink} title="Copia só o link da proposta, sem o texto">{linkCopiado ? "✓ Link copiado" : "Copiar link"}</button>
+              </>
             )}
             {published ? (
               <button className="btn-gold" onClick={() => setSendOpen(true)}>Enviar proposta</button>
