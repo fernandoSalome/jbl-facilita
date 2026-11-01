@@ -372,7 +372,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
           ) : (
           <div className="ml-auto flex shrink-0 items-center gap-5">
           {/* validade e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
-          <div className="flex shrink-0 items-center gap-4">
+          <div className="flex shrink-0 items-center gap-10">
             <ValidadeField
               compact
               dias={data.meta.options.validadeDias}

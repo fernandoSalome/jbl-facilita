@@ -7,7 +7,15 @@
 export default function ValidadeField({ dias, semValidade, onDias, onSemValidade, compact }: { dias: string | number; semValidade?: boolean; onDias: (v: string) => void; onSemValidade: (v: boolean) => void; compact?: boolean }) {
   return (
     <div className={compact ? "flex items-center gap-2" : ""}>
-      <span className={compact ? "whitespace-nowrap text-[12.5px] font-semibold text-navy" : "label"}>{compact ? "Expirar proposta" : "Validade"}</span>
+      {compact ? (
+        // caixa de marcar, como "Não expira": marcada = a proposta vence depois dos dias
+        <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-[13px] font-semibold text-navy">
+          <input type="checkbox" checked={!semValidade} onChange={(e) => onSemValidade(!e.target.checked)} className="h-4 w-4 accent-[#A2782F]" />
+          Expirar proposta
+        </label>
+      ) : (
+        <span className="label">Validade</span>
+      )}
       <div className="flex items-stretch gap-2">
         {/* os dias ficam sempre à vista: dourados quando valem; clicar neles sai do "Não expira" */}
         <label className="flex items-stretch" onClick={() => semValidade && onSemValidade(false)}>
