@@ -18,8 +18,8 @@ const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensa
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
   const n = kind === "pct" ? v * 100 : v;
-  // até 4 casas: o campo mostra o número que a conta usa (0,6625 não aparece como 0,66)
-  return n.toLocaleString("pt-BR", kind === "brl" ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 4 });
+  // sempre com 2 casas (10 → 10,00); até 4 quando a conta usa mais (0,6625 não aparece como 0,66)
+  return n.toLocaleString("pt-BR", kind === "brl" ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
 function parse(text: string, kind: Kind): number | null {
@@ -89,6 +89,13 @@ export function useStudyState(initial: StudyInputs) {
     if (v === undefined) return;
     setInputs((s) => {
       const n = { ...s, [key]: v };
+      // 1ª etapa em "todas as etapas": índice e juros acompanham a gleba geral
+      const espelho = { ipca: "ipcaE1", jurosAno: "jurosAnoE1", jurosMes: "jurosMesE1" } as const;
+      if (key in espelho && !n.indiceE1 && n.finE1Exigido) {
+        const e1 = espelho[key as keyof typeof espelho];
+        n[e1] = v;
+        setTexts((t) => ({ ...t, [e1]: text }));
+      }
       // a metragem é frente × comprimento (guardada junto: a proposta usa ela); sem um dos dois, fica zero
       // (o campo fica em vermelho), para a proposta não seguir com o lote antigo
       if (key === "compLote" || key === "frenteLote") {
@@ -152,7 +159,7 @@ type State = ReturnType<typeof useStudyState>;
 function Box({ n, title, right, children }: { n?: number; title: string; right?: string; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
-      <div className="flex items-center justify-between bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
+      <div className="flex items-center justify-between bg-navy px-3 py-1 text-[10px] font-bold tracking-wider text-white">
         <span className="flex items-center gap-2 uppercase">{n && <Num n={n} />}{title}</span>
         {right && <span>{right}</span>}
       </div>
@@ -170,8 +177,8 @@ function Parte({ children }: { children: React.ReactNode }) {
   return <h3 className="border-b-2 border-gold pb-1 text-[15px] font-bold uppercase tracking-wider text-navy">{children}</h3>;
 }
 
-function Sub({ children }: { children: React.ReactNode }) {
-  return <div className="bg-navy/90 px-3 py-1 text-center text-[12px] font-bold text-white">{children}</div>;
+function Sub({ children, n }: { children: React.ReactNode; n?: number }) {
+  return <div className="flex items-center justify-center gap-2 bg-navy/90 px-3 py-1 text-center text-[12px] font-bold text-white">{n && <Num n={n} />}{children}</div>;
 }
 
 /**
@@ -217,9 +224,8 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: 
         <input
           inputMode="decimal"
           {...celula}
-          // dinheiro: ao sair do campo fica com 2 casas (350 → 350,00)
+          // ao sair do campo fica com 2 casas (350 → 350,00)
           onBlur={() => {
-            if (kind !== "brl") return;
             const v = parse(s.texts[k] ?? "", kind);
             if (v !== null) s.set(k, toText(v, kind));
           }}
@@ -343,10 +349,10 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
               </div>
             )}
           </Box>
-          <Box n={5} title="Condição de Venda" right="Dados">
+          <Box title="Condição de Venda" right="Dados">
             <Sub>À Vista</Sub>
             <Out label="Valor do Lote a ser Comercializado" value={fmtBRL(r.valorLote)} strong />
-            <Sub>Parcelado</Sub>
+            <Sub n={5}>Parcelado</Sub>
             <In s={s} k="entradaPct" label="Entrada (%)" />
             <Out label="Valor da Entrada" value={fmtBRL(r.entrada)} />
             <Out label="Entrada parte Corretor" value={fmtBRL(r.entradaCorretor)} />
@@ -374,7 +380,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
             <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
-            <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100, Number.isInteger(Math.round(r.terrenistaPct * 1e4) / 100) ? 0 : 2)} sufixo="%" strong />
+            <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100)} sufixo="%" strong />
             <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
             <In s={s} k="intermediacaoPct" label="Corretor da intermediação (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
             {r.intermediacaoPct > 0 && (
@@ -529,7 +535,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
 }
 
 function Titulo({ children, n }: { children: React.ReactNode; n?: number }) {
-  return <div className="flex items-center gap-2 bg-navy/90 px-3 py-1 text-[11.5px] font-bold uppercase tracking-wider text-white">{n && <Num n={n} />}{children}</div>;
+  return <div className="flex items-center gap-2 bg-navy/90 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">{n && <Num n={n} />}{children}</div>;
 }
 
 /** Bloco da primeira etapa: medidas (azuis), quadras, áreas e resultado */
@@ -628,8 +634,8 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
             onChange={(e) => s.setIndiceE1(e.target.value)}
             className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
           >
-            <option value="">{i.indice} (todas etapas)</option>
-            {INDICES.map((x) => <option key={x} value={x}>{x === i.indice ? `${x} (segunda Etapa)` : x}</option>)}
+            <option value="">{i.indice} (todas as etapas)</option>
+            {INDICES.map((x) => <option key={x} value={x}>{x === i.indice ? `${x} (primeira etapa)` : x}</option>)}
           </select>
         </label>
         <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />

@@ -311,6 +311,14 @@ export default function ProposalEditor({ formato, proposal: p, project, template
     setTimeout(() => setCopied(false), 1800);
   }
 
+  // copia só o link da proposta, sem o texto da mensagem
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  function copiarLink() {
+    navigator.clipboard.writeText(publicUrl);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 1800);
+  }
+
   // copia o texto e termina a proposta: a edição fica bloqueada (só visualização). Para liberar: lista de propostas, menu ⋯
   async function copiarEBloquear() {
     navigator.clipboard.writeText(texto);
@@ -363,9 +371,6 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             </span>
           ) : (
           <div className="ml-auto flex shrink-0 items-center gap-5">
-          {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
-          <ModoToggle mode={mode} onChange={setMode} />
-
           {/* validade e carta de intenção: à mão na barra, sem abrir os dados da planilha */}
           <div className="flex shrink-0 items-center gap-4">
             <ValidadeField
@@ -387,6 +392,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         {/* botões um pouco mais compactos que o normal: cabem numa linha até em telas de ~1100 px */}
         <div className="flex flex-wrap items-center justify-end gap-2 px-6 pb-3 [&_.btn-ghost]:px-3 [&_.btn-ghost]:py-2 [&_.btn-gold]:px-3.5 [&_.btn-gold]:py-2 [&_.btn-navy]:px-3 [&_.btn-navy]:py-2">
             {!bloqueada && <>
+            {/* fica na barra fixa: troca o modo em qualquer ponto da página, sem voltar ao topo */}
+            <ModoToggle mode={mode} onChange={setMode} />
             <span className={`text-[12.5px] ${saved === "erro" ? "font-semibold text-rose-700" : "text-muted"}`}>{status}</span>
             <div className="flex overflow-hidden rounded border border-line bg-white">
               <button onClick={undo} disabled={pos === 0} title="Desfazer (Ctrl+Z)" className="px-3 py-2 text-[13px] font-semibold text-navy hover:bg-alt disabled:opacity-35">↶ Desfazer</button>
@@ -510,10 +517,12 @@ export default function ProposalEditor({ formato, proposal: p, project, template
         eyebrow="Proposta publicada"
         title="Enviar para a família"
         footer={
-          <>
+          // lado a lado, mesmo em tela estreita: os botões dividem a largura e a letra encolhe
+          <div className="flex w-full flex-nowrap items-center gap-2 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:whitespace-nowrap [&>button]:px-2.5 [&>button]:text-[12.5px]">
             {!bloqueada && <button className="btn-gold" onClick={copiarEBloquear} title="Copia a mensagem e bloqueia a edição da proposta (só visualização)">Copiar proposta e bloquear</button>}
             <button className="btn-ghost" onClick={copiarProposta}>{copied ? "✓ Copiada" : "Copiar proposta apenas"}</button>
-          </>
+            <button className="btn-ghost" onClick={copiarLink} title="Copia só o link da proposta, sem o texto">{linkCopiado ? "✓ Link copiado" : "Copiar link"}</button>
+          </div>
         }
       >
         <p className="text-sm text-muted">{data.meta.options.semValidade ? "O link já está ativo e não expira." : `O link já está ativo por ${data.meta.options.validadeDias} dias.`} {salva ? "Mensagem (editada):" : "Mensagem sugerida (dá para alterar):"}</p>
