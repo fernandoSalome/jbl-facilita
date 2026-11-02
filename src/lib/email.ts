@@ -5,12 +5,12 @@
  */
 export const emailConfigurado = () => !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 
-export async function enviarEmail(para: string, assunto: string, html: string) {
+export async function enviarEmail(para: string, assunto: string, html: string, anexos: { filename: string; content: string; content_type?: string }[] = []) {
   if (!emailConfigurado()) throw new Error("Envio de e-mail não configurado (RESEND_API_KEY e EMAIL_FROM).");
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [para], subject: assunto, html }),
+    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [para], subject: assunto, html, ...(anexos.length ? { attachments: anexos } : {}) }),
   });
   if (!r.ok) throw new Error(`E-mail não enviado (${r.status}): ${(await r.text()).slice(0, 200)}`);
 }

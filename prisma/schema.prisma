@@ -20,6 +20,8 @@ model User {
   role         Role       @default(USER)
   createdAt    DateTime   @default(now())
   proposals    Proposal[] @relation("createdBy")
+  agenda       AgendaConfig?
+  compromissos Compromisso[]
 }
 
 /// Um projeto é um loteamento (a "subconta"). Tudo do loteamento pendura aqui:
@@ -225,4 +227,57 @@ model WaGroup {
   contextoProjectId String?
   contextoAt  DateTime?
   createdAt   DateTime @default(now())
+}
+
+/// Calendário da pessoa (parecido com o Calendly): horários livres, duração da reunião,
+/// link público para agendar (/agendar/<slug>) e a conta do Google Agenda conectada
+model AgendaConfig {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  slug          String   @unique
+  titulo        String   @default("Reunião com a JBL")
+  descricao     String?
+  duracaoMin    Int      @default(30)
+  /// antecedência mínima para agendar pelo link (horas)
+  antecedenciaH Int      @default(2)
+  /// até quantos dias à frente o link mostra horários
+  diasFrente    Int      @default(30)
+  /// { "1": [["09:00","12:00"],["13:00","18:00"]], ... } (0 = domingo)
+  horarios      Json
+  local         String?
+  googleEmail   String?
+  googleRefresh String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// Compromisso da agenda: pessoal (só a pessoa) ou reunião com um convidado (avisado por e-mail e SMS)
+model Compromisso {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  /// pessoal | reuniao
+  tipo          String    @default("reuniao")
+  titulo        String
+  descricao     String?
+  local         String?
+  inicio        DateTime
+  fim           DateTime
+  convidadoNome  String?
+  convidadoEmail String?
+  convidadoTel   String?
+  /// interno (criado na tela) | link (agendado pelo convidado no link público)
+  origem        String    @default("interno")
+  /// marcado | cancelado
+  status        String    @default("marcado")
+  /// token do link de cancelamento enviado ao convidado
+  cancelToken   String    @unique
+  /// SMS de lembrete (1 hora antes) agendado no Twilio
+  smsId         String?
+  smsErro       String?
+  emailErro     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, inicio])
 }
