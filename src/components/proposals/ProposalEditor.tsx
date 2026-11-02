@@ -413,7 +413,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             {published && (
               <>
               <a className="btn-ghost" href={`/p/${p.publicToken}`} target="_blank" rel="noreferrer">Abrir como cliente ↗</a>
-              <button className="btn-ghost" onClick={copiarLink} title="Copia só o link da proposta, sem o texto">{linkCopiado ? "✓ Link copiado" : "Copiar link"}</button>
+              <button className="btn-ghost" onClick={copiarLink} title="Copia só o link da proposta, sem o texto">{linkCopiado ? "✓ Link copiado" : "Copiar Link da Proposta"}</button>
               </>
             )}
             {published ? (

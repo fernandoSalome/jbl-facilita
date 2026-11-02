@@ -389,10 +389,10 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
           <Box n={7} title="Parceria do Parcelamento de Solo">
             {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
-            <Out label="VGV Incorporador" value={fmtBRL(r.vgvAvistaInc)} navy />
-            <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100)} sufixo="%" strong />
-            <Out label="VGV Terrenista" value={fmtBRL(r.vgvAvistaTer)} navy />
+            <Out label="VGV Incorporador à vista" value={fmtBRL(r.vgvAvistaInc)} navy />
             <Out label={`VGV Incorporador a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.principal.carteiraInc)} navy />
+            <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100)} sufixo="%" strong />
+            <Out label="VGV Terrenista à vista" value={fmtBRL(r.vgvAvistaTer)} navy />
             <Out label={`VGV Terrenista a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.principal.carteiraTer)} navy />
             <In s={s} k="intermediacaoPct" label="Corretor da intermediação (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
             {r.intermediacaoPct > 0 && (
