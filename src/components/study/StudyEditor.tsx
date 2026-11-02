@@ -568,7 +568,12 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
     <div className={`grid divide-gold/30 ${largo ? "grid-cols-2 divide-x" : ""}`}>
       <div className="divide-y divide-gold/30">
         <Titulo n={1}>Medidas da 1ª etapa</Titulo>
-        <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
+        {/* enviadas ou bloqueadas antes de 02/11/2026 seguem sobre a área aproveitável */}
+        {i.e1PctAproveitavel ? (
+          <Out label="Tamanho da área aproveitável (m²)" value={fmtNum(r.areaUtil)} />
+        ) : (
+          <Out label="Tamanho da área total do terreno (m²)" value={fmtNum(i.areaTotal)} />
+        )}
         <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quadras" disabled={off} />
         <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
@@ -609,7 +614,10 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           value={off ? "a definir" : r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : "—"}
           strong
         />
-        <Out label="Da área aproveitável" value={off ? "a definir" : r.etapa1 ? fmtPct(r.etapa1.pct) : "—"} />
+        <Out
+          label={i.e1PctAproveitavel ? "Da área aproveitável" : "Da área total do terreno"}
+          value={off ? "a definir" : r.etapa1 ? fmtPct(i.e1PctAproveitavel ? r.etapa1.pct : r.etapa1.pctTotal) : "—"}
+        />
         <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
         <Out
           label={r.etapa1?.fin ? `VGV parcial em ${r.etapa1.fin.nParcelas} meses` : "VGV parcial a prazo"}
