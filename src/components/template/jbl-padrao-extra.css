@@ -312,3 +312,11 @@
 /* carta de intenção: lacunas ([CPF]) e trechos opcionais vazios (só aparecem na edição) */
 .jblt .preview .lacuna { background: #F6EBD3; padding: 0 4px; border-radius: 3px; }
 .jblt.editing .preview .var-vazia::before { content: "[" attr(data-rotulo) "]"; opacity: .55; font-style: italic; font-size: .9em; }
+
+/* ---------- tabela da aplicação: valor securitizado no título da coluna ---------- */
+.jblt .tbl-bank th .th-sec { display: block; }
+.jblt .tbl-bank th .th-val { display: block; margin-top: 4px; font-size: 1.25em; font-weight: 700; color: var(--gold); letter-spacing: 0; text-transform: none; }
+.jblt .tbl-bank tr.so-mob { display: none; }
+@media (max-width: 760px) {
+  .jblt .tbl-bank tr.so-mob { display: block; }
+}

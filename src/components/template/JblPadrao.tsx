@@ -992,9 +992,11 @@ export default function JblPadrao(props: TemplateProps) {
                 <h3><DT d={d} k="s9h3">{`E se ${d.quem} aplicar esse dinheiro no banco?`}</DT></h3>
                 <p><T k="s9p3" vars={nv}>{`A JBL fez uma simulação: aplicar o valor recebido num banco tradicional a {{taxa}} ao mês, comparando com a carteira de {{anos}} anos. A JBL oferece assessoria para essa aplicação, sem custo.`}</T></p>
                 <div className="tbl tbl-pay tbl-bank"><table>
-                  <thead><tr><th><T k="s9th1">Indicador da simulação</T></th><th className="r"><T k="s9th2">Valor informado</T></th></tr></thead>
+                  {/* o valor aplicado fica no título da coluna (chave nova: vale para todas as propostas, mesmo as que tinham o título editado) */}
+                  <thead><tr><th><T k="s9th1">Indicador da simulação</T></th><th className="r"><span className="th-sec"><T k="s9th3">Rentabilidade do valor total securitizado:</T></span><strong className="th-val"><V k="s9thv">{fmtBRL(r.antecipacao.valor)}</V></strong></th></tr></thead>
                   <tbody>
-                    <tr><td data-label="Indicador da simulação"><T k="s9l0">Valor total à vista aplicado</T></td><td data-label="Valor informado" className="r"><V k="s9v0">{fmtBRL(r.antecipacao.valor)}</V></td></tr>
+                    {/* no celular o cabeçalho some (tabela vira cartões): o valor aplicado aparece como primeira linha */}
+                    <tr className="so-mob"><td data-label="Rentabilidade do valor total securitizado" className="r"><V k="s9thv">{fmtBRL(r.antecipacao.valor)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l1" vars={nv}>{"Aplicação a {{taxa}}: juros no primeiro mês"}</T></td><td data-label="Valor informado" className="r"><V k="s9v1">{fmtBRL(r.antecipacao.jurosMes1)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l2" vars={nv}>{"Aplicação a {{taxa}} composto: última parcela base ({{anos}} anos)"}</T></td><td data-label="Valor informado" className="r"><V k="s9v2">{fmtBRL(r.antecipacao.ultimaBase)}</V></td></tr>
                     <tr><td data-label="Indicador da simulação"><T k="s9l3">Multiplicador de rentabilidade final</T></td><td data-label="Valor informado" className="r"><V k="s9v3">{`${fmtNum(r.antecipacao.multiplicador, 4)} vezes`}</V></td></tr>

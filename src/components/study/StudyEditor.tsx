@@ -349,8 +349,8 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
               </select>
             </label>
             <In s={s} k="ipca" label={`${i.indice} ao ano`} />
-            <In s={s} k="jurosAno" label="Juros (Ano)" />
             <In s={s} k="jurosMes" label="Juros (Mês)" />
+            <In s={s} k="jurosAno" label="Juros (Ano)" />
             <Out label="Total do Reajuste" value={fmtPct(r.reajusteCalculado)} strong />
             {i.reajusteManual !== null && (
               <div className="bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
@@ -362,7 +362,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
           <Box title="Condição de Venda" right="Dados">
             <Sub>À Vista</Sub>
             <Out label="Valor do Lote a ser Comercializado" value={fmtBRL(r.valorLote)} strong />
-            <Sub n={5}>Parcelado</Sub>
+            <Sub n={5}>PARCELADO</Sub>
             <In s={s} k="entradaPct" label="Entrada (%)" />
             <Out label="Valor da Entrada" value={fmtBRL(r.entrada)} />
             <Out label="Entrada parte Corretor" value={fmtBRL(r.entradaCorretor)} />
@@ -650,8 +650,8 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
           </select>
         </label>
         <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />
-        <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
         <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} erro={falta("jurosMesE1")} />
+        <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
         <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
       </div>
       <div className="divide-y divide-gold/30">
