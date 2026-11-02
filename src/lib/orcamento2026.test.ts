@@ -14,10 +14,11 @@ describe("orçamento da planilha nova (CUSTOS)", () => {
     expect(orcamento2026(q, { ...o, regiao: "Sudeste" }).total).toBeCloseTo(co.total * 1.08, 4);
     expect(orcamento2026(q, { ...o, regiao: "Nordeste" }).total).toBeCloseTo(co.total * 0.96, 4);
   });
-  it("água: rede, ligações (rua + 3) × lotes, reservatório 1/100 lotes, 20% de conexões, registro, casa química, mão de obra e máquina", () => {
+  it("água: rede, ligações (rua + 3) × lotes, 20% de conexões, mão de obra e máquina", () => {
     const agua = orcamento2026(q, o).grupos.find((g) => g.nome === "Rede de água")!;
     const rede = 1000 * 20.5, lig = 11 * 200 * 5;
-    expect(agua.total).toBeCloseTo(rede + lig + 2 * 120000 + 0.2 * (rede + lig) + 2 * 5000 + 56000 + (1000 + 2200) * 2 + 2.5 * 4000, 6);
+    // reservatório, registro e casa química em zero, como na planilha
+    expect(agua.total).toBeCloseTo(rede + lig + 0.2 * (rede + lig) + (1000 + 2200) * 2 + 2.5 * 4000, 6);
   });
   it("canteiro vem desligado (Implantará? = Não); grupo desligado não soma", () => {
     const g = orcamento2026(q, o).grupos;
@@ -29,6 +30,17 @@ describe("orçamento da planilha nova (CUSTOS)", () => {
     const g = orcamento2026({ ...q, pvDrenagem: null }, o).grupos.find((x) => x.nome === "Drenagem")!;
     expect(g.aProjetar).toBeTruthy();
     expect(g.itens.some((x) => /lobo|bigode|Poços/.test(x.nome))).toBe(false);
+  });
+  it("bate com a planilha nova calculada (Sul, 100.000 m², lote 250, frente 10, via 12, calçada 2, vias 25%, quadra 100)", () => {
+    const r = calcular({ areaTotal: 100000, aproveitamento: 0.5, metragemLote: 250, frenteLote: 10, larguraVia: 12, larguraCalcada: 2, viasPct: 0.25, quadraMax: 100, planilhaNova: true, regiao: "Sul" });
+    const t = (n: string) => r.orcamento!.grupos.find((g) => g.nome === n)!.total;
+    expect(t("Energia")).toBeCloseTo(21666.67, 1);
+    expect(t("Pavimentação")).toBeCloseTo(468000, 1);
+    expect(t("Rede de água")).toBeCloseTo(97604, 1);
+    expect(t("Rede de esgoto")).toBeCloseTo(288601.24, 1);
+    expect(t("Drenagem")).toBeCloseTo(498515.29, 1);
+    expect(t("Paisagismo")).toBeCloseTo(16640, 1);
+    expect(r.custoInfra).toBeCloseTo(1391027.2, 1);
   });
   it("região pela UF", () => {
     expect(regiaoDaUf("sp")).toBe("Sudeste");

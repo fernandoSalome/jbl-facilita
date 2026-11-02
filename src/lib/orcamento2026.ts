@@ -5,9 +5,9 @@
  *
  * Os preços da planilha são os do Centro-Oeste × o fator da região. As quantidades são as mesmas da
  * planilha (iguais às de hoje no sistema). Itens que a planilha nova deixa em zero, para digitar à mão
- * (supressão vegetal, terraplanagem, poço, estação de esgoto, construções), ficam de fora. Reservatório,
- * casa química e metros da rede de energia, que ela também deixa em zero, seguem as contas de hoje
- * (1 reservatório a cada 100 lotes, 1 casa química, energia = comprimento das ruas).
+ * (supressão vegetal, terraplanagem, poço, estação de esgoto, construções), ficam de fora. Metros da rede de
+ * energia, reservatório, registro e casa química aparecem com zero, como na planilha (pedido de 02/11/2026:
+ * o teste tem que bater exatamente com ela).
  */
 
 export const REGIOES = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"] as const;
@@ -87,11 +87,11 @@ export function orcamento2026(q: Quantidades, o: OpcoesOrcamento): Orcamento {
     it("Aluguel de container (mensal)", meses, "meses", 800),
   ];
 
-  // CUSTOS E23:I26 (a planilha deixa os metros em zero; aqui = comprimento das ruas)
+  // CUSTOS E23:I26: a planilha deixa os metros da rede em zero (H24/H25); a iluminação conta pelas ruas
   const energia = [
     o.energia === "subterranea"
-      ? it("Rede de energia subterrânea", q.ruas, "m", 825)
-      : it("Rede de energia aérea", q.ruas, "m", 275),
+      ? it("Rede de energia subterrânea", 0, "m", 825)
+      : it("Rede de energia aérea", 0, "m", 275),
     it("Iluminação pública (1 ponto a cada 30 m)", q.ruas / 30, "pontos", 300),
   ];
 
@@ -106,7 +106,8 @@ export function orcamento2026(q: Quantidades, o: OpcoesOrcamento): Orcamento {
 
   // CUSTOS E32:I44
   const ligAgua = (q.larguraRua + 3) * q.lotes;
-  const reservatorios = Math.round(q.lotes / 100);
+  // H37 e H42 em zero na planilha (registro = H37)
+  const reservatorios = 0;
   const redeAgua = it("Rede de água 50 mm", q.ruas, "m", 20.5);
   const ligacoesAgua = it("Ligações de água", ligAgua, "m", 5);
   const agua = [
@@ -116,7 +117,7 @@ export function orcamento2026(q: Quantidades, o: OpcoesOrcamento): Orcamento {
     // conexões: 20% de rede + ligações (o preço já está na região)
     { nome: "Conexões e outros (20%)", qtd: 0.2, unid: "×", preco: redeAgua.total + ligacoesAgua.total, total: 0.2 * (redeAgua.total + ligacoesAgua.total) },
     it("Registro (1 por reservatório)", reservatorios, "un.", 5000),
-    it("Casa química", 1, "un.", 56000),
+    it("Casa química", 0, "un.", 56000),
     it("Mão de obra", q.ruas + ligAgua, "m", 2),
     it("Hora máquina (1 a cada 400 m)", q.ruas / 400, "h", 4000),
   ];
