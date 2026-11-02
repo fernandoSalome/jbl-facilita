@@ -9,7 +9,7 @@ import { dataDaProposta, type Overrides, type ProposalOptions } from "@/lib/prop
 import DataField from "./DataField";
 import { fmtDate } from "@/lib/format";
 import { tratamento } from "@/lib/destinatario";
-import { MSG_KEY, montarMensagem, saudacao } from "@/lib/mensagem";
+import { MSG_KEY, atualizarSaudacao, montarMensagem, saudacao } from "@/lib/mensagem";
 import { linkProposta } from "@/lib/site";
 import DestinatarioPicker from "./DestinatarioPicker";
 import JblPadrao from "@/components/template/JblPadrao";
@@ -291,7 +291,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   // as salvas antes (mensagemEnvio, com o link antigo) deixam de valer e todas seguem o template
   const salva = data.meta.options.msgEnvio?.trim() ? data.meta.options.msgEnvio : null;
   const [msgEdit, setMsgEdit] = useState<string | null>(null);
-  const texto = msgEdit ?? salva ?? message;
+  // a mensagem editada à mão também ganha a saudação da hora atual
+  const texto = msgEdit ?? (salva ? atualizarSaudacao(salva) : message);
   const salvarMensagem = (v: string) => {
     changeData({ ...data, meta: { ...data.meta, options: { ...data.meta.options, msgEnvio: v } } });
     setMsgEdit(null);
@@ -306,7 +307,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
   // copia o texto da mensagem (com o link da proposta) para colar no WhatsApp
   function copiarProposta() {
-    navigator.clipboard.writeText(texto);
+    navigator.clipboard.writeText(atualizarSaudacao(texto)); // saudação da hora em que copia
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
@@ -321,7 +322,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
   // copia o texto e termina a proposta: a edição fica bloqueada (só visualização). Para liberar: lista de propostas, menu ⋯
   async function copiarEBloquear() {
-    navigator.clipboard.writeText(texto);
+    navigator.clipboard.writeText(atualizarSaudacao(texto)); // saudação da hora em que copia
     if (burst.current) await new Promise((r) => setTimeout(r, 900));
     if (!published) await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     const r = await fetch(`/api/proposals/${p.id}/bloquear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloqueada: true }) });

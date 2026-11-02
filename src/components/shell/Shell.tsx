@@ -4,12 +4,17 @@ import { logout } from "@/app/login/actions";
 import ProjectSwitcher from "./ProjectSwitcher";
 import SideNav, { type NavItem } from "./SideNav";
 
-// Menu da empresa enxuto (pedido de 02/11/2026). As outras telas continuam no ar pelo endereço:
-// /app/projetos, /app/cartas, /app/templates, /app/imagens e /app/whatsapp
 const empresaNav: NavItem[] = [
   { href: "/app", label: "Painel", icon: "grid", exact: true },
-  { href: "/app/calendario", label: "Calendário", icon: "calendar" },
+  { href: "/app/projetos", label: "Loteamentos", icon: "map" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
+  { href: "/app/cartas", label: "Cartas recebidas", icon: "inbox" },
+  { href: "/app/calendario", label: "Calendário", icon: "calendar" },
+  { href: "/app/templates", label: "Templates", icon: "layers" },
+  { href: "/app/imagens", label: "Banco de imagens", icon: "image" },
+  { href: "/app/whatsapp", label: "Assistente WhatsApp", icon: "chat" },
+  { label: "Metas", icon: "target", soon: true },
+  { label: "Parceiros", icon: "users", soon: true },
   { href: "/app/usuarios", label: "Usuários", icon: "key" },
 ];
 

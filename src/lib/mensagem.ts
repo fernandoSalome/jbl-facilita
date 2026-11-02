@@ -23,11 +23,22 @@ export const MSG_PADRAO =
   "Colocamo-nos à disposição para esclarecimentos e reunião.\n\n" +
   "[Link]";
 
-/** Bom dia da 0h às 12h, boa tarde das 12h às 18h, boa noite das 18h às 0h (hora de São Paulo) */
+/**
+ * Hora de São Paulo: bom dia das 6h às 11h59, boa tarde do meio-dia às 18h00,
+ * boa noite das 18h01 às 5h59
+ */
 export function saudacao(agora = new Date()) {
-  const hora = Number(agora.toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Sao_Paulo" })) % 24;
-  return hora < 12 ? "Bom dia" : hora >= 12 && hora < 18 ? "Boa tarde" : "Boa noite";
+  const [h, m] = agora.toLocaleString("en-US", { hour: "numeric", minute: "numeric", hourCycle: "h23", timeZone: "America/Sao_Paulo" }).split(":").map(Number);
+  const min = (h % 24) * 60 + m;
+  return min >= 6 * 60 && min < 12 * 60 ? "Bom dia" : min >= 12 * 60 && min <= 18 * 60 ? "Boa tarde" : "Boa noite";
 }
+
+/** Troca a primeira saudação do texto (mensagem editada à mão) pela da hora atual */
+export const atualizarSaudacao = (texto: string, agora = new Date()) =>
+  texto.replace(/\b(bom dia|boa tarde|boa noite)\b/i, (s) => {
+    const nova = saudacao(agora);
+    return s[0] === s[0].toUpperCase() ? nova : nova.toLowerCase();
+  });
 
 /** Texto do template (ou o padrão) com os campos preenchidos */
 export function montarMensagem(

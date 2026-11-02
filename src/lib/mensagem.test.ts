@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MSG_PADRAO, montarMensagem, saudacao } from "./mensagem";
+import { MSG_PADRAO, atualizarSaudacao, montarMensagem, saudacao } from "./mensagem";
 
 const v = { saudacao: "Boa tarde", nome: "Família Silva", tipo: "Loteamento Aberto Urbano", gleba: "São Judas", link: "https://x/p/abc" };
 
@@ -16,10 +16,21 @@ describe("mensagem do WhatsApp", () => {
     expect(montarMensagem("[saudação], [NOME]! [Gleba] [outro] [link]", v)).toBe("Boa tarde, Família Silva! São Judas [outro] https://x/p/abc");
   });
   it("saudação pela hora de São Paulo", () => {
-    expect(saudacao(new Date("2026-10-26T05:59:00-03:00"))).toBe("Bom dia"); // 05h59
-    expect(saudacao(new Date("2026-10-26T02:59:00-03:00"))).toBe("Bom dia");
-    expect(saudacao(new Date("2026-10-26T03:00:00-03:00"))).toBe("Bom dia");
-    expect(saudacao(new Date("2026-10-26T12:00:00-03:00"))).toBe("Boa tarde");
-    expect(saudacao(new Date("2026-10-26T18:00:00-03:00"))).toBe("Boa noite");
+    const s = (h: string) => saudacao(new Date(`2026-10-26T${h}:00-03:00`));
+    expect(s("05:59")).toBe("Boa noite");
+    expect(s("06:00")).toBe("Bom dia");
+    expect(s("11:59")).toBe("Bom dia");
+    expect(s("12:00")).toBe("Boa tarde");
+    expect(s("18:00")).toBe("Boa tarde");
+    expect(s("18:01")).toBe("Boa noite");
+    expect(s("23:59")).toBe("Boa noite");
+    expect(s("00:00")).toBe("Boa noite");
+    expect(saudacao(new Date("2026-10-26T13:00:00Z"))).toBe("Bom dia"); // 10h em São Paulo
+  });
+  it("mensagem editada à mão ganha a saudação da hora", () => {
+    const tarde = new Date("2026-10-26T15:00:00-03:00");
+    expect(atualizarSaudacao("Bom dia a todos! Bom dia", tarde)).toBe("Boa tarde a todos! Bom dia");
+    expect(atualizarSaudacao("Olá, boa noite!", tarde)).toBe("Olá, boa tarde!");
+    expect(atualizarSaudacao("Olá a todos!", tarde)).toBe("Olá a todos!");
   });
 });
