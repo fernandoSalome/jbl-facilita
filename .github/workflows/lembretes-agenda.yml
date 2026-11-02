@@ -1,0 +1,13 @@
+# Lembretes do calendário no WhatsApp (1 dia e 1 hora antes): a Vercel do plano atual só roda rotina 1 vez
+# por dia, então o GitHub chama a rotina a cada 10 minutos. Cada lembrete sai uma vez só.
+name: Lembretes da agenda
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  lembretes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: curl -fsS --max-time 60 https://jbl-facilita.vercel.app/api/cron/whatsapp-agenda

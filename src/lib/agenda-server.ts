@@ -4,6 +4,7 @@ import { newToken } from "./token";
 import { enviarEmail, emailConfigurado } from "./email";
 import { agendarSms, cancelarSms, MAX_AGENDA, smsConfigurado } from "./sms";
 import { ocupadoNoGoogle } from "./google-agenda";
+import { avisarCanceladoWhatsapp, avisarMarcadoWhatsapp } from "./agenda-whatsapp";
 import { LINK_BASE } from "./site";
 import { convite, dataExtenso, horaDe, HORARIOS_PADRAO, horariosValidos, slugDe, sobrepoe, telefoneE164, type Horarios, type Intervalo } from "./agenda";
 
@@ -108,7 +109,7 @@ export type NovoCompromisso = {
   origem?: "interno" | "link";
 };
 
-/** Cria o compromisso; reunião com convidado: e-mail com o convite e SMS 1 hora antes */
+/** Cria o compromisso; reunião: e-mail com o convite, SMS 1 hora antes e aviso no grupo de WhatsApp de monitoramento */
 export async function criarCompromisso(userId: string, n: NovoCompromisso) {
   const reuniao = n.tipo === "reuniao";
   const c = await db.compromisso.create({
@@ -123,15 +124,15 @@ export async function criarCompromisso(userId: string, n: NovoCompromisso) {
     include: { user: { select: { name: true, email: true } } },
   });
   if (!reuniao) return c;
-  const [emailErro, [smsId, smsErro]] = await Promise.all([avisarPorEmail(c), lembreteSms(c)]);
-  return db.compromisso.update({ where: { id: c.id }, data: { emailErro, smsId, smsErro }, include: { user: { select: { name: true, email: true } } } });
+  const [emailErro, [smsId, smsErro], wa] = await Promise.all([avisarPorEmail(c), lembreteSms(c), avisarMarcadoWhatsapp(c)]);
+  return db.compromisso.update({ where: { id: c.id }, data: { emailErro, smsId, smsErro, ...wa }, include: { user: { select: { name: true, email: true } } } });
 }
 
 /** Cancela: tira da agenda, cancela o SMS agendado e avisa o convidado */
 export async function cancelarCompromisso(id: string) {
   const c = await db.compromisso.update({ where: { id }, data: { status: "cancelado" }, include: { user: { select: { name: true, email: true } } } });
   if (c.smsId) await cancelarSms(c.smsId);
-  if (c.inicio.getTime() > Date.now()) await avisarPorEmail(c, true);
+  if (c.inicio.getTime() > Date.now()) await Promise.all([avisarPorEmail(c, true), c.tipo === "reuniao" ? avisarCanceladoWhatsapp(c) : null]);
   return c;
 }
 

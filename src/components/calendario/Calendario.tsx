@@ -35,7 +35,7 @@ const minutosDoDia = (d: Date) => {
 };
 
 export default function Calendario({ config: inicial, link: linkInicial, servicos, googleRetorno }: {
-  config: Config; link: string; servicos: { email: boolean; sms: boolean; google: boolean }; googleRetorno: string | null;
+  config: Config; link: string; servicos: { email: boolean; sms: boolean; google: boolean; whatsapp: string | null }; googleRetorno: string | null;
 }) {
   const hoje = diaDe(new Date());
   const [semana, setSemana] = useState(segundaDe(hoje));
@@ -194,6 +194,12 @@ export default function Calendario({ config: inicial, link: linkInicial, servico
               ))}
             </ul>
           )}
+        </section>
+
+        <section className={`rounded border p-4 text-[12.5px] ${servicos.whatsapp ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+          {servicos.whatsapp
+            ? <p>WhatsApp: cada reunião marcada ou cancelada é avisada no grupo <b>{servicos.whatsapp}</b>, com lembrete 1 dia e 1 hora antes.</p>
+            : <p>WhatsApp: cadastre o grupo de monitoramento (com &quot;monitoring&quot; no nome) em Assistente WhatsApp para receber os avisos das reuniões.</p>}
         </section>
 
         {(!servicos.email || !servicos.sms) && (
