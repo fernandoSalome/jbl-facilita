@@ -16,7 +16,7 @@ export default function ValidadeField({ dias, semValidade, onDias, onSemValidade
       ) : (
         <span className="label">Validade</span>
       )}
-      <div className={`flex items-stretch ${compact ? "gap-6" : "gap-2"}`}>
+      <div className={`flex items-stretch ${compact ? "gap-10" : "gap-2"}`}>
         {/* os dias ficam sempre à vista: dourados quando valem; clicar neles sai do "Não expira" */}
         <label className="flex items-stretch" onClick={() => semValidade && onSemValidade(false)}>
           <input

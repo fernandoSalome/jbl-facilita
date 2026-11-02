@@ -19,6 +19,8 @@ const FORMATO: Record<string, string> = {
   condominio_urbano: "Condomínio urbano",
   chacreamento_aberto: "Chacreamento aberto",
   chacreamento_condominio: "Chacreamento em condomínio",
+  chacreamento_aberto_infra: "Chacreamento aberto Infra+",
+  chacreamento_condominio_infra: "Chacreamento em condomínio Infra+",
 };
 
 type PropostaDb = Awaited<ReturnType<typeof buscar>>[number];

@@ -48,7 +48,7 @@ describe("template em duas camadas", () => {
     expect(m.tipos.condominio_urbano.benfeitorias).toEqual(FORMATOS_INICIAIS.condominio_urbano.benfeitorias);
 
     // depois de unificado, nada muda mais (o deploy não repete)
-    const unificadas = FORMATOS.map((f) => ({ formato: f, content: juntar(m.comum, m.tipos[f]), createdAt: "2026-10-20T10:00:00Z" }));
+    const unificadas = versoes.map(({ formato: f }) => ({ formato: f, content: juntar(m.comum, m.tipos[f]), createdAt: "2026-10-20T10:00:00Z" }));
     expect(mesclarComum(unificadas).iguais).toBe(true);
   });
 
@@ -141,5 +141,23 @@ describe("obras do chacreamento aberto no condomínio", () => {
       { ...cc, overrides: { [`li.${velha}.obra`]: "Velha", [`liq.${velha}`]: { kind: "fixa", text: "1" }, [`li.${bf}.texto`]: "Portaria", "txt.a1": "do condomínio" } },
     );
     expect(r.overrides).toEqual({ [`li.${poco.id}.desc`]: "Água do subsolo", [`li.${bf}.texto`]: "Portaria", "txt.a1": "do condomínio" });
+  });
+});
+
+describe("tipos Infra+", () => {
+  it("obras e benfeitorias do urbano; lei, modelo e tamanhos do chacreamento", () => {
+    const a = FORMATOS_INICIAIS.chacreamento_aberto_infra;
+    expect(a.label).toBe("Chacreamento Aberto Infra+");
+    expect(a.infra).toEqual(FORMATOS_INICIAIS.loteamento_aberto.infra);
+    expect(a.complementar).toEqual(FORMATOS_INICIAIS.loteamento_aberto.complementar);
+    expect(a.benfeitorias).toEqual(FORMATOS_INICIAIS.loteamento_aberto.benfeitorias);
+    expect(a.lei).toBe(FORMATOS_INICIAIS.chacreamento_aberto.lei);
+    expect(a.modelo).toBe(FORMATOS_INICIAIS.chacreamento_aberto.modelo);
+    expect(a.padroes).toEqual(FORMATOS_INICIAIS.chacreamento_aberto.padroes);
+    const c = FORMATOS_INICIAIS.chacreamento_condominio_infra;
+    expect(c.infra).toEqual(FORMATOS_INICIAIS.condominio_urbano.infra);
+    expect(c.benfeitorias).toEqual(FORMATOS_INICIAIS.condominio_urbano.benfeitorias);
+    expect(c.lei).toBe(FORMATOS_INICIAIS.chacreamento_condominio.lei);
+    expect(c.padroes).toEqual(FORMATOS_INICIAIS.chacreamento_condominio.padroes);
   });
 });

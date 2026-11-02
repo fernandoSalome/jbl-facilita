@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { FORMATOS, FORMATOS_INICIAIS, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type QtdCalcKey } from "../src/lib/formatos";
+import { FORMATOS, FORMATOS_INICIAIS, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -30,6 +30,9 @@ async function main() {
       },
     });
   }
+
+  // Tipos Infra+ (novos): nascem das versões atuais, antes de o laço abaixo criá-los com as listas iniciais
+  await tiposInfraMais();
 
   // Cada formato precisa de pelo menos uma versão no template base (listas dos Words oficiais)
   for (const f of FORMATOS) {
@@ -58,6 +61,38 @@ async function main() {
   await minutasComSedeEmBarueri();
   await celularDoMarceloCorrigido();
   await obrasDoChacreamentoAbertoNoCondominio();
+}
+
+/**
+ * Pedido do Fernando (01/11/2026): dois tipos novos de loteamento.
+ * - Chacreamento Aberto Infra+: obras e benfeitorias do Loteamento Aberto Urbano; lei, modelo e tamanhos do Chacreamento Aberto.
+ * - Chacreamento Condomínio Infra+: obras e benfeitorias do Condomínio Urbano; lei, modelo e tamanhos do Chacreamento Condomínio.
+ * Copiados das versões atuais do template, com os textos já editados; os textos compartilhados são os de hoje
+ * (os mesmos dos outros tipos). Depois cada tipo é editado à parte. Roda uma vez só: se o tipo já tem versão, não faz nada.
+ */
+async function tiposInfraMais() {
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    const faltam: (keyof typeof INFRA_MAIS)[] = [];
+    for (const k of Object.keys(INFRA_MAIS) as (keyof typeof INFRA_MAIS)[]) {
+      if (!(await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: k } }))) faltam.push(k);
+    }
+    if (!faltam.length) continue;
+    const antigos = FORMATOS.filter((f) => !(f in INFRA_MAIS));
+    const versoes = [];
+    for (const f of antigos) {
+      const v = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (v) versoes.push({ formato: f as FormatoKey, content: parseContent(v.content, f), createdAt: v.createdAt });
+    }
+    if (versoes.length !== antigos.length) continue; // template incompleto: o laço do main cria com as listas iniciais
+    const m = mesclarComum(versoes);
+    for (const k of faltam) {
+      const { label, obrasDe, leiDe } = INFRA_MAIS[k];
+      const content = juntar(m.comum, infraMais(label, m.tipos[obrasDe], m.tipos[leiDe]));
+      await db.formatoVersion.create({ data: { templateId: t.id, formato: k, content: content as object } });
+      console.log(`Tipo novo: ${label} (obras de ${obrasDe}, lei de ${leiDe}) · ${content.infra.length} obras, ${content.complementar.length} complementares, ${content.benfeitorias.length} benfeitorias`);
+    }
+  }
 }
 
 /**

@@ -383,6 +383,8 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
           <Box n={6} title="Infraestrutura e securitização">
             <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
             <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
+            {/* o mesmo valor da conta da antecipação na proposta: carteira do terrenista − deságio */}
+            <Out label="Valor da antecipação" value={fmtBRL(r.antecipacao.valor)} strong />
             <In s={s} k="desagio" label="Deságio da antecipação" />
             <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
           </Box>

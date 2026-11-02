@@ -6,7 +6,15 @@
 import type { StudyResult } from "./calc";
 import type { Overrides } from "./proposals";
 
-export const FORMATOS = ["loteamento_aberto", "condominio_urbano", "chacreamento_aberto", "chacreamento_condominio"] as const;
+export const FORMATOS = [
+  "loteamento_aberto",
+  "condominio_urbano",
+  "chacreamento_aberto",
+  "chacreamento_condominio",
+  // chacreamento com as obras e benfeitorias do urbano correspondente (lei e tamanhos do chacreamento)
+  "chacreamento_aberto_infra",
+  "chacreamento_condominio_infra",
+] as const;
 export type FormatoKey = (typeof FORMATOS)[number];
 
 /** Medidas que o sistema sabe calcular pela área e pelos lotes (ver calc.ts → infra) */
@@ -277,7 +285,22 @@ function complementarUrbana(p: string, construcao: string): ObraItem[] {
 const BASE_OV: Overrides = {};
 const CONTATOS = [{ id: "ct1" }];
 
-export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
+/** Os tipos "Infra+": de onde vêm as obras e benfeitorias e de onde vêm a lei, o modelo e os tamanhos */
+export const INFRA_MAIS = {
+  chacreamento_aberto_infra: { label: "Chacreamento Aberto Infra+", obrasDe: "loteamento_aberto", leiDe: "chacreamento_aberto" },
+  chacreamento_condominio_infra: { label: "Chacreamento Condomínio Infra+", obrasDe: "condominio_urbano", leiDe: "chacreamento_condominio" },
+} as const;
+type Infra = keyof typeof INFRA_MAIS;
+
+/**
+ * Tipo Infra+: obras (infraestrutura e complementar) e benfeitorias da origem, com os textos delas;
+ * lei, modelo, nomes na proposta e tamanhos do chacreamento. Cópia: depois cada um é editado à parte.
+ */
+export function infraMais(label: string, obras: TipoContent, lei: TipoContent): TipoContent {
+  return { ...lei, label, infra: obras.infra, complementar: obras.complementar, benfeitorias: obras.benfeitorias, overrides: obras.overrides };
+}
+
+const QUATRO: Record<Exclude<FormatoKey, Infra>, FormatoContent> = {
   loteamento_aberto: {
     label: "Loteamento Aberto Urbano",
     curto: "Loteamento aberto",
@@ -370,6 +393,15 @@ export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
     overrides: BASE_OV,
     planilha: "2026",
   },
+};
+
+const tipoInicial = (f: Exclude<FormatoKey, Infra>) => separar(QUATRO[f]).tipo;
+const inicialInfra = (k: Infra): FormatoContent => ({ ...juntar(separar(QUATRO[INFRA_MAIS[k].leiDe]).comum, infraMais(INFRA_MAIS[k].label, tipoInicial(INFRA_MAIS[k].obrasDe), tipoInicial(INFRA_MAIS[k].leiDe))) });
+
+export const FORMATOS_INICIAIS: Record<FormatoKey, FormatoContent> = {
+  ...QUATRO,
+  chacreamento_aberto_infra: inicialInfra("chacreamento_aberto_infra"),
+  chacreamento_condominio_infra: inicialInfra("chacreamento_condominio_infra"),
 };
 
 export function parseFormato(v: unknown): FormatoKey {
