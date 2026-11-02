@@ -74,27 +74,45 @@ function comComprimentos(i: StudyInputs): StudyInputs {
   return n;
 }
 
+/**
+ * Juros ao ano e ao mês são o mesmo juro em duas escalas (ano = mês × 12): digitar num atualiza o outro.
+ * Só o digitado fica gravado (o outro vai a zero), porque a conta soma os dois (IPCA + ano + mês × 12).
+ */
+const JUROS_PAR: Partial<Record<NumKey, [NumKey, number]>> = {
+  jurosAno: ["jurosMes", 1 / 12],
+  jurosMes: ["jurosAno", 12],
+  jurosAnoE1: ["jurosMesE1", 1 / 12],
+  jurosMesE1: ["jurosAnoE1", 12],
+};
+
 export function useStudyState(initial: StudyInputs) {
   const [inputs, setInputs] = useState<StudyInputs>(() => comComprimentos(initial));
   const [texts, setTexts] = useState<Record<string, string>>(() => {
     const t: Record<string, string> = {};
     const ini = comComprimentos(initial);
     for (const [k, kind] of Object.entries(KINDS)) t[k] = toText(ini[k as NumKey] as number | null, kind as Kind);
+    // o juro que está zerado mostra o equivalente do outro (8% ao ano aparece como 0,6667% ao mês)
+    for (const [k, [outro, f]] of Object.entries(JUROS_PAR) as [NumKey, [NumKey, number]][]) {
+      const v = ini[k] as number | null, o = ini[outro] as number | null;
+      if (v && !o) t[outro] = toText(v * f, "pct");
+    }
     return t;
   });
   function set(key: NumKey, text: string) {
     const kind = KINDS[key]!;
+    // juro equivalente só mostrado: sair do campo sem mudar nada não troca qual dos dois fica gravado
+    if (JUROS_PAR[key] && texts[key] === text) return;
     setTexts((s) => ({ ...s, [key]: text }));
     const v = valorDoCampo(text, kind, OPTIONAL.includes(key));
     if (v === undefined) return;
     setInputs((s) => {
       const n = { ...s, [key]: v };
-      // 1ª etapa em "todas as etapas": índice e juros acompanham a gleba geral
-      const espelho = { ipca: "ipcaE1", jurosAno: "jurosAnoE1", jurosMes: "jurosMesE1" } as const;
-      if (key in espelho && !n.indiceE1 && n.finE1Exigido) {
-        const e1 = espelho[key as keyof typeof espelho];
-        n[e1] = v;
-        setTexts((t) => ({ ...t, [e1]: text }));
+      const par = JUROS_PAR[key];
+      if (par) {
+        const [outro, f] = par;
+        // (só os da 1ª etapa podem ficar vazios; os da gleba geral nunca chegam aqui como null)
+        (n as Record<string, unknown>)[outro] = v === null ? null : 0;
+        setTexts((t) => ({ ...t, [outro]: v === null ? "" : toText(v * f, "pct") }));
       }
       // a metragem é frente × comprimento (guardada junto: a proposta usa ela); sem um dos dois, fica zero
       // (o campo fica em vermelho), para a proposta não seguir com o lote antigo
@@ -108,24 +126,9 @@ export function useStudyState(initial: StudyInputs) {
   function setIndice(v: string) {
     setInputs((s) => ({ ...s, indice: v }));
   }
-  /** Índice da 1ª etapa (vazio = o do estudo) */
+  /** Índice da 1ª etapa: só o nome muda; as taxas são as digitadas na própria seção */
   function setIndiceE1(v: string) {
-    // "todas as etapas": a etapa passa a usar o índice e as taxas da gleba geral
-    // os números digitados na própria etapa ficam guardados e voltam ao escolher de novo o índice da etapa
-    if (!v) {
-      setInputs((s) => {
-        setTexts((t) => ({ ...t, ipcaE1: toText(s.ipca, "pct"), jurosAnoE1: toText(s.jurosAno, "pct"), jurosMesE1: toText(s.jurosMes, "pct") }));
-        const guardadas = s.indiceE1 ? { ipca: s.ipcaE1, jurosAno: s.jurosAnoE1, jurosMes: s.jurosMesE1 } : s.taxasE1Proprias;
-        return { ...s, indiceE1: null, ipcaE1: s.ipca, jurosAnoE1: s.jurosAno, jurosMesE1: s.jurosMes, taxasE1Proprias: guardadas };
-      });
-      return;
-    }
-    setInputs((s) => {
-      const g = !s.indiceE1 ? s.taxasE1Proprias : null;
-      if (!g) return { ...s, indiceE1: v };
-      setTexts((t) => ({ ...t, ipcaE1: toText(g.ipca, "pct"), jurosAnoE1: toText(g.jurosAno, "pct"), jurosMesE1: toText(g.jurosMes, "pct") }));
-      return { ...s, indiceE1: v, ipcaE1: g.ipca, jurosAnoE1: g.jurosAno, jurosMesE1: g.jurosMes };
-    });
+    setInputs((s) => ({ ...s, indiceE1: v || null }));
   }
   /** Liga/desliga a primeira etapa (desmembramento) */
   function setEtapa(on: boolean) {
@@ -639,12 +642,11 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
         <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
           <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
           <select
-            value={i.indiceE1 ?? ""}
+            value={indice}
             onChange={(e) => s.setIndiceE1(e.target.value)}
             className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
           >
-            <option value="">{i.indice} (todas as etapas)</option>
-            {INDICES.map((x) => <option key={x} value={x}>{x === i.indice ? `${x} (primeira etapa)` : x}</option>)}
+            {INDICES.map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
         </label>
         <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />
