@@ -53,7 +53,7 @@ export function relTime(d: Date | string | null | undefined) {
 const UNID = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
 const DEZ = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
 const CEM = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-const GRUPOS: [string, string][] = [["", ""], ["mil", "mil"], ["milhão", "milhões"], ["bilhão", "bilhões"]];
+const GRUPOS: [string, string][] = [["", ""], ["mil", "mil"], ["milhão", "milhões"], ["bilhão", "bilhões"], ["trilhão", "trilhões"], ["quatrilhão", "quatrilhões"]];
 
 function ate999(n: number) {
   if (n === 100) return "cem";
@@ -67,6 +67,8 @@ function ate999(n: number) {
 
 /** 9957005 → "Nove milhões, novecentos e cinquenta e sete mil e cinco reais" */
 export function extensoReais(valor: number) {
+  // valor fora do que dá para escrever (conta que estourou ou campo vazio): sem extenso, em vez de derrubar a página
+  if (!Number.isFinite(valor) || Math.abs(valor) >= 1e18) return "";
   const inteiro = Math.floor(Math.abs(valor) + 1e-9);
   const centavos = Math.round((Math.abs(valor) - inteiro) * 100);
   const grupos: number[] = [];

@@ -9,5 +9,9 @@ describe("extensoReais", () => {
     expect(extensoReais(1001)).toBe("Mil e um reais");
     expect(extensoReais(1250.5)).toBe("Mil, duzentos e cinquenta reais e cinquenta centavos");
     expect(extensoReais(1)).toBe("Um real");
+    expect(extensoReais(2e12)).toBe("Dois trilhões de reais");
+    expect(extensoReais(Infinity)).toBe("");
+    expect(extensoReais(NaN)).toBe("");
+    expect(extensoReais(5e20)).toBe("");
   });
 });
