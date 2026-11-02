@@ -315,7 +315,7 @@
 
 /* ---------- tabela da aplicação: valor securitizado no título da coluna ---------- */
 .jblt .tbl-bank th .th-sec { display: block; }
-.jblt .tbl-bank th .th-val { display: block; margin-top: 4px; font-size: 1.25em; font-weight: 700; color: var(--gold); letter-spacing: 0; text-transform: none; }
+.jblt .tbl-bank th .th-val { display: block; margin-top: 4px; font-size: 1.4375em; /* 1,25 × 1,15 */ font-weight: 700; color: var(--gold); letter-spacing: 0; text-transform: none; }
 .jblt .tbl-bank tr.so-mob { display: none; }
 @media (max-width: 760px) {
   .jblt .tbl-bank tr.so-mob { display: block; }
