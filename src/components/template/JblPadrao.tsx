@@ -736,7 +736,7 @@ export default function JblPadrao(props: TemplateProps) {
               <div className="content">
                 <div className="calc num">
                   <span className="n">=</span><span className="t"><T k="s3CalcT">A conta</T></span>
-                  <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(inputs.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big pulsa" id="v3r"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span><span className="v-ext" data-center="v3r"><span><V k="s3ext">{ext(r.custoInfra)}</V></span></span></span>
+                  <span className="f"><span><V k="s3f1">{`${fmtNum(r.areaObras)} m²`}</V></span><span className="op">×</span><span><V k="s3f2">{`${fmtBRL(r.custoInfraM2)}/m²`}</V></span><span className="op">=</span><span className="res res-big pulsa" id="v3r"><V k="s3f3">{fmtBRL(r.custoInfra)}</V></span><span className="v-ext" data-center="v3r"><span><V k="s3ext">{ext(r.custoInfra)}</V></span></span></span>
                 </div>
                 <p className="note note-lg"><T k="s3Extenso2" html vars={nv} limpar={semExtenso}>{"Orçamento preliminar."}</T></p>
                 <div className="tiles two">

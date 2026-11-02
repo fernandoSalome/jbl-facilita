@@ -8,6 +8,8 @@
  * PDF e com o site da proposta São Judas Tadeu II.
  */
 
+import { IMPLANTA_PADRAO, orcamento2026, type Implanta, type Orcamento, type Regiao } from "./orcamento2026";
+
 export const INDICES = ["IPCA", "IGPM", "INCC"] as const;
 
 export type StudyInputs = {
@@ -114,6 +116,20 @@ export type StudyInputs = {
    * área aproveitável (como foi enviada). As outras mostram o % sobre a área total do terreno.
    */
   e1PctAproveitavel?: boolean;
+  /**
+   * Teste da planilha nova (JBL_Planilha(+)Infra, 01/11/2026), só na proposta marcada: custo das obras pelo
+   * orçamento item a item com os preços da região (em vez de área × custo por m²) e o investidor.
+   */
+  planilhaNova?: boolean;
+  regiao?: Regiao;
+  /** Tipo de pavimento (Planilha1 N3:U20). Vazio = cascalhamento, como vem na planilha */
+  pavimento?: string;
+  energiaTipo?: "aerea" | "subterranea";
+  implanta?: Partial<Implanta>;
+  /** Meses de obra (custos mensais do canteiro) */
+  mesesObra: number | null;
+  /** DADOS C17: % da sociedade do investidor (sai da parte do incorporador). Só aparece na planilha */
+  investidorPct: number | null;
   /** Taxas digitadas no índice próprio da etapa, guardadas enquanto ela usa "todas as etapas" */
   taxasE1Proprias?: { ipca: number | null; jurosAno: number | null; jurosMes: number | null } | null;
   indiceE1: string | null;
@@ -183,6 +199,8 @@ export const DEFAULT_INPUTS: StudyInputs = {
   desagio: 0.66667,
   taxaAplicacao: 0.01,
   reajusteManual: null,
+  mesesObra: null,
+  investidorPct: null,
 };
 
 /** Números do financiamento da 1ª etapa (obrigatórios com finE1Exigido) */
@@ -269,9 +287,15 @@ export type StudyResult = {
   vgvAvistaLiq: number;
   vgvAvistaLiqInc: number;
   vgvAvistaLiqTer: number;
-  /** Custo das obras = área útil (m² inteiros) × custo/m² */
+  /** Custo das obras = área útil (m² inteiros) × custo/m² (planilha nova: o orçamento item a item) */
   areaObras: number;
   custoInfra: number;
+  /** Planilha nova: orçamento das obras item a item (null = área × custo por m²) */
+  orcamento: Orcamento | null;
+  /** Planilha nova: custo das obras ÷ área das obras, para mostrar a conta "área × R$/m²" */
+  custoInfraM2: number;
+  /** Planilha nova: investidor (DADOS C17 a F45). null = sem investidor */
+  investidor: { pct: number; incLiquidoPct: number; vgvAvista: number; carteira: number } | null;
   /** Divisão mostrada na proposta: terrenista + JBL + infraestrutura = 100% */
   infraPct: number;
   /** Parte do corretor da parceria no total (soma do que sai da JBL e do terrenista). 0 = sem corretagem */
@@ -395,8 +419,6 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const vgvAvistaLiq = vgvAvista - vgvAvista * i.corretorPct;
   // O orçamento das obras usa a área aproveitável em m² inteiros (68.669,00 m² no PDF)
   const areaObras = Math.floor(areaUtil);
-  const custoInfra = areaObras * i.custoInfraM2;
-  const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
   // corretor da parceria: o percentual incide sobre a parte de quem paga (incorporador inteiro, com as obras, ou
   // terrenista) e o valor sai da parte da JBL ou do terrenista; as obras não mudam
   // ex.: VGV 100 mi, incorporador 60% (JBL 30% + obras 30%), terrenista 40%, corretor 2% → do incorporador 1,2 mi · do terrenista 800 mil
@@ -425,6 +447,21 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   // C36: poços de visita da drenagem = 2 × área ÷ ((quadra + via) × (2 × fundo do lote + via))
   const fundoLote = i.frenteLote > 0 ? i.metragemLote / i.frenteLote : 0;
   const pvDrenagem = i.quadraMax && i.quadraMax > 0 && i.larguraVia > 0 ? (2 * i.areaTotal) / ((i.quadraMax + i.larguraVia) * (2 * fundoLote + i.larguraVia)) : null;
+  // planilha nova (só a proposta de teste): orçamento item a item pela região
+  const orcamento = i.planilhaNova
+    ? orcamento2026(
+        { lotes, ruas: i.extensaoRede ?? compVias, larguraRua, areaRua: compVias * larguraRua, pvDrenagem },
+        {
+          regiao: i.regiao ?? "Centro-Oeste",
+          pavimento: i.pavimento || "Cascalhamento",
+          energia: i.energiaTipo ?? "aerea",
+          implanta: { ...IMPLANTA_PADRAO, ...i.implanta },
+          mesesObra: i.mesesObra ?? 0,
+        },
+      )
+    : null;
+  const custoInfra = orcamento ? orcamento.total : areaObras * i.custoInfraM2;
+  const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
   let etapa1: StudyResult["etapa1"] = null;
   // 1ª etapa sem o valor do m² do lote dela: não calcula (não usa o m² do estudo); a proposta mostra "a definir"
   const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
@@ -550,6 +587,12 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     vgvAvistaLiqTer: vgvAvistaLiq * ter,
     areaObras,
     custoInfra,
+    orcamento,
+    custoInfraM2: orcamento ? (areaObras > 0 ? custoInfra / areaObras : 0) : i.custoInfraM2,
+    investidor:
+      i.planilhaNova && i.investidorPct && i.investidorPct > 0
+        ? { pct: i.investidorPct, incLiquidoPct: inc - i.investidorPct, vgvAvista: vgvAvista * i.investidorPct, carteira: principal.carteiraEmp * i.investidorPct }
+        : null,
     infraPct,
     intermediacaoPct,
     intermediacaoDeInc,

@@ -3,17 +3,18 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { calcular, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
+import { IMPLANTA_PADRAO, PAVIMENTOS, REGIOES, type Implanta, type Regiao } from "@/lib/orcamento2026";
 
 /**
  * Formulário no mesmo layout da aba "Dados do Parcelamento de Solo" da planilha:
  * as células azuis são as que se digita; as brancas o sistema calcula na hora.
  */
 
-type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas";
+type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas" | "meses";
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
-const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas" };
-const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual", "ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1"];
+const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas", meses: "meses" };
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual", "ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1", "mesesObra", "investidorPct"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -47,6 +48,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", intermediacaoPct: "pct", custoInfraM2: "brl", extensaoRede: "m",
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", compLote: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
   ipcaE1: "pct", jurosAnoE1: "pct", jurosMesE1: "pct", entradaPctE1: "pct", multiplicadorE1: "num", anosE1: "anos",
+  mesesObra: "meses", investidorPct: "pct",
 };
 
 /**
@@ -159,7 +161,11 @@ export function useStudyState(initial: StudyInputs) {
   function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
     setInputs((s) => ({ ...s, ...c }));
   }
-  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor };
+  /** Planilha nova (proposta de teste): região, pavimento, energia e o que será implantado */
+  function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta> }) {
+    setInputs((s) => ({ ...s, ...c, implanta: c.implanta ? { ...s.implanta, ...c.implanta } : s.implanta }));
+  }
+  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setOrcamento };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -381,8 +387,14 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
         <div className="grid content-start gap-4">
           {/* Dados que a planilha não tem, usados no site da proposta */}
           <Box n={6} title="Infraestrutura e securitização">
-            <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
-            <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
+            {i.planilhaNova ? (
+              <OrcamentoNovo s={s} r={r} />
+            ) : (
+              <>
+                <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
+                <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
+              </>
+            )}
             <In s={s} k="desagio" label="Deságio da antecipação" />
             <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
             {/* o mesmo valor da conta da antecipação na proposta: carteira do terrenista − deságio */}
@@ -396,6 +408,19 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100)} sufixo="%" strong />
             <Out label="VGV Terrenista à vista" value={fmtBRL(r.vgvAvistaTer)} navy />
             <Out label={`VGV Terrenista a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.principal.carteiraTer)} navy />
+            {/* planilha nova (teste): investidor, sai da parte do incorporador; ainda não aparece na proposta */}
+            {i.planilhaNova && (
+              <>
+                <In s={s} k="investidorPct" label="Investidor (%)" hint="Sai da parte do incorporador. Vazio = sem investidor" />
+                {r.investidor && (
+                  <>
+                    <Out label="Incorporador líquido (−investidor)" value={fmtNum(r.investidor.incLiquidoPct * 100)} sufixo="%" />
+                    <Out label="VGV Investidor à vista" value={fmtBRL(r.investidor.vgvAvista)} navy />
+                    <Out label={`VGV Investidor a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.investidor.carteira)} navy />
+                  </>
+                )}
+              </>
+            )}
             <In s={s} k="intermediacaoPct" label="Corretor da intermediação (%)" hint="Opcional. O percentual incide sobre os % de quem paga (os do incorporador, os do terrenista ou os dois). O do incorporador sai da parte da JBL; as obras não mudam. Vazio = sem corretor" />
             {r.intermediacaoPct > 0 && (
               <>
@@ -545,6 +570,78 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
       </div>
     </div>
     </LarguraCtx.Provider>
+  );
+}
+
+/** Planilha nova (proposta de teste): orçamento das obras item a item, com os preços da região */
+function OrcamentoNovo({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+  const i = r.inputs;
+  const orc = r.orcamento!;
+  const imp = { ...IMPLANTA_PADRAO, ...i.implanta };
+  const sel = "rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] px-2 py-1 text-[13px] font-semibold text-navy outline-none focus:border-gold";
+  const linha = "grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1";
+  const grupoChave: Record<string, keyof Implanta | null> = {
+    "Canteiro de obra": "canteiro", Energia: "energia", Pavimentação: null, "Rede de água": "agua", "Rede de esgoto": "esgoto", Drenagem: "drenagem", Paisagismo: "paisagismo",
+  };
+  return (
+    <>
+      <p className="bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
+        Teste da planilha nova: custo das obras pelo orçamento item a item, com os preços da região (só nesta proposta).
+      </p>
+      <label className={linha}>
+        <span className="text-[13px] font-semibold text-navy">Região do empreendimento</span>
+        <select className={sel} value={orc.regiao} onChange={(e) => s.setOrcamento({ regiao: e.target.value as Regiao })}>
+          {REGIOES.map((x) => <option key={x}>{x}</option>)}
+        </select>
+      </label>
+      <label className={linha}>
+        <span className="text-[13px] font-semibold text-navy">Pavimento</span>
+        <select className={sel} value={i.pavimento || "Cascalhamento"} onChange={(e) => s.setOrcamento({ pavimento: e.target.value })}>
+          {Object.keys(PAVIMENTOS).map((x) => <option key={x}>{x}</option>)}
+        </select>
+      </label>
+      <label className={linha}>
+        <span className="text-[13px] font-semibold text-navy">Rede de energia</span>
+        <select className={sel} value={i.energiaTipo ?? "aerea"} onChange={(e) => s.setOrcamento({ energiaTipo: e.target.value as "aerea" | "subterranea" })}>
+          <option value="aerea">Aérea</option>
+          <option value="subterranea">Subterrânea</option>
+        </select>
+      </label>
+      {imp.canteiro && <In s={s} k="mesesObra" label="Meses de obra (custos mensais do canteiro)" />}
+      {orc.grupos.map((g) => {
+        const chave = grupoChave[g.nome];
+        return (
+          <details key={g.nome} className="px-3 py-1">
+            <summary className="flex cursor-pointer items-center justify-between gap-2 text-[13px] font-semibold text-navy">
+              <span className="flex items-center gap-2">
+                {chave && (
+                  <input
+                    type="checkbox"
+                    checked={imp[chave]}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => s.setOrcamento({ implanta: { [chave]: e.target.checked } })}
+                    title="Implantará?"
+                  />
+                )}
+                {g.nome}
+              </span>
+              <span className={`tabular ${g.implanta ? "" : "text-navy/40 line-through"}`}>{fmtBRL(g.implanta ? g.total : 0)}</span>
+            </summary>
+            <div className="mt-1 space-y-0.5 text-[12px] text-ink">
+              {g.itens.map((x) => (
+                <div key={x.nome} className="flex justify-between gap-2">
+                  <span>{x.nome}: {x.unid === "×" ? `20% de ${fmtBRL(x.preco)}` : `${fmtNum(x.qtd)} ${x.unid} × ${fmtBRL(x.preco)}`}</span>
+                  <span className="tabular">{fmtBRL(x.total)}</span>
+                </div>
+              ))}
+              {g.aProjetar && <p className="font-semibold text-amber-800">{g.aProjetar}</p>}
+            </div>
+          </details>
+        );
+      })}
+      <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
+      <Out label="Equivale por m² da área aproveitável" value={`${fmtBRL(r.custoInfraM2)}/m²`} />
+    </>
   );
 }
 

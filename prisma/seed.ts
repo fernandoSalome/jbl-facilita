@@ -4,6 +4,8 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { regiaoDaUf } from "../src/lib/orcamento2026";
+import { newToken } from "../src/lib/token";
 import { FORMATOS, FORMATOS_INICIAIS, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
@@ -62,6 +64,7 @@ async function main() {
   await celularDoMarceloCorrigido();
   await obrasDoChacreamentoAbertoNoCondominio();
   await pctDaEtapaSobreAproveitavelNasEnviadas();
+  await testePlanilhaNovaSaoFrancisco();
 }
 
 /**
@@ -70,6 +73,46 @@ async function main() {
  * como o cliente recebeu (marca e1PctAproveitavel nos dados da planilha). Só olha o que aconteceu antes
  * do corte, então rodar de novo não marca proposta enviada depois.
  */
+/**
+ * Pedido do Fernando (02/11/2026): testar a planilha nova (JBL_Planilha(+)Infra, 01/11/2026) numa cópia da
+ * proposta de São Francisco, sem mexer em nenhuma outra. A cópia (rascunho, link novo) ganha a marca
+ * planilhaNova: custo das obras pelo orçamento item a item com os preços da região e o campo do investidor.
+ * A original não muda. Roda uma vez só: se já existe uma proposta com a marca (mesmo apagada), não faz nada.
+ */
+async function testePlanilhaNovaSaoFrancisco() {
+  const [{ n }] = await db.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "Proposal" WHERE "inputs" ? 'planilhaNova'`;
+  if (n > 0) return;
+  const projetos = await db.project.findMany({
+    where: { deletedAt: null, name: { contains: "Francisco", mode: "insensitive" } },
+    orderBy: { updatedAt: "desc" },
+  });
+  const ids = projetos.map((p) => p.id);
+  const original = await db.proposal.findFirst({
+    where: { deletedAt: null, OR: [{ projectId: { in: ids } }, { name: { contains: "Francisco", mode: "insensitive" } }] },
+    orderBy: { updatedAt: "desc" },
+    include: { project: true },
+  });
+  if (!original) return console.log("Teste da planilha nova: nenhuma proposta de São Francisco encontrada");
+  const { e1PctAproveitavel: _antiga, ...inputs } = (original.inputs ?? {}) as Record<string, unknown>;
+  const copia = await db.proposal.create({
+    data: {
+      projectId: original.projectId,
+      templateId: original.templateId,
+      formato: original.formato,
+      formatoVersionId: original.formatoVersionId,
+      name: `${original.name} (planilha nova)`,
+      ownerName: original.ownerName,
+      ownerPhone: original.ownerPhone,
+      inputs: { ...inputs, planilhaNova: true, regiao: regiaoDaUf(original.project.uf) },
+      options: original.options ?? {},
+      overrides: original.overrides ?? {},
+      publicToken: newToken(),
+      createdById: original.createdById,
+    },
+  });
+  console.log(`Teste da planilha nova: "${copia.name}" criada a partir de "${original.name}" (${original.project.name}, ${original.project.uf ?? "sem UF"} → ${regiaoDaUf(original.project.uf)})`);
+}
+
 async function pctDaEtapaSobreAproveitavelNasEnviadas() {
   const CORTE = new Date("2026-11-02T06:00:00Z");
   // SQL direto: só acrescenta a marca, sem mexer na data de alteração da proposta
