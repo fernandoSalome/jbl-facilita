@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         name: b.name.trim(),
         ownerName: b.ownerName.trim(),
         ownerPhone: b.ownerPhone?.trim() || null,
-        inputs: parseInputs(b.inputs),
+        inputs: { ...parseInputs(b.inputs), e1PctAproveitavel: undefined },
         options: parseOptions(b.options),
         publicToken: newToken(),
         createdById: s.sub,

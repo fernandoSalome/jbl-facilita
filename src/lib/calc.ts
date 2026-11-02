@@ -109,6 +109,11 @@ export type StudyInputs = {
    * "a definir". Sem ele (propostas antigas), vazio = o do estudo.
    */
   finE1Exigido?: boolean;
+  /**
+   * Proposta enviada ou bloqueada antes de 02/11/2026: o % da 1ª etapa no texto da proposta continua sobre a
+   * área aproveitável (como foi enviada). As outras mostram o % sobre a área total do terreno.
+   */
+  e1PctAproveitavel?: boolean;
   /** Taxas digitadas no índice próprio da etapa, guardadas enquanto ela usa "todas as etapas" */
   taxasE1Proprias?: { ipca: number | null; jurosAno: number | null; jurosMes: number | null } | null;
   indiceE1: string | null;
@@ -293,7 +298,7 @@ export type StudyResult = {
    * à vista = lotes × lote × m² da etapa; a prazo com o financiamento do estudo.
    */
   etapa1: {
-    lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; avista: number;
+    lotes: number; lote: number; valorM2: number; areaUtil: number; pct: number; pctTotal: number; avista: number;
     /** VGV a prazo da etapa, com o financiamento dela (fin.cenario.carteiraEmp). null = financiamento não preenchido */
     prazo: number | null;
     /** Reajuste e recebimentos da etapa. null = falta preencher (obrigatório) */
@@ -483,7 +488,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       const parcelaContratoE = nova2026 ? parcelaE / 0.9 : parcelaE;
       const cen = nE > 0 ? cenario(nE, valorLoteE - entradaE, multE, qtd, reajE, inc, nova2026 ? entradaE * qtd : 0) : cenario(1, 0, 0, 0, 0, 0);
       etapa1 = {
-        lotes: qtd, lote, valorM2: valorM2E, areaUtil: qtd * lote, pct: (qtd * lote) / areaUtil, avista, quadras,
+        lotes: qtd, lote, valorM2: valorM2E, areaUtil: qtd * lote, pct: (qtd * lote) / areaUtil, pctTotal: i.areaTotal > 0 ? (qtd * lote) / i.areaTotal : 0, avista, quadras,
         prazo: falta ? null : cen.carteiraEmp,
         fin: falta ? null : {
           indice: i.indiceE1 || i.indice, reajuste: reajE, valorLote: valorLoteE, entrada: entradaE, nParcelas: nE, parcela: parcelaE,

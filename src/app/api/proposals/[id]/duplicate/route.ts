@@ -15,7 +15,8 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
         name: `${p.name} (cópia)`,
         ownerName: p.ownerName,
         ownerPhone: p.ownerPhone,
-        inputs: p.inputs ?? {},
+        // a cópia é uma proposta nova: o % da 1ª etapa vai sobre a área total, mesmo vindo de uma enviada antiga
+        inputs: semMarcaAntiga(p.inputs) as object,
         options: p.options ?? {},
         overrides: p.overrides ?? {},
         publicToken: newToken(),
@@ -24,4 +25,10 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
     });
     return json({ id: copy.id });
   });
+}
+
+function semMarcaAntiga(v: unknown) {
+  if (!v || typeof v !== "object") return {};
+  const { e1PctAproveitavel: _antiga, ...resto } = v as Record<string, unknown>;
+  return resto;
 }

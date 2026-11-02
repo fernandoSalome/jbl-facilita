@@ -10,9 +10,9 @@ export const FORMATOS = [
   "loteamento_aberto",
   "condominio_urbano",
   "chacreamento_aberto",
-  "chacreamento_condominio",
   // chacreamento com as obras e benfeitorias do urbano correspondente (lei e tamanhos do chacreamento)
   "chacreamento_aberto_infra",
+  "chacreamento_condominio",
   "chacreamento_condominio_infra",
 ] as const;
 export type FormatoKey = (typeof FORMATOS)[number];

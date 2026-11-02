@@ -61,6 +61,24 @@ async function main() {
   await minutasComSedeEmBarueri();
   await celularDoMarceloCorrigido();
   await obrasDoChacreamentoAbertoNoCondominio();
+  await pctDaEtapaSobreAproveitavelNasEnviadas();
+}
+
+/**
+ * Pedido do Fernando (02/11/2026): o % da 1ª etapa na proposta passa a ser sobre a área total do terreno,
+ * menos nas propostas já enviadas ou bloqueadas até a mudança: nelas fica sobre a área aproveitável,
+ * como o cliente recebeu (marca e1PctAproveitavel nos dados da planilha). Só olha o que aconteceu antes
+ * do corte, então rodar de novo não marca proposta enviada depois.
+ */
+async function pctDaEtapaSobreAproveitavelNasEnviadas() {
+  const CORTE = new Date("2026-11-02T06:00:00Z");
+  // SQL direto: só acrescenta a marca, sem mexer na data de alteração da proposta
+  const n = await db.$executeRaw`
+    UPDATE "Proposal" SET "inputs" = "inputs" || '{"e1PctAproveitavel": true}'::jsonb
+    WHERE "createdAt" < ${CORTE}
+      AND NOT ("inputs" ? 'e1PctAproveitavel')
+      AND ("publishedAt" < ${CORTE} OR "lockedAt" < ${CORTE} OR ("status" <> 'rascunho' AND "publishedAt" IS NULL))`;
+  if (n) console.log(`% da 1ª etapa sobre a área aproveitável mantido em ${n} proposta(s) enviada(s) ou bloqueada(s)`);
 }
 
 /**

@@ -230,6 +230,11 @@ function etapaComNumeros(t: string, html: boolean) {
     });
 }
 
+/** Igual, com o % sobre a área total do terreno: o texto salvo que falava em "área aproveitável" acompanha */
+function etapaSobreTotal(t: string, html: boolean) {
+  return etapaComNumeros(t, html).replace(/da área aproveitável/, "da área total do terreno");
+}
+
 /** Setas douradas entre as contas do VGV (mesma lógica do site) */
 function useChainArrows(ref: React.RefObject<HTMLDivElement>, deps: unknown[]) {
   useEffect(() => {
@@ -461,8 +466,9 @@ export default function JblPadrao(props: TemplateProps) {
     // primeira etapa "a definir": os números do texto ficam "a definir"
     e1Lotes: r.etapa1 ? fmtNum(r.etapa1.lotes, 2) : r.etapa1ADefinir ? "a definir" : "",
     e1Lote: r.etapa1 ? fmtNum(r.etapa1.lote, 2) : r.etapa1ADefinir ? "a definir" : "",
-    e1Pct: r.etapa1 ? fmtNum(r.etapa1.pct * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
-    // área da etapa: perímetro × fundo (pelas medidas das quadras); o % continua o dos lotes sobre a área aproveitável
+    // % dos lotes da etapa sobre a área total do terreno (as enviadas antes de 02/11/2026 seguem sobre a aproveitável)
+    e1Pct: r.etapa1 ? fmtNum((inputs.e1PctAproveitavel ? r.etapa1.pct : r.etapa1.pctTotal) * 100, 2) : r.etapa1ADefinir ? "a definir" : "",
+    // área da etapa: perímetro × fundo (pelas medidas das quadras)
     e1Area: r.etapa1 ? fmtNum(r.etapa1.areaUtil) : r.etapa1ADefinir ? "a definir" : "",
   };
 
@@ -836,7 +842,7 @@ export default function JblPadrao(props: TemplateProps) {
                 <h2><T k="e1Titulo">A primeira etapa</T></h2>
               </div></div>
               <div className="content">
-                <p className="tip gold tip-full"><T k="e1t2" html vars={nv} limpar={etapaComNumeros}>{"Identificada a possibilidade de lançamento da primeira etapa para <strong>{{e1Lotes}}</strong> lotes de <strong>{{e1Lote}}</strong> m², utilizando <strong>{{e1Area}}</strong> m² (<strong>{{e1Pct}}</strong>%) da área aproveitável.<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura."}</T></p>
+                <p className="tip gold tip-full"><T k="e1t2" html vars={nv} limpar={inputs.e1PctAproveitavel ? etapaComNumeros : etapaSobreTotal}>{"Identificada a possibilidade de lançamento da primeira etapa para <strong>{{e1Lotes}}</strong> lotes de <strong>{{e1Lote}}</strong> m², utilizando <strong>{{e1Area}}</strong> m² (<strong>{{e1Pct}}</strong>%) da " + (inputs.e1PctAproveitavel ? "área aproveitável" : "área total do terreno") + ".<br><br>As vendas podem começar antes de tudo ficar pronto. A primeira etapa é lançada em média até <strong>120 dias</strong> após o protocolo do projeto na prefeitura."}</T></p>
                 <div className="tiles two" style={{ marginTop: 22 }}>
                   <div className="tile"><div className="k"><T k="e1k1">VGV parcial à vista</T></div><div className="v num"><V k="e1v1">{r.etapa1 ? fmtBRL(r.etapa1.avista) : "a definir"}</V></div><div className="d"><T k="e1d1">Receita estimada da primeira etapa</T></div></div>
                   <div className="tile hl"><div className="k"><T k="e1k2" vars={{ ...nv, n: r.etapa1?.fin ? String(r.etapa1.fin.nParcelas) : "—" }}>{"VGV parcial em {{n}} meses"}</T></div><div className="v num v-big"><V k="e1v2">{r.etapa1?.prazo != null ? fmtBRL(r.etapa1.prazo) : "a definir"}</V></div><div className="d"><T k="e1d2">Projeção com correção e juros.</T></div></div>

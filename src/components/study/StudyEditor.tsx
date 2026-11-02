@@ -322,7 +322,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <Out label="Metragem do Lote (frente × comprimento)" value={i.frenteLote > 0 && i.compLote && i.compLote > 0 ? `${fmtNum(i.metragemLote)} m²` : "— preencha frente e comprimento"} strong />
             <In s={s} k="larguraVia" label="Largura da via (m)" hint="Planilha 2026, C8: rua + calçadas" />
             <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Planilha 2026, C9: cada lado" />
-            <In s={s} k="viasPct" label="Vias (%)" hint={`Planilha 2026, C10: entra nas ruas, redes, calçadas, guias, energia e drenagem. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável. Para bater com a planilha do engenheiro, preencha`} />
+            <In s={s} k="viasPct" label="Vias (%)" ph={`${toText(Math.max(0, 1 - i.aproveitamento) / 2, "pct")} (automático)`} hint={`Planilha 2026, C10: entra nas ruas, redes, calçadas, guias, energia e drenagem. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável. Para bater com a planilha do engenheiro, preencha`} />
             <In s={s} k="quadraMax" label="Tamanho máximo da quadra (m)" hint="Planilha 2026, C14: entra nos poços de visita, bocas de lobo e bigode. Vazio = esses itens ficam “A projetar”" />
             <Out label="Total de Lotes" value={fmtNum(r.lotes, 2)} strong />
           </Box>
