@@ -26,7 +26,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
       if (typeof b.name === "string" && b.name.trim()) data.name = b.name.trim();
       if (typeof b.ownerName === "string" && b.ownerName.trim()) data.ownerName = b.ownerName.trim();
       if (typeof b.ownerPhone === "string") data.ownerPhone = b.ownerPhone.trim() || null;
-      if (b.inputs) data.inputs = parseInputs(b.inputs);
+      if (b.inputs) {
+        // marcas que só o servidor muda: uma tela aberta antes da mudança não pode desfazê-las ao gravar.
+        // A 1ª etapa sobre a área aproveitável só fica nas bloqueadas (que não gravam); a planilha nova fica.
+        const atual = (p.inputs ?? {}) as Record<string, unknown>;
+        const { e1PctAproveitavel: _antiga, ...novo } = parseInputs(b.inputs);
+        data.inputs = atual.planilhaNova ? { ...novo, planilhaNova: true, regiao: novo.regiao ?? atual.regiao } : novo;
+      }
       if (b.options) {
         const antes = parseOptions(p.options);
         const depois = parseOptions({ ...(p.options as object), ...b.options });
