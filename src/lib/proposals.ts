@@ -70,6 +70,12 @@ export function parseInputs(json: unknown): StudyInputs {
   return i;
 }
 
+/** Página pública e PDF: sem as observações internas da planilha */
+export function semObservacoes(i: StudyInputs): StudyInputs {
+  const { obsGleba: _g, obsEtapa1: _e, ...resto } = i;
+  return resto;
+}
+
 export function parseOptions(json: unknown): ProposalOptions {
   return { ...DEFAULT_OPTIONS, ...((json as Partial<ProposalOptions>) ?? {}) };
 }

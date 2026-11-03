@@ -165,7 +165,11 @@ export function useStudyState(initial: StudyInputs) {
   function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta>; obrasPorM2?: boolean }) {
     setInputs((s) => ({ ...s, ...c, implanta: c.implanta ? { ...s.implanta, ...c.implanta } : s.implanta }));
   }
-  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setOrcamento };
+  /** Observações internas da planilha (texto livre, salva junto com os números) */
+  function setObs(k: "obsGleba" | "obsEtapa1", texto: string) {
+    setInputs((s) => ({ ...s, [k]: texto }));
+  }
+  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setOrcamento, setObs };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -195,6 +199,28 @@ function Parte({ children }: { children: React.ReactNode }) {
 
 function Sub({ children, n }: { children: React.ReactNode; n?: number }) {
   return <div className="flex items-center gap-2 bg-navy/90 px-3 py-1 text-left text-[12px] font-bold text-white">{n && <Num n={n} />}{children}</div>;
+}
+
+/**
+ * Bloco de observações da equipe: só aparece aqui na planilha (nunca na proposta pública nem no PDF).
+ * Ocupa o espaço que sobra na coluna e salva junto com os números.
+ */
+function Observacoes({ s, k, titulo, n }: { s: State; k: "obsGleba" | "obsEtapa1"; titulo: string; n?: number }) {
+  return (
+    <div className="flex min-h-[150px] flex-1 flex-col">
+      <div className="flex items-center justify-between gap-2 bg-navy/90 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
+        <span className="flex items-center gap-2">{n && <Num n={n} />}{titulo}</span>
+        <span className="font-semibold normal-case tracking-normal text-white/70">🔒 uso interno</span>
+      </div>
+      <textarea
+        value={s.inputs[k] ?? ""}
+        onChange={(e) => s.setObs(k, e.target.value)}
+        placeholder="Anotações da equipe sobre esta planilha. Não aparecem na proposta nem no PDF."
+        aria-label={titulo}
+        className="min-h-[110px] w-full flex-1 resize-y border-0 bg-[#FFFCF3] px-3 py-2 text-[13px] leading-relaxed text-ink outline-none placeholder:text-navy/35 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-gold-soft"
+      />
+    </div>
+  );
 }
 
 /**
@@ -316,8 +342,8 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
       <Parte>Gleba Geral</Parte>
 
       <div className={`grid gap-4 ${w >= 1000 ? "grid-cols-3" : w >= 720 ? "grid-cols-2" : ""}`}>
-        {/* coluna 1 */}
-        <div className="grid content-start gap-4">
+        {/* coluna 1 (as observações ocupam o espaço que sobra embaixo) */}
+        <div className="flex flex-col gap-4">
           <Box n={1} title="Dados do Parcelamento de Solo" right="Dados">
             <In s={s} k="areaTotal" label="Tamanho da Área (m²)" />
             <In s={s} k="aproveitamento" label="Aproveitamento %" />
@@ -340,6 +366,9 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <In s={s} k="corretorPct" label="Corretor (%)" />
             <Out label="Valor" value={fmtBRL(r.comissao)} />
           </Box>
+          <div className="flex flex-1 flex-col overflow-hidden rounded-sm border border-gold/70 bg-white">
+            <Observacoes s={s} k="obsGleba" titulo="Observações da planilha" />
+          </div>
         </div>
 
         {/* coluna 2 */}
@@ -757,7 +786,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
   const indice = i.indiceE1 || i.indice;
   return (
     <div className={`grid border-t border-gold/30 ${largo ? "grid-cols-2 divide-x divide-gold/30" : ""}`}>
-      <div className="divide-y divide-gold/30">
+      <div className="flex flex-col divide-y divide-gold/30">
         <Titulo n={2}>Reajuste da 1ª etapa</Titulo>
         <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
           <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
@@ -773,6 +802,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
         <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} erro={falta("jurosMesE1")} />
         <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
         <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
+        <Observacoes s={s} k="obsEtapa1" titulo="Observações da 1ª etapa" />
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo n={3}>Recebimentos da 1ª etapa</Titulo>

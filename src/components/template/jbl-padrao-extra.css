@@ -320,3 +320,7 @@
 @media (max-width: 760px) {
   .jblt .tbl-bank tr.so-mob { display: block; }
 }
+
+/* carta de intenção: campos obrigatórios (*) e os que faltaram no envio */
+.jblt .field .req { color: #B3261E; font-weight: 700; }
+.jblt .field.invalid input, .jblt .field.invalid select { border-color: #B3261E; box-shadow: 0 0 0 1px #B3261E; }

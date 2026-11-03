@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
+import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides, semObservacoes } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
 import { contentForProposal } from "@/lib/formato-server";
 import { chaveDeImpressao, pdfKeyOf } from "@/lib/pdf";
@@ -69,11 +69,12 @@ export default async function PublicProposal({ params, searchParams }: { params:
       token={p.publicToken}
       project={p.project}
       ownerName={p.ownerName}
-      inputs={parseInputs(p.inputs)}
+      inputs={semObservacoes(parseInputs(p.inputs))}
       options={parseOptions(p.options)}
       overrides={parseOverrides(p.overrides)}
       date={dataDaProposta({ ...p, options: parseOptions(p.options) }).toISOString()}
       cartaProtocolo={carta?.protocolo ?? null}
+      bloqueada={!!p.lockedAt}
     />
   );
 }

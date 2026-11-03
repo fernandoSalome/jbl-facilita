@@ -503,6 +503,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
             pdfUrl={`/api/public/${p.publicToken}/pdf`}
             pdfPages={p.pdfPages}
             pdfVersao={gravacoes}
+            bloqueada={bloqueada}
             formato={formato}
             project={project}
             ownerName={data.meta.ownerName}

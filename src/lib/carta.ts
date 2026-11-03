@@ -32,6 +32,71 @@ export const SEDE_ANTIGA = "Rua Ribeirão Claro, 655 – Bairro: Vila Olímpia, 
 /** Texto salvo antes dos campos da JBL (com o sócio e a sede escritos): passa a usar os campos */
 export const comCamposDaJbl = (t: string) => t.split(SOCIO_JBL).join("{{jbl_socio}}").split(SEDE_ANTIGA).join("{{jbl_sede}}");
 
+/**
+ * Estado civil sem cônjuge (solteiro, divorciado, viúvo): a seção 02 (casamento e cônjuge)
+ * some do formulário e os dados dela não seguem com a carta.
+ */
+export const semConjuge = (estadoCivil: string | undefined) => /^\s*(solteir|divorciad|vi[uú]v)/i.test(estadoCivil ?? "");
+
+/** Campos da seção 02 (casamento e cônjuge) */
+export const CAMPOS_CONJUGE = ["c_data", "c_regime", "c_matricula", "c_rcpn", "c_municipio", "j_nome", "j_cpf", "j_rg", "j_nac", "j_prof", "j_nasc", "j_natural"];
+
+/** Sem cônjuge: os campos da seção 02 ficam vazios (rascunho antigo, troca de estado civil) */
+export const limparConjuge = (v: Campos): Campos =>
+  semConjuge(v.estado_civil) ? { ...v, ...Object.fromEntries(CAMPOS_CONJUGE.map((k) => [k, ""])) } : v;
+
+/** Obrigatórios da carta (menos nas propostas bloqueadas): campo do formulário, onde fica no envio e o nome */
+const OBRIG_PROPRIETARIO: [string, string, string, string][] = [
+  ["p_nome", "proprietario", "nome", "Nome completo"],
+  ["p_cpf", "proprietario", "cpf", "CPF"],
+  ["p_rg", "proprietario", "rg", "RG"],
+  ["p_nac", "proprietario", "nacionalidade", "Nacionalidade"],
+  ["p_prof", "proprietario", "profissao", "Profissão"],
+  ["p_nasc", "proprietario", "nascimento", "Data de nascimento"],
+  ["p_natural", "proprietario", "naturalidade", "Natural de (cidade/UF)"],
+  ["p_end", "proprietario", "endereco", "Endereço residencial"],
+  ["estado_civil", "casamento", "estadoCivil", "Estado civil"],
+];
+const OBRIG_CONJUGE: [string, string, string, string][] = [
+  ["c_data", "casamento", "data", "Data do casamento"],
+  ["c_regime", "casamento", "regime", "Regime de bens"],
+  ["c_matricula", "casamento", "matricula", "Matrícula da certidão de casamento"],
+  ["c_rcpn", "casamento", "rcpn", "RCPN / cartório do registro civil"],
+  ["c_municipio", "casamento", "municipio", "Município / comarca do casamento"],
+  ["j_nome", "conjuge", "nome", "Nome completo do cônjuge"],
+  ["j_cpf", "conjuge", "cpf", "CPF do cônjuge"],
+  ["j_rg", "conjuge", "rg", "RG do cônjuge"],
+  ["j_nac", "conjuge", "nacionalidade", "Nacionalidade do cônjuge"],
+  ["j_prof", "conjuge", "profissao", "Profissão do cônjuge"],
+  ["j_nasc", "conjuge", "nascimento", "Nascimento do cônjuge"],
+  ["j_natural", "conjuge", "naturalidade", "Cônjuge natural de (cidade/UF)"],
+];
+const CPFS = new Set(["p_cpf", "j_cpf"]);
+
+/** Campo é obrigatório com este estado civil (a seção 02 só não é quando não há cônjuge) */
+export const obrigatorio = (k: string, estadoCivil: string | undefined) =>
+  OBRIG_PROPRIETARIO.some(([c]) => c === k) || (!semConjuge(estadoCivil) && OBRIG_CONJUGE.some(([c]) => c === k));
+
+/**
+ * Campos obrigatórios que faltam (ou estão incompletos, no caso do CPF) nos dados enviados da carta.
+ * Vale no formulário e no servidor.
+ */
+export function faltandoNaCarta(b: Record<string, unknown>): { k: string; nome: string }[] {
+  const val = (grupo: string, campo: string) => {
+    const g = b?.[grupo];
+    return g && typeof g === "object" ? String((g as Record<string, unknown>)[campo] ?? "").trim() : "";
+  };
+  const estado = val("casamento", "estadoCivil");
+  const lista = semConjuge(estado) ? OBRIG_PROPRIETARIO : [...OBRIG_PROPRIETARIO, ...OBRIG_CONJUGE];
+  const out: { k: string; nome: string }[] = [];
+  for (const [k, grupo, campo, nome] of lista) {
+    const x = val(grupo, campo);
+    if (!x) out.push({ k, nome });
+    else if (CPFS.has(k) && x.replace(/\D/g, "").length !== 11) out.push({ k, nome: `${nome} (incompleto)` });
+  }
+  return out;
+}
+
 /** Valor de campo que já vem em HTML (negrito, lacunas): o editor coloca sem escapar */
 export const VAR_HTML = "\u0001";
 

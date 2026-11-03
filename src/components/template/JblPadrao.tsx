@@ -44,6 +44,8 @@ export type TemplateProps = {
   tipoLabel?: string;
   /** Página pública: protocolo da carta de intenção já enviada (mostra só o quadro do protocolo) */
   cartaProtocolo?: string | null;
+  /** Proposta bloqueada para edição: a carta de intenção segue como era (seção 02 sempre à vista, nada obrigatório) */
+  bloqueada?: boolean;
 };
 
 /** Texto do template. Chave "txt.<k>". */
@@ -1140,7 +1142,7 @@ export default function JblPadrao(props: TemplateProps) {
                   {/* o aviso de registro (intentAside2) fica embaixo do botão de enviar, no formulário */}
                 </div>
                 <hr className="intent-sep" />
-                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} data={new Date(props.date)} contatos={contatos} protocoloEnviado={props.cartaProtocolo ?? null} />
+                <IntentForm token={props.token} disabled={mode !== "public"} project={project} areaHa={ha} data={new Date(props.date)} contatos={contatos} protocoloEnviado={props.cartaProtocolo ?? null} bloqueada={!!props.bloqueada} />
               </div>
             </Sec>
           )}

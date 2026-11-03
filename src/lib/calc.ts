@@ -133,6 +133,9 @@ export type StudyInputs = {
   mesesObra: number | null;
   /** DADOS C17: % da sociedade do investidor (sai da parte do incorporador). Só aparece na planilha */
   investidorPct: number | null;
+  /** Observações da equipe na planilha (gleba geral e 1ª etapa): uso interno, nunca vão para a página pública nem para o PDF */
+  obsGleba?: string;
+  obsEtapa1?: string;
   /** Taxas digitadas no índice próprio da etapa, guardadas enquanto ela usa "todas as etapas" */
   taxasE1Proprias?: { ipca: number | null; jurosAno: number | null; jurosMes: number | null } | null;
   indiceE1: string | null;

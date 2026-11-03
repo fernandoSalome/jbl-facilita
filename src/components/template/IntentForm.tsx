@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { fmtNum } from "@/lib/format";
 import { E } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
-import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, comCamposDaJbl, TITULO, valoresCarta, varsDoEditor, type Campos, type Projeto } from "@/lib/carta";
+import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, comCamposDaJbl, faltandoNaCarta, limparConjuge, obrigatorio, semConjuge, TITULO, valoresCarta, varsDoEditor, type Campos, type Projeto } from "@/lib/carta";
 
 /**
  * Carta de intenção: formulário no layout do site da proposta (campos à esquerda,
@@ -43,6 +43,7 @@ export default function IntentForm({
   areaHa,
   contatos,
   data,
+  bloqueada,
 }: {
   token: string;
   disabled: boolean;
@@ -54,6 +55,8 @@ export default function IntentForm({
   contatos?: React.ReactNode;
   /** Protocolo da carta já enviada para esta proposta (vem do servidor: vale em qualquer aparelho) */
   protocoloEnviado?: string | null;
+  /** Proposta bloqueada: segue como era (seção 02 sempre à vista, nenhum campo obrigatório) */
+  bloqueada?: boolean;
 }) {
   const inicial = (): Campos => ({
     i_area: fmtNum(areaHa, 4),
@@ -94,27 +97,45 @@ export default function IntentForm({
       // armazenamento cheio ou bloqueado
     }
   }, [v, aceite, lido, chave, disabled]);
-  const g = (k: string) => (v[k] ?? "").trim();
+  // regras novas (menos nas propostas bloqueadas): campos obrigatórios e, sem cônjuge, a seção 02 some
+  const regras = !bloqueada;
+  const esconde02 = regras && semConjuge(v.estado_civil);
+  // sem cônjuge: o que ficou na seção 02 (rascunho, troca de estado civil) não vai para a carta
+  const vc = regras ? limparConjuge(v) : v;
+  const g = (k: string) => (vc[k] ?? "").trim();
+  const [tentou, setTentou] = useState(false);
   const on = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const m = MASCARAS[k];
     const val = m ? mascarar(e.target.value, m) : e.target.value;
     setV((o) => ({ ...o, [k]: val }));
   };
 
+  /** Dados que seguem para o servidor (sem o arquivo) */
+  const dados = () => ({
+    proprietario: { nome: g("p_nome"), cpf: g("p_cpf"), rg: g("p_rg"), nacionalidade: g("p_nac"), profissao: g("p_prof"), nascimento: g("p_nasc"), naturalidade: g("p_natural"), endereco: g("p_end"), telefone: g("p_tel"), email: g("p_email") },
+    casamento: { estadoCivil: g("estado_civil"), data: g("c_data"), regime: g("c_regime"), matricula: g("c_matricula"), rcpn: g("c_rcpn"), municipio: g("c_municipio") },
+    conjuge: { nome: g("j_nome"), cpf: g("j_cpf"), rg: g("j_rg"), nacionalidade: g("j_nac"), profissao: g("j_prof"), nascimento: g("j_nasc"), naturalidade: g("j_natural") },
+    imovel: { areaHa: g("i_area"), zona: g("i_zona"), municipio: g("i_municipio"), cartorio: g("i_cartorio"), matriculas: g("i_matriculas"), car: g("i_car") },
+    interesse: { modalidade: g("modalidade"), prazo: g("prazo"), reuniao: g("reuniao"), observacoes: g("obs") },
+  });
+  // depois da 1ª tentativa de envio, os campos que faltam ficam marcados (e saem da lista ao preencher)
+  const faltando = regras && tentou ? faltandoNaCarta(dados()) : [];
+  const marcados = new Set(faltando.map((f) => f.k));
+  const obrig = (k: string) => regras && obrigatorio(k, v.estado_civil);
+
   const L = ({ k, children, lk }: { k: string; children: string; lk?: string }) => (
-    // nenhum campo é obrigatório: o * não aparece
-    <label htmlFor={`ci-${k}`}><E k={`form.${lk ?? k}`}>{children}</E></label>
+    <label htmlFor={`ci-${k}`}><E k={`form.${lk ?? k}`}>{children}</E>{obrig(k) && <span className="req" aria-hidden="true"> *</span>}</label>
   );
   const I = ({ k, label, type = "text", ph, mode, lk }: { k: string; label: string; type?: string; ph?: string; mode?: "numeric" | "decimal"; lk?: string }) => (
-    <div className="field">
+    <div className={marcados.has(k) ? "field invalid" : "field"}>
       <L k={k} lk={lk}>{label}</L>
-      <input id={`ci-${k}`} type={type} inputMode={mode} value={v[k] ?? ""} onChange={on(k)} />
+      <input id={`ci-${k}`} type={type} inputMode={mode} value={v[k] ?? ""} onChange={on(k)} aria-required={obrig(k) || undefined} aria-invalid={marcados.has(k) || undefined} />
     </div>
   );
   const S = ({ k, label, opts }: { k: string; label: string; opts: [string, string][] }) => (
-    <div className="field">
+    <div className={marcados.has(k) ? "field invalid" : "field"}>
       <L k={k}>{label}</L>
-      <select id={`ci-${k}`} value={v[k] ?? ""} onChange={on(k)}>
+      <select id={`ci-${k}`} value={v[k] ?? ""} onChange={on(k)} aria-required={obrig(k) || undefined} aria-invalid={marcados.has(k) || undefined}>
         {opts.map(([val, txt]) => <option key={val} value={val}>{txt}</option>)}
       </select>
     </div>
@@ -143,22 +164,30 @@ export default function IntentForm({
     setFile(null);
     if (arquivo.current) arquivo.current.value = "";
     setErr("");
+    setTentou(false);
     limparRascunho();
   }
 
   async function enviar() {
     if (disabled) return setErr("Pré-visualização: o formulário só envia na página pública da proposta.");
+    if (regras) {
+      const f = faltandoNaCarta(dados());
+      if (f.length) {
+        setTentou(true);
+        setErr("");
+        const el = document.getElementById(`ci-${f[0].k}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        el?.focus({ preventScroll: true });
+        return;
+      }
+    }
     if (!aceite) return setErr("Marque a confirmação antes de enviar.");
     if (file && file.size > 6 * 1024 * 1024) return setErr("O arquivo da matrícula deve ter até 6 MB.");
     setErr("");
     setSending(true);
     try {
       const body = {
-        proprietario: { nome: g("p_nome"), cpf: g("p_cpf"), rg: g("p_rg"), nacionalidade: g("p_nac"), profissao: g("p_prof"), nascimento: g("p_nasc"), naturalidade: g("p_natural"), endereco: g("p_end"), telefone: g("p_tel"), email: g("p_email") },
-        casamento: { estadoCivil: g("estado_civil"), data: g("c_data"), regime: g("c_regime"), matricula: g("c_matricula"), rcpn: g("c_rcpn"), municipio: g("c_municipio") },
-        conjuge: { nome: g("j_nome"), cpf: g("j_cpf"), rg: g("j_rg"), nacionalidade: g("j_nac"), profissao: g("j_prof"), nascimento: g("j_nasc"), naturalidade: g("j_natural") },
-        imovel: { areaHa: g("i_area"), zona: g("i_zona"), municipio: g("i_municipio"), cartorio: g("i_cartorio"), matriculas: g("i_matriculas"), car: g("i_car") },
-        interesse: { modalidade: g("modalidade"), prazo: g("prazo"), reuniao: g("reuniao"), observacoes: g("obs") },
+        ...dados(),
         local: g("i_municipio"),
         data: new Date().toISOString().slice(0, 10),
         matricula: file && file.size > 0 ? await readFile(file) : null,
@@ -166,7 +195,10 @@ export default function IntentForm({
       };
       const r = await fetch(`/api/public/${token}/carta`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Não foi possível enviar.");
+      if (!r.ok) {
+        if (Array.isArray(d.faltam) && d.faltam.length) setTentou(true);
+        throw new Error(d.error || "Não foi possível enviar.");
+      }
       setProtocolo(d.protocolo);
       limparRascunho();
       // a carta enviada fica à vista no lugar do formulário
@@ -184,7 +216,7 @@ export default function IntentForm({
     ...(g("j_nome") ? [[g("j_nome"), `CPF: n.º ${g("j_cpf")}`] as [string, string]] : []),
   ];
 
-  const varsCarta = varsDoEditor(valoresCarta(v, project, data));
+  const varsCarta = varsDoEditor(valoresCarta(vc, project, data));
   const carta = (
     <div className="preview" aria-live="polite">
       <div className="minuta-aviso">
@@ -238,8 +270,11 @@ export default function IntentForm({
           {S({ k: "prazo", label: "Prazo de vendas que mais interessa", opts: [["a definir em reunião", "Ainda não sei"], ...[3, 5, 8, 10, 13, 15, 18, 20].map((a) => [`${a} anos (${a * 12} meses)`, `${a} anos`] as [string, string])] })}
         </fieldset>
 
-        <fieldset className="group"><legend><i>02</i><E k="form.grupo2b">Informações matrimoniais e cônjuge</E></legend>
-          <small className="muted"><E k="form.grupo2nota">Preencha quando aplicável. Todos os campos permanecem visíveis para facilitar a conferência.</E></small>
+        {/* solteiro, divorciado ou viúvo: a seção de casamento e cônjuge some (nas bloqueadas fica como era) */}
+        {!esconde02 && <fieldset className="group"><legend><i>02</i><E k="form.grupo2b">Informações matrimoniais e cônjuge</E></legend>
+          {regras
+            ? <small className="muted"><E k="form.grupo2nota2">Casado(a) ou em união estável: todos os campos desta seção são obrigatórios.</E></small>
+            : <small className="muted"><E k="form.grupo2nota">Preencha quando aplicável. Todos os campos permanecem visíveis para facilitar a conferência.</E></small>}
           <div className="row2">
             {I({ k: "c_data", label: "Data do casamento", type: "date" })}
             {S({ k: "c_regime", label: "Regime de bens", opts: [["", "Selecione"], ...["Comunhão parcial de bens", "Comunhão universal de bens", "Separação total de bens", "Separação obrigatória de bens", "Participação final nos aquestos"].map((x) => [x, x] as [string, string])] })}
@@ -250,9 +285,9 @@ export default function IntentForm({
           <div className="row2">{I({ k: "j_cpf", label: "CPF do cônjuge", mode: "numeric" })}{I({ k: "j_rg", label: "RG do cônjuge" })}</div>
           <div className="row2">{I({ k: "j_nac", label: "Nacionalidade do cônjuge" })}{I({ k: "j_prof", label: "Profissão do cônjuge" })}</div>
           <div className="row2">{I({ k: "j_nasc", label: "Nascimento do cônjuge", type: "date" })}{I({ k: "j_natural", label: "Cônjuge natural de (cidade/UF)" })}</div>
-        </fieldset>
+        </fieldset>}
 
-        <fieldset className="group"><legend><i>03</i><E k="form.grupo3b">Dados do imóvel</E></legend>
+        <fieldset className="group"><legend><i>{esconde02 ? "02" : "03"}</i><E k="form.grupo3b">Dados do imóvel</E></legend>
           <div className="row2">{I({ k: "i_area", label: "Área total em hectares", mode: "decimal" })}{I({ k: "i_zona", label: "Zona / localização" })}</div>
           <div className="row2">{I({ k: "i_municipio", label: "Município / UF" })}{I({ k: "i_matriculas", label: "Matrícula(s) do imóvel" })}</div>
           <div className="row2">{I({ k: "i_cartorio", label: "Cartório de Registro de Imóveis" })}{I({ k: "i_car", lk: "i_car2", label: "Número do CAR, quando aplicável" })}</div>
@@ -274,7 +309,8 @@ export default function IntentForm({
           <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
           <span><E k="form.aceite">Confirmo que tenho autorização para fornecer os dados informados e estou ciente de que eles serão registrados para análise, e de que esta é uma manifestação de interesse, não um contrato nem uma transferência do imóvel.</E></span>
         </label>
-        {err && <p className="err">{err}</p>}
+        {faltando.length > 0 && <p className="err" role="alert">Preencha os campos obrigatórios: {faltando.map((f) => f.nome).join(", ")}.</p>}
+        {err && !faltando.length && <p className="err">{err}</p>}
 
         <div className="actions">
           <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar3">Enviar dados para a minuta ↗</E>}</button>

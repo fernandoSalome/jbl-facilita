@@ -4,6 +4,7 @@ import { parseOptions } from "@/lib/proposals";
 import { newProtocolo } from "@/lib/token";
 import { avisarGrupos, dadosDaCarta, linkPortal, quemRecebeu } from "@/lib/avisos";
 import { linkMinutaPortal } from "@/lib/minuta-acoes";
+import { faltandoNaCarta, semConjuge } from "@/lib/carta";
 
 const MAX_FILE = 6 * 1024 * 1024;
 
@@ -13,8 +14,17 @@ export async function POST(req: Request, { params }: { params: { token: string }
   if (!parseOptions(p.options).cartaIntencao) return json({ error: "Esta proposta não recebe carta de intenção" }, 400);
 
   const b = await req.json().catch(() => null);
-  // nenhum campo é obrigatório; só confere que veio um formulário
   if (!b || typeof b !== "object" || typeof b.proprietario !== "object") return json({ error: "Formulário inválido." }, 400);
+  // solteiro, divorciado ou viúvo: os dados de casamento e cônjuge não seguem com a carta
+  if (semConjuge(b.casamento?.estadoCivil)) {
+    b.casamento = { estadoCivil: String(b.casamento.estadoCivil) };
+    b.conjuge = {};
+  }
+  // obrigatórios (menos nas propostas bloqueadas, que seguem como eram)
+  if (!p.lockedAt) {
+    const faltam = faltandoNaCarta(b);
+    if (faltam.length) return json({ error: `Preencha os campos obrigatórios: ${faltam.map((f) => f.nome).join(", ")}.`, faltam: faltam.map((f) => f.k) }, 400);
+  }
   if (b.matricula && (typeof b.matricula.data !== "string" || b.matricula.data.length > MAX_FILE * 1.4)) {
     return json({ error: "Arquivo da matrícula muito grande (máx. 6 MB)." }, 400);
   }

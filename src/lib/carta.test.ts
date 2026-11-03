@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BLOCOS_CARTA, cartaMontada, SEDE_ANTIGA, SEDE_JBL, SOCIO_JBL, valoresCarta } from "./carta";
+import { BLOCOS_CARTA, cartaMontada, faltandoNaCarta, limparConjuge, SEDE_ANTIGA, SEDE_JBL, semConjuge, SOCIO_JBL, valoresCarta } from "./carta";
 import { minutaInicial } from "./minuta";
 
 const projeto = { name: "Rancho Fundo", municipio: "Pontal", uf: "MT", matricula: null };
@@ -44,5 +44,38 @@ describe("carta de intenção editável", () => {
     expect(minutaInicial({}, projeto, new Date("2026-10-28T12:00:00"))).toContain(SEDE_JBL);
     const editado = { "carta.partes": `html:Sede na ${SEDE_ANTIGA}.` };
     expect(cartaMontada(editado, {}, projeto).blocos[1].html).toBe(`Sede na ${SEDE_JBL}.`);
+  });
+});
+
+describe("carta de intenção: obrigatórios e cônjuge", () => {
+  const prop = { nome: "Ana", cpf: "123.456.789-00", rg: "12.345.678-9", nacionalidade: "brasileira", profissao: "médica", nascimento: "1980-01-01", naturalidade: "Pontal/MT", endereco: "Rua A, 1" };
+  const conj = { nome: "Beto", cpf: "987.654.321-00", rg: "1", nacionalidade: "brasileiro", profissao: "x", nascimento: "1980-01-01", naturalidade: "y" };
+  const cas = { data: "2000-01-01", regime: "Comunhão parcial de bens", matricula: "1", rcpn: "2", municipio: "3" };
+
+  it("solteiro, divorciado e viúvo não têm cônjuge", () => {
+    for (const e of ["Solteiro(a)", "Divorciado(a)", "Viúvo(a)"]) expect(semConjuge(e)).toBe(true);
+    for (const e of ["Casado(a)", "União estável", ""]) expect(semConjuge(e)).toBe(false);
+  });
+
+  it("solteiro: só os dados do proprietário são obrigatórios", () => {
+    expect(faltandoNaCarta({ proprietario: prop, casamento: { estadoCivil: "Solteiro(a)" } })).toEqual([]);
+  });
+
+  it("casado: a seção 02 inteira é obrigatória", () => {
+    const f = faltandoNaCarta({ proprietario: prop, casamento: { estadoCivil: "Casado(a)" }, conjuge: {} }).map((x) => x.k);
+    expect(f).toEqual(expect.arrayContaining(["c_data", "c_regime", "j_nome", "j_cpf", "j_natural"]));
+    expect(faltandoNaCarta({ proprietario: prop, casamento: { estadoCivil: "União estável", ...cas }, conjuge: conj })).toEqual([]);
+  });
+
+  it("sem estado civil e com CPF incompleto: aponta", () => {
+    const f = faltandoNaCarta({ proprietario: { ...prop, cpf: "123" }, casamento: {} }).map((x) => x.k);
+    expect(f).toContain("estado_civil");
+    expect(f).toContain("p_cpf");
+    expect(f).toContain("j_nome");
+  });
+
+  it("limparConjuge apaga a seção 02 só sem cônjuge", () => {
+    expect(limparConjuge({ estado_civil: "Viúvo(a)", j_nome: "Beto" }).j_nome).toBe("");
+    expect(limparConjuge({ estado_civil: "Casado(a)", j_nome: "Beto" }).j_nome).toBe("Beto");
   });
 });
