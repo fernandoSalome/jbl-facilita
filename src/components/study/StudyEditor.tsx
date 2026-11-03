@@ -420,7 +420,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             {/* planilha nova: escolhe entre o orçamento item a item e o valor por m² digitado (o que aparece na proposta) */}
             {i.planilhaNova && (
               <div className="grid grid-cols-2 gap-1 px-3 py-2">
-                {([[false, "Orçamento da planilha nova"], [true, "Valor por m²"]] as const).map(([m2, rotulo]) => (
+                {([[true, "Valor do m² (Manual)"], [false, "Orçamento Planilhado"]] as const).map(([m2, rotulo]) => (
                   <button
                     key={rotulo}
                     type="button"
