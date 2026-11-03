@@ -118,8 +118,8 @@ export type StudyInputs = {
   e1PctAproveitavel?: boolean;
   /**
    * Planilha nova (JBL_Planilha(+)Infra, 01/11/2026): custo das obras pelo orçamento item a item com os preços
-   * da região (em vez de área × custo por m²) e o investidor. Vale para os rascunhos de 03/11/2026 e as
-   * propostas criadas depois; enviadas e bloqueadas seguem com área × custo por m².
+   * da região (em vez de área × custo por m²) e o investidor. Vale para todas as propostas, menos as
+   * bloqueadas (03/11/2026), que seguem com área × custo por m².
    */
   planilhaNova?: boolean;
   regiao?: Regiao;

@@ -65,7 +65,7 @@ async function main() {
   await obrasDoChacreamentoAbertoNoCondominio();
   await pctDaEtapaSobreAproveitavelNasEnviadas();
   await testePlanilhaNovaSaoFrancisco();
-  await planilhaNovaNosRascunhos();
+  await planilhaNovaEmTodas();
 }
 
 /**
@@ -115,21 +115,19 @@ async function testePlanilhaNovaSaoFrancisco() {
 }
 
 /**
- * Pedido do Fernando (03/11/2026): a planilha nova (orçamento das obras pela região, investidor) passa a valer
- * nos rascunhos e nas propostas novas. Enviadas (publicadas ou fora de rascunho) e bloqueadas não mudam.
- * Só acrescenta a marca e a região do estado do loteamento, sem mexer na data de alteração. Roda uma vez:
- * depois só sobram sem a marca as enviadas e as bloqueadas.
+ * Pedidos do Fernando: a planilha nova (orçamento das obras pela região, investidor) vale nos rascunhos e nas
+ * propostas novas (03/11/2026) e depois em todas, enviadas inclusive, menos as bloqueadas (03/11/2026).
+ * Só acrescenta a marca e a região do estado do loteamento, sem mexer na data de alteração.
  */
-async function planilhaNovaNosRascunhos() {
-  const rascunhos = await db.$queryRaw<{ id: string; uf: string | null }[]>`
+async function planilhaNovaEmTodas() {
+  const lista = await db.$queryRaw<{ id: string; uf: string | null }[]>`
     SELECT p."id", pr."uf" FROM "Proposal" p JOIN "Project" pr ON pr."id" = p."projectId"
-    WHERE p."status" = 'rascunho' AND p."publishedAt" IS NULL AND p."lockedAt" IS NULL
-      AND NOT (p."inputs" ? 'planilhaNova')`;
-  for (const r of rascunhos) {
+    WHERE p."lockedAt" IS NULL AND NOT (p."inputs" ? 'planilhaNova')`;
+  for (const r of lista) {
     const marca = JSON.stringify({ planilhaNova: true, regiao: regiaoDaUf(r.uf) });
     await db.$executeRaw`UPDATE "Proposal" SET "inputs" = ${marca}::jsonb || "inputs" WHERE "id" = ${r.id}`;
   }
-  if (rascunhos.length) console.log(`Planilha nova ligada em ${rascunhos.length} rascunho(s)`);
+  if (lista.length) console.log(`Planilha nova ligada em ${lista.length} proposta(s) não bloqueada(s)`);
 }
 
 async function pctDaEtapaSobreAproveitavelNasEnviadas() {

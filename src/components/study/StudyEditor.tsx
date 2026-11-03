@@ -228,11 +228,8 @@ function useCelula() {
 /** Números que a planilha precisa (vazio ou zero quebra as contas): ficam em vermelho com aviso */
 const OBRIGATORIOS: NumKey[] = ["areaTotal", "aproveitamento", "frenteLote", "compLote", "valorM2", "incorporadorPct", "multiplicador", "anos", "larguraVia"];
 
-/** auto: valor calculado quando o campo está vazio; aparece escrito na célula (digitar substitui) */
-function In({ s, k, label, disabled, nota, erro: erroProp, ph, auto }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string; auto?: number }) {
+function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string }) {
   const kind = KINDS[k]!;
-  const texto = s.texts[k] ?? "";
-  const automatico = auto !== undefined && !texto.trim();
   const celula = useCelula();
   const valor = s.inputs[k] as number | null;
   const erro = disabled ? null : erroProp !== undefined ? erroProp : OBRIGATORIOS.includes(k) && !(typeof valor === "number" && valor > 0) ? "Preencha com um número maior que zero" : null;
@@ -249,7 +246,7 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph, auto }: { s: Stat
             if (v !== null) s.set(k, toText(v, kind));
           }}
           disabled={disabled}
-          value={disabled ? "" : automatico ? toText(auto, kind) : texto}
+          value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
           placeholder={disabled ? "a definir" : ph ? ph : k === "valorM2Etapa1" ? "obrigatório" : ""}
           aria-invalid={!!erro}
@@ -259,7 +256,6 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph, auto }: { s: Stat
       </span>
       {erro && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] font-semibold text-rose-700">{erro}</span>}
       {nota && <span className="col-start-2 -mt-0.5 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
-      {automatico && !disabled && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] text-navy/60">automático</span>}
     </label>
   );
 }
@@ -332,7 +328,8 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <Out label="Metragem do Lote (frente × comprimento)" value={i.frenteLote > 0 && i.compLote && i.compLote > 0 ? `${fmtNum(i.metragemLote)} m²` : "— preencha frente e comprimento"} strong />
             <In s={s} k="larguraVia" label="Largura da via (m)" hint="Planilha 2026, C8: rua + calçadas" />
             <In s={s} k="larguraCalcada" label="Largura da calçada (m)" hint="Planilha 2026, C9: cada lado" />
-            <In s={s} k="viasPct" label="Vias (%)" auto={Math.max(0, 1 - i.aproveitamento) / 2} hint={`Planilha 2026, C10: entra nas ruas, redes, calçadas, guias, energia e drenagem. Vazio = ${fmtPct(Math.max(0, 1 - i.aproveitamento) / 2)}, metade da área que não é aproveitável. Para bater com a planilha do engenheiro, preencha`} />
+            {/* Planilha 2026, C10: só mostra (não dá para alterar em nenhuma proposta). Vazio = metade da área que não é aproveitável */}
+            <Out label="Vias (%)" value={toText(i.viasPct ?? Math.max(0, 1 - i.aproveitamento) / 2, "pct")} sufixo="%" />
             <In s={s} k="quadraMax" label="Tamanho máximo da quadra (m)" hint="Planilha 2026, C14: entra nos poços de visita, bocas de lobo e bigode. Vazio = esses itens ficam “A projetar”" />
             <Out label="Total de Lotes" value={fmtNum(r.lotes, 2)} strong />
           </Box>
