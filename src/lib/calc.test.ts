@@ -385,3 +385,27 @@ describe("planilha 2026 recalculada com os dados da Fazenda Rancho Fundo", () =>
     expect(r.infra.bocaLobo).toBe(50); // H67 = 49,71
   });
 });
+
+describe("obras sem a área da 1ª etapa (todas menos as bloqueadas)", () => {
+  const base = { ...parseInputs({}), areaTotal: 100000, aproveitamento: 0.6, custoInfraM2: 160, primeiraEtapa: true, lotesEtapa1: 100, loteEtapa1: 250, valorM2Etapa1: 600 };
+
+  it("com a marca: área aproveitável − lotes da 1ª etapa, e o custo acompanha", () => {
+    const r = calcular({ ...base, obrasSemEtapa1: true });
+    expect(r.areaE1Obras).toBe(25000);
+    expect(r.areaObras).toBe(60000 - 25000);
+    expect(r.custoInfra).toBe(35000 * 160);
+    expect(r.infraPct).toBeCloseTo(r.custoInfra / r.vgvAvista);
+  });
+
+  it("sem a marca (bloqueadas): como era", () => {
+    const r = calcular(base);
+    expect(r.areaE1Obras).toBe(0);
+    expect(r.areaObras).toBe(60000);
+    expect(r.custoInfra).toBe(60000 * 160);
+  });
+
+  it("1ª etapa desligada ou a definir: não desconta", () => {
+    expect(calcular({ ...base, obrasSemEtapa1: true, primeiraEtapa: false, lotesEtapa1: null }).areaObras).toBe(60000);
+    expect(calcular({ ...base, obrasSemEtapa1: true, etapaADefinir: true }).areaObras).toBe(60000);
+  });
+});

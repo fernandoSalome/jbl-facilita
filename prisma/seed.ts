@@ -68,6 +68,21 @@ async function main() {
   await planilhaNovaEmTodas();
   await dissipadorNosChacreamentos();
   await biodigestorPorLoteNosChacreamentos();
+  await obrasSemEtapa1EmTodas();
+}
+
+/**
+ * Pedido do Fernando (03/11/2026): o custo das obras na proposta passa a ser sobre a área aproveitável menos a
+ * área dos lotes da 1ª etapa, com os nomes embaixo dos números ("Área aproveitável − primeira etapa" ×
+ * "Valor construído do m²"). Todas as propostas menos as bloqueadas, que seguem como foram enviadas.
+ * Só acrescenta a marca, sem mexer na data de alteração, e descarta o PDF guardado (sai de novo com a conta nova).
+ * Rodar de novo não marca as que já têm.
+ */
+async function obrasSemEtapa1EmTodas() {
+  const n = await db.$executeRaw`
+    UPDATE "Proposal" SET "inputs" = '{"obrasSemEtapa1": true}'::jsonb || COALESCE("inputs", '{}'::jsonb), "pdfKey" = NULL
+    WHERE "lockedAt" IS NULL AND NOT (COALESCE("inputs", '{}'::jsonb) ? 'obrasSemEtapa1')`;
+  if (n) console.log(`Obras sem a área da 1ª etapa em ${n} proposta(s) não bloqueada(s)`);
 }
 
 /**

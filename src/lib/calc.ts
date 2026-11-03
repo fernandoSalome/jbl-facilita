@@ -124,6 +124,11 @@ export type StudyInputs = {
   planilhaNova?: boolean;
   /** Planilha nova com o custo das obras pelo valor por m² digitado (área × custo por m²), sem o orçamento item a item */
   obrasPorM2?: boolean;
+  /**
+   * Custo das obras sobre a área aproveitável menos a área dos lotes da 1ª etapa, com os nomes embaixo
+   * dos números na conta da proposta. Todas menos as bloqueadas (03/11/2026); as bloqueadas seguem como eram.
+   */
+  obrasSemEtapa1?: boolean;
   regiao?: Regiao;
   /** Tipo de pavimento (Planilha1 N3:U20). Vazio = CBUQ 3 cm (asfalto) */
   pavimento?: string;
@@ -295,6 +300,8 @@ export type StudyResult = {
   vgvAvistaLiqTer: number;
   /** Custo das obras = área útil (m² inteiros) × custo/m² (planilha nova: o orçamento item a item) */
   areaObras: number;
+  /** Área dos lotes da 1ª etapa descontada da área das obras (0 = sem desconto) */
+  areaE1Obras: number;
   custoInfra: number;
   /** Planilha nova: orçamento das obras item a item (null = área × custo por m²) */
   orcamento: Orcamento | null;
@@ -423,8 +430,6 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
 
   const vgvAvista = valorLote * lotes;
   const vgvAvistaLiq = vgvAvista - vgvAvista * i.corretorPct;
-  // O orçamento das obras usa a área aproveitável em m² inteiros (68.669,00 m² no PDF)
-  const areaObras = Math.floor(areaUtil);
   // corretor da parceria: o percentual incide sobre a parte de quem paga (incorporador inteiro, com as obras, ou
   // terrenista) e o valor sai da parte da JBL ou do terrenista; as obras não mudam
   // ex.: VGV 100 mi, incorporador 60% (JBL 30% + obras 30%), terrenista 40%, corretor 2% → do incorporador 1,2 mi · do terrenista 800 mil
@@ -466,8 +471,6 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
         },
       )
     : null;
-  const custoInfra = orcamento ? orcamento.total : areaObras * i.custoInfraM2;
-  const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
   let etapa1: StudyResult["etapa1"] = null;
   // 1ª etapa sem o valor do m² do lote dela: não calcula (não usa o m² do estudo); a proposta mostra "a definir"
   const etapa1FaltaValor = (i.primeiraEtapa || !!i.lotesEtapa1) && !i.etapaADefinir && !(i.valorM2Etapa1 && i.valorM2Etapa1 > 0);
@@ -541,6 +544,13 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     }
   }
 
+  // O orçamento das obras usa a área aproveitável em m² inteiros (68.669,00 m² no PDF). Com a marca
+  // obrasSemEtapa1 (todas menos as bloqueadas, 03/11/2026), a área dos lotes da 1ª etapa sai dela
+  const areaE1Obras = i.obrasSemEtapa1 && etapa1 ? etapa1.areaUtil : 0;
+  const areaObras = Math.max(0, Math.floor(areaUtil - areaE1Obras));
+  const custoInfra = orcamento ? orcamento.total : areaObras * i.custoInfraM2;
+  const infraPct = vgvAvista > 0 ? custoInfra / vgvAvista : 0;
+
   const valorAntecipado = principal.carteiraTer * (1 - i.desagio);
   const multAplicacao = Math.pow(1 + i.taxaAplicacao, nParcelas);
   const rentabilidade = valorAntecipado * multAplicacao;
@@ -592,6 +602,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     vgvAvistaLiqInc: vgvAvistaLiq * inc,
     vgvAvistaLiqTer: vgvAvistaLiq * ter,
     areaObras,
+    areaE1Obras,
     custoInfra,
     orcamento,
     custoInfraM2: orcamento ? (areaObras > 0 ? custoInfra / areaObras : 0) : i.custoInfraM2,

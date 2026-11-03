@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         ownerName: b.ownerName.trim(),
         ownerPhone: b.ownerPhone?.trim() || null,
         // planilha nova (a partir de 03/11/2026): custo das obras pelo orçamento com os preços da região
-        inputs: { ...inputs, e1PctAproveitavel: undefined, planilhaNova: true, regiao: inputs.regiao ?? regiaoDaUf(projeto?.uf) },
+        inputs: { ...inputs, e1PctAproveitavel: undefined, planilhaNova: true, obrasSemEtapa1: true, regiao: inputs.regiao ?? regiaoDaUf(projeto?.uf) },
         options: parseOptions(b.options),
         publicToken: newToken(),
         createdById: s.sub,

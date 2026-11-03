@@ -31,7 +31,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
         // A 1ª etapa sobre a área aproveitável só fica nas bloqueadas (que não gravam); a planilha nova fica.
         const atual = (p.inputs ?? {}) as Record<string, unknown>;
         const { e1PctAproveitavel: _antiga, ...novo } = parseInputs(b.inputs);
-        data.inputs = atual.planilhaNova ? { ...novo, planilhaNova: true, regiao: novo.regiao ?? atual.regiao } : novo;
+        const comMarcas = atual.planilhaNova ? { ...novo, planilhaNova: true, regiao: novo.regiao ?? atual.regiao } : novo;
+        // obras sem a área da 1ª etapa: só o servidor liga (todas menos as bloqueadas); quem grava não desliga nem liga
+        const { obrasSemEtapa1: _m, ...semMarca } = comMarcas;
+        data.inputs = atual.obrasSemEtapa1 ? { ...semMarca, obrasSemEtapa1: true } : semMarca;
       }
       if (b.options) {
         const antes = parseOptions(p.options);

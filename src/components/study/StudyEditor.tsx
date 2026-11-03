@@ -436,6 +436,13 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
               <OrcamentoNovo s={s} r={r} />
             ) : (
               <>
+                {i.obrasSemEtapa1 && (
+                  <Out
+                    label={r.areaE1Obras > 0 ? "Área das obras (aproveitável − 1ª etapa)" : "Área das obras (aproveitável)"}
+                    value={`${fmtNum(r.areaObras)} m²`}
+                    nota={r.areaE1Obras > 0 ? `${fmtNum(Math.floor(r.areaUtil))} − ${fmtNum(r.areaE1Obras)} m² dos lotes da 1ª etapa` : undefined}
+                  />
+                )}
                 <In s={s} k="custoInfraM2" label="Custo da infraestrutura por m²" hint="Multiplica a área aproveitável" />
                 <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
               </>
