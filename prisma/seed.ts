@@ -74,7 +74,7 @@ async function main() {
 /**
  * Pedido do Fernando (03/11/2026): o custo das obras na proposta passa a ser sobre a área aproveitável menos a
  * área dos lotes da 1ª etapa, com os nomes embaixo dos números ("Área aproveitável − primeira etapa" ×
- * "Valor construído do m²"). Todas as propostas menos as bloqueadas, que seguem como foram enviadas.
+ * "Valor do m²"). Todas as propostas menos as bloqueadas, que seguem como foram enviadas.
  * Só acrescenta a marca, sem mexer na data de alteração, e descarta o PDF guardado (sai de novo com a conta nova).
  * Rodar de novo não marca as que já têm.
  */
