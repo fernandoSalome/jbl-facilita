@@ -139,8 +139,14 @@ async function pctDaEtapaSobreAproveitavelNasEnviadas() {
     UPDATE "Proposal" SET "inputs" = "inputs" || '{"e1PctAproveitavel": true}'::jsonb
     WHERE "createdAt" < ${CORTE}
       AND NOT ("inputs" ? 'e1PctAproveitavel')
-      AND ("publishedAt" < ${CORTE} OR "lockedAt" < ${CORTE} OR ("status" <> 'rascunho' AND "publishedAt" IS NULL))`;
-  if (n) console.log(`% da 1ª etapa sobre a área aproveitável mantido em ${n} proposta(s) enviada(s) ou bloqueada(s)`);
+      AND "lockedAt" < ${CORTE}`;
+  if (n) console.log(`% da 1ª etapa sobre a área aproveitável mantido em ${n} proposta(s) bloqueada(s)`);
+  // Pedido do Fernando (03/11/2026): em todas as outras (enviadas inclusive, menos as bloqueadas) a 1ª etapa
+  // passa a ser sobre a área total do terreno, na planilha e no texto da proposta
+  const m = await db.$executeRaw`
+    UPDATE "Proposal" SET "inputs" = "inputs" - 'e1PctAproveitavel'
+    WHERE "lockedAt" IS NULL AND "inputs" ? 'e1PctAproveitavel'`;
+  if (m) console.log(`1ª etapa sobre a área total do terreno em ${m} proposta(s) não bloqueada(s)`);
 }
 
 /**

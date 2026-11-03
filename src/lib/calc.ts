@@ -112,8 +112,8 @@ export type StudyInputs = {
    */
   finE1Exigido?: boolean;
   /**
-   * Proposta enviada ou bloqueada antes de 02/11/2026: o % da 1ª etapa no texto da proposta continua sobre a
-   * área aproveitável (como foi enviada). As outras mostram o % sobre a área total do terreno.
+   * Proposta bloqueada antes de 02/11/2026: o % da 1ª etapa no texto da proposta continua sobre a área
+   * aproveitável (como foi enviada). As outras mostram o % sobre a área total do terreno.
    */
   e1PctAproveitavel?: boolean;
   /**
