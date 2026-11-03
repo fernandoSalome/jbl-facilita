@@ -67,6 +67,7 @@ async function main() {
   await testePlanilhaNovaSaoFrancisco();
   await planilhaNovaEmTodas();
   await dissipadorNosChacreamentos();
+  await biodigestorPorLoteNosChacreamentos();
 }
 
 /**
@@ -151,6 +152,29 @@ async function dissipadorNosChacreamentos() {
       if (infra.every((x, n) => x === c.infra[n]) && complementar.every((x, n) => x === c.complementar[n])) continue;
       await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, infra, complementar } as object } });
       console.log(`Dissipador de drenagem com 1 un. no template ${c.label}`);
+    }
+  }
+}
+
+/**
+ * Pedido do Marcelo (03/11/2026): no Chacreamento Aberto e no Chacreamento Condomínio, o "Esgotamento sanitário:
+ * biodigestor ou fossa" sai de "A projetar" e fica com a quantidade de lotes (um por chácara, como as árvores).
+ * Versão nova do tipo; as propostas não mudam. Versões salvas depois do pedido ficam como estiverem.
+ */
+async function biodigestorPorLoteNosChacreamentos() {
+  const PEDIDO = new Date("2026-11-03T12:00:00Z");
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    for (const f of ["chacreamento_aberto", "chacreamento_condominio"] as const) {
+      const v = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!v || v.createdAt >= PEDIDO) continue;
+      const c = parseContent(v.content, f);
+      const porLote = (i: ObraItem): ObraItem =>
+        /biodigestor|fossa/i.test(i.obra) && i.qtd.kind === "projetar" ? { ...i, qtd: { kind: "calc", key: "arvores" } } : i;
+      const infra = c.infra.map(porLote), complementar = c.complementar.map(porLote);
+      if (infra.every((x, n) => x === c.infra[n]) && complementar.every((x, n) => x === c.complementar[n])) continue;
+      await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, infra, complementar } as object } });
+      console.log(`Biodigestor com a quantidade de lotes no template ${c.label}`);
     }
   }
 }

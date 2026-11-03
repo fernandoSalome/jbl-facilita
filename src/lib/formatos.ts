@@ -346,7 +346,7 @@ const QUATRO: Record<Exclude<FormatoKey, Infra>, FormatoContent> = {
     infra: [
       ob("ca", "Topografia", "Medir o terreno", proj()),
       ob("ca", "Terraplenagem e abertura de logradouros", "Nivelar e abrir as ruas", proj("m²")),
-      ob("ca", "Esgotamento sanitário: biodigestor ou fossa séptica", "Tratamento do esgoto em cada chácara", proj("un.")),
+      ob("ca", "Esgotamento sanitário: biodigestor ou fossa séptica", "Tratamento do esgoto em cada chácara", calc("arvores")),
       ob("ca", "Poço artesiano", "Captação de água", proj("un.")),
       ob("ca", "Reservatório de água", "Caixa d'água do empreendimento", proj()),
       ob("ca", "Rede principal de água", "Cano grande de água", proj("ml")),
