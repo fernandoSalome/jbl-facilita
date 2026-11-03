@@ -151,9 +151,10 @@ export default function TemplateEditor({
   const junto = useMemo(() => juntar(draft.comum, tipo), [draft.comum, tipo]);
   const formato = useMemo(() => ({ ...junto, overrides: {} }), [junto]);
   // primeira etapa ligada no exemplo, para os textos dela poderem ser editados no template;
-  // obras pela planilha nova (orçamento com os preços da região), como nas propostas
+  // obras pela planilha nova (orçamento com os preços da região), como nas propostas; quadra de 100 m só de
+  // exemplo, para poços de visita, bocas de lobo e bigode aparecerem com quantidade (sem ela: "a projetar")
   const inputs = useMemo(
-    () => ({ ...DEFAULT_INPUTS, areaTotal: 137338.46, primeiraEtapa: true, areaEtapa1: 42552, ...tipo.padroes, planilhaNova: true, regiao: regiaoDaUf(PROJETO_EXEMPLO.uf) }),
+    () => ({ ...DEFAULT_INPUTS, areaTotal: 137338.46, primeiraEtapa: true, areaEtapa1: 42552, quadraMax: 100, ...tipo.padroes, planilhaNova: true, regiao: regiaoDaUf(PROJETO_EXEMPLO.uf) }),
     [tipo.padroes],
   );
   const total = FORMATOS.reduce((s, f) => s + (counts[f]?.total ?? 0), 0);
