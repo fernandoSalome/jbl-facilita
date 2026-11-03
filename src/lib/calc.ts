@@ -117,12 +117,13 @@ export type StudyInputs = {
    */
   e1PctAproveitavel?: boolean;
   /**
-   * Teste da planilha nova (JBL_Planilha(+)Infra, 01/11/2026), só na proposta marcada: custo das obras pelo
-   * orçamento item a item com os preços da região (em vez de área × custo por m²) e o investidor.
+   * Planilha nova (JBL_Planilha(+)Infra, 01/11/2026): custo das obras pelo orçamento item a item com os preços
+   * da região (em vez de área × custo por m²) e o investidor. Vale para os rascunhos de 03/11/2026 e as
+   * propostas criadas depois; enviadas e bloqueadas seguem com área × custo por m².
    */
   planilhaNova?: boolean;
   regiao?: Regiao;
-  /** Tipo de pavimento (Planilha1 N3:U20). Vazio = cascalhamento, como vem na planilha */
+  /** Tipo de pavimento (Planilha1 N3:U20). Vazio = CBUQ 3 cm (asfalto) */
   pavimento?: string;
   energiaTipo?: "aerea" | "subterranea";
   implanta?: Partial<Implanta>;
@@ -447,13 +448,13 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   // C36: poços de visita da drenagem = 2 × área ÷ ((quadra + via) × (2 × fundo do lote + via))
   const fundoLote = i.frenteLote > 0 ? i.metragemLote / i.frenteLote : 0;
   const pvDrenagem = i.quadraMax && i.quadraMax > 0 && i.larguraVia > 0 ? (2 * i.areaTotal) / ((i.quadraMax + i.larguraVia) * (2 * fundoLote + i.larguraVia)) : null;
-  // planilha nova (só a proposta de teste): orçamento item a item pela região
+  // planilha nova (rascunhos e propostas novas): orçamento item a item pela região
   const orcamento = i.planilhaNova
     ? orcamento2026(
         { lotes, ruas: i.extensaoRede ?? compVias, larguraRua, areaRua: compVias * larguraRua, pvDrenagem },
         {
           regiao: i.regiao ?? "Centro-Oeste",
-          pavimento: i.pavimento || "Cascalhamento",
+          pavimento: i.pavimento || "CBUQ 3 cm",
           energia: i.energiaTipo ?? "aerea",
           implanta: { ...IMPLANTA_PADRAO, ...i.implanta },
           mesesObra: i.mesesObra ?? 0,

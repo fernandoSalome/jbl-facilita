@@ -65,6 +65,7 @@ async function main() {
   await obrasDoChacreamentoAbertoNoCondominio();
   await pctDaEtapaSobreAproveitavelNasEnviadas();
   await testePlanilhaNovaSaoFrancisco();
+  await planilhaNovaNosRascunhos();
 }
 
 /**
@@ -111,6 +112,24 @@ async function testePlanilhaNovaSaoFrancisco() {
     },
   });
   console.log(`Teste da planilha nova: "${copia.name}" criada a partir de "${original.name}" (${original.project.name}, ${original.project.uf ?? "sem UF"} → ${regiaoDaUf(original.project.uf)})`);
+}
+
+/**
+ * Pedido do Fernando (03/11/2026): a planilha nova (orçamento das obras pela região, investidor) passa a valer
+ * nos rascunhos e nas propostas novas. Enviadas (publicadas ou fora de rascunho) e bloqueadas não mudam.
+ * Só acrescenta a marca e a região do estado do loteamento, sem mexer na data de alteração. Roda uma vez:
+ * depois só sobram sem a marca as enviadas e as bloqueadas.
+ */
+async function planilhaNovaNosRascunhos() {
+  const rascunhos = await db.$queryRaw<{ id: string; uf: string | null }[]>`
+    SELECT p."id", pr."uf" FROM "Proposal" p JOIN "Project" pr ON pr."id" = p."projectId"
+    WHERE p."status" = 'rascunho' AND p."publishedAt" IS NULL AND p."lockedAt" IS NULL
+      AND NOT (p."inputs" ? 'planilhaNova')`;
+  for (const r of rascunhos) {
+    const marca = JSON.stringify({ planilhaNova: true, regiao: regiaoDaUf(r.uf) });
+    await db.$executeRaw`UPDATE "Proposal" SET "inputs" = ${marca}::jsonb || "inputs" WHERE "id" = ${r.id}`;
+  }
+  if (rascunhos.length) console.log(`Planilha nova ligada em ${rascunhos.length} rascunho(s)`);
 }
 
 async function pctDaEtapaSobreAproveitavelNasEnviadas() {

@@ -4,6 +4,7 @@ import { newToken } from "@/lib/token";
 import { parseInputs, parseOptions } from "@/lib/proposals";
 import { formatoTemDados, parseContent, parseFormato } from "@/lib/formatos";
 import { latestVersion } from "@/lib/formato-server";
+import { regiaoDaUf } from "@/lib/orcamento2026";
 
 export async function POST(req: Request) {
   return withSession(async (s) => {
@@ -19,6 +20,8 @@ export async function POST(req: Request) {
       return json({ error: "Este formato ainda não tem dados no template." }, 400);
     }
 
+    const projeto = await db.project.findUnique({ where: { id: b.projectId }, select: { uf: true } });
+    const inputs = parseInputs(b.inputs);
     const p = await db.proposal.create({
       data: {
         projectId: b.projectId,
@@ -28,7 +31,8 @@ export async function POST(req: Request) {
         name: b.name.trim(),
         ownerName: b.ownerName.trim(),
         ownerPhone: b.ownerPhone?.trim() || null,
-        inputs: { ...parseInputs(b.inputs), e1PctAproveitavel: undefined },
+        // planilha nova (a partir de 03/11/2026): custo das obras pelo orçamento com os preços da região
+        inputs: { ...inputs, e1PctAproveitavel: undefined, planilhaNova: true, regiao: inputs.regiao ?? regiaoDaUf(projeto?.uf) },
         options: parseOptions(b.options),
         publicToken: newToken(),
         createdById: s.sub,

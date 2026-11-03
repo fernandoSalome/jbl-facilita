@@ -1,7 +1,7 @@
 /**
  * Orçamento das obras da planilha "JBL_Planilha(+)Infra_Ultima atualizacao_2026" (01/11/2026), aba CUSTOS:
- * quantidade × preço da região (aba Planilha1). Só vale para as propostas marcadas com `planilhaNova`
- * (teste); as outras continuam com área aproveitável × custo por m².
+ * quantidade × preço da região (aba Planilha1). Vale para as propostas marcadas com `planilhaNova`
+ * (rascunhos de 03/11/2026 e as criadas depois); as outras continuam com área aproveitável × custo por m².
  *
  * Os preços da planilha são os do Centro-Oeste × o fator da região. As quantidades são as mesmas da
  * planilha (iguais às de hoje no sistema). Itens que a planilha nova deixa em zero, para digitar à mão

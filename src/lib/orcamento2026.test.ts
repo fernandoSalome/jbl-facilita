@@ -32,7 +32,7 @@ describe("orçamento da planilha nova (CUSTOS)", () => {
     expect(g.itens.some((x) => /lobo|bigode|Poços/.test(x.nome))).toBe(false);
   });
   it("bate com a planilha nova calculada (Sul, 100.000 m², lote 250, frente 10, via 12, calçada 2, vias 25%, quadra 100)", () => {
-    const r = calcular({ areaTotal: 100000, aproveitamento: 0.5, metragemLote: 250, frenteLote: 10, larguraVia: 12, larguraCalcada: 2, viasPct: 0.25, quadraMax: 100, planilhaNova: true, regiao: "Sul" });
+    const r = calcular({ areaTotal: 100000, aproveitamento: 0.5, metragemLote: 250, frenteLote: 10, larguraVia: 12, larguraCalcada: 2, viasPct: 0.25, quadraMax: 100, planilhaNova: true, regiao: "Sul", pavimento: "Cascalhamento" });
     const t = (n: string) => r.orcamento!.grupos.find((g) => g.nome === n)!.total;
     expect(t("Energia")).toBeCloseTo(21666.67, 1);
     expect(t("Pavimentação")).toBeCloseTo(468000, 1);
@@ -49,7 +49,7 @@ describe("orçamento da planilha nova (CUSTOS)", () => {
   });
 });
 
-describe("só a proposta marcada usa a planilha nova", () => {
+describe("só as propostas marcadas usam a planilha nova", () => {
   const base = { areaTotal: 100000, aproveitamento: 0.5, metragemLote: 250, frenteLote: 10, valorM2: 400, custoInfraM2: 145 };
   it("sem a marca: área aproveitável × custo por m², como hoje", () => {
     const r = calcular(base);
@@ -57,6 +57,10 @@ describe("só a proposta marcada usa a planilha nova", () => {
     expect(r.custoInfra).toBe(50000 * 145);
     expect(r.custoInfraM2).toBe(145);
     expect(r.investidor).toBeNull();
+  });
+  it("pavimento padrão: CBUQ 3 cm (asfalto)", () => {
+    const r = calcular({ ...base, planilhaNova: true });
+    expect(r.orcamento!.grupos.find((g) => g.nome === "Pavimentação")!.itens[0].nome).toBe("Base e sub-base (CBUQ 3 cm)");
   });
   it("com a marca: custo pelo orçamento e o R$/m² equivalente", () => {
     const r = calcular({ ...base, planilhaNova: true, regiao: "Sudeste", investidorPct: 0.1 });

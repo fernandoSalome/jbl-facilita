@@ -161,7 +161,7 @@ export function useStudyState(initial: StudyInputs) {
   function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
     setInputs((s) => ({ ...s, ...c }));
   }
-  /** Planilha nova (proposta de teste): região, pavimento, energia e o que será implantado */
+  /** Planilha nova: região, pavimento, energia e o que será implantado */
   function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta> }) {
     setInputs((s) => ({ ...s, ...c, implanta: c.implanta ? { ...s.implanta, ...c.implanta } : s.implanta }));
   }
@@ -408,7 +408,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <Out label="Terrenista (%)" value={fmtNum(r.terrenistaPct * 100)} sufixo="%" strong />
             <Out label="VGV Terrenista à vista" value={fmtBRL(r.vgvAvistaTer)} navy />
             <Out label={`VGV Terrenista a prazo (${fmtNum(r.nParcelas / 12, r.nParcelas % 12 ? 1 : 0)} anos)`} value={fmtBRL(r.principal.carteiraTer)} navy />
-            {/* planilha nova (teste): investidor, sai da parte do incorporador; ainda não aparece na proposta */}
+            {/* planilha nova: investidor, sai da parte do incorporador; ainda não aparece na proposta */}
             {i.planilhaNova && (
               <>
                 <In s={s} k="investidorPct" label="Investidor (%)" hint="Sai da parte do incorporador. Vazio = sem investidor" />
@@ -573,7 +573,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
   );
 }
 
-/** Planilha nova (proposta de teste): orçamento das obras item a item, com os preços da região */
+/** Planilha nova: orçamento das obras item a item, com os preços da região */
 function OrcamentoNovo({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const i = r.inputs;
   const orc = r.orcamento!;
@@ -585,9 +585,6 @@ function OrcamentoNovo({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   };
   return (
     <>
-      <p className="bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
-        Teste da planilha nova: custo das obras pelo orçamento item a item, com os preços da região (só nesta proposta).
-      </p>
       <label className={linha}>
         <span className="text-[13px] font-semibold text-navy">Região do empreendimento</span>
         <select className={sel} value={orc.regiao} onChange={(e) => s.setOrcamento({ regiao: e.target.value as Regiao })}>
@@ -596,7 +593,7 @@ function OrcamentoNovo({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       </label>
       <label className={linha}>
         <span className="text-[13px] font-semibold text-navy">Pavimento</span>
-        <select className={sel} value={i.pavimento || "Cascalhamento"} onChange={(e) => s.setOrcamento({ pavimento: e.target.value })}>
+        <select className={sel} value={i.pavimento || "CBUQ 3 cm"} onChange={(e) => s.setOrcamento({ pavimento: e.target.value })}>
           {Object.keys(PAVIMENTOS).map((x) => <option key={x}>{x}</option>)}
         </select>
       </label>
