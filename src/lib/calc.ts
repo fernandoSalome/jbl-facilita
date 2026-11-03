@@ -122,6 +122,8 @@ export type StudyInputs = {
    * bloqueadas (03/11/2026), que seguem com área × custo por m².
    */
   planilhaNova?: boolean;
+  /** Planilha nova com o custo das obras pelo valor por m² digitado (área × custo por m²), sem o orçamento item a item */
+  obrasPorM2?: boolean;
   regiao?: Regiao;
   /** Tipo de pavimento (Planilha1 N3:U20). Vazio = CBUQ 3 cm (asfalto) */
   pavimento?: string;
@@ -449,7 +451,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
   const fundoLote = i.frenteLote > 0 ? i.metragemLote / i.frenteLote : 0;
   const pvDrenagem = i.quadraMax && i.quadraMax > 0 && i.larguraVia > 0 ? (2 * i.areaTotal) / ((i.quadraMax + i.larguraVia) * (2 * fundoLote + i.larguraVia)) : null;
   // planilha nova (rascunhos e propostas novas): orçamento item a item pela região
-  const orcamento = i.planilhaNova
+  const orcamento = i.planilhaNova && !i.obrasPorM2
     ? orcamento2026(
         { lotes, ruas: i.extensaoRede ?? compVias, larguraRua, areaRua: compVias * larguraRua, pvDrenagem },
         {

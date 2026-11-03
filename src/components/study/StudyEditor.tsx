@@ -162,7 +162,7 @@ export function useStudyState(initial: StudyInputs) {
     setInputs((s) => ({ ...s, ...c }));
   }
   /** Planilha nova: região, pavimento, energia e o que será implantado */
-  function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta> }) {
+  function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta>; obrasPorM2?: boolean }) {
     setInputs((s) => ({ ...s, ...c, implanta: c.implanta ? { ...s.implanta, ...c.implanta } : s.implanta }));
   }
   return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setOrcamento };
@@ -388,7 +388,22 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
         <div className="grid content-start gap-4">
           {/* Dados que a planilha não tem, usados no site da proposta */}
           <Box n={6} title="Infraestrutura e securitização">
-            {i.planilhaNova ? (
+            {/* planilha nova: escolhe entre o orçamento item a item e o valor por m² digitado (o que aparece na proposta) */}
+            {i.planilhaNova && (
+              <div className="grid grid-cols-2 gap-1 px-3 py-2">
+                {([[false, "Orçamento da planilha nova"], [true, "Valor por m²"]] as const).map(([m2, rotulo]) => (
+                  <button
+                    key={rotulo}
+                    type="button"
+                    onClick={() => s.setOrcamento({ obrasPorM2: m2 })}
+                    className={`rounded-sm border px-2 py-1.5 text-[12.5px] font-semibold ${!!i.obrasPorM2 === m2 ? "border-navy bg-navy text-white" : "border-[#9DC3E6] bg-[#DDEBF7] text-navy hover:border-gold"}`}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+              </div>
+            )}
+            {i.planilhaNova && !i.obrasPorM2 ? (
               <OrcamentoNovo s={s} r={r} />
             ) : (
               <>

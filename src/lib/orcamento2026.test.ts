@@ -58,6 +58,12 @@ describe("só as propostas marcadas usam a planilha nova", () => {
     expect(r.custoInfraM2).toBe(145);
     expect(r.investidor).toBeNull();
   });
+  it("planilha nova com valor por m²: área aproveitável × custo por m², sem o orçamento", () => {
+    const r = calcular({ ...base, planilhaNova: true, obrasPorM2: true, custoInfraM2: 35 });
+    expect(r.orcamento).toBeNull();
+    expect(r.custoInfra).toBe(50000 * 35);
+    expect(r.custoInfraM2).toBe(35);
+  });
   it("pavimento padrão: CBUQ 3 cm (asfalto)", () => {
     const r = calcular({ ...base, planilhaNova: true });
     expect(r.orcamento!.grupos.find((g) => g.nome === "Pavimentação")!.itens[0].nome).toBe("Base e sub-base (CBUQ 3 cm)");
