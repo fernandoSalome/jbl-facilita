@@ -351,7 +351,7 @@ const QUATRO: Record<Exclude<FormatoKey, Infra>, FormatoContent> = {
       ob("ca", "Reservatório de água", "Caixa d'água do empreendimento", proj()),
       ob("ca", "Rede principal de água", "Cano grande de água", proj("ml")),
       ob("ca", "Ligação de rede de água", "Do cano grande até cada chácara", proj("ml")),
-      ob("ca", "Dissipador de drenagem", "Galeria em forma de escada", proj("un.")),
+      ob("ca", "Dissipador de drenagem", "Galeria em forma de escada", { kind: "fixa", text: "1 un." }),
       ob("ca", "Rede elétrica", "Postes e fios de luz", proj("ml")),
       ob("ca", "Pavimentação primária (britas 1 e 2)", "Ruas de brita", proj("m²")),
       ob("ca", "Plantio de árvores", "Uma árvore na frente de cada chácara", proj("un.")),

@@ -6,7 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { regiaoDaUf } from "../src/lib/orcamento2026";
 import { newToken } from "../src/lib/token";
-import { FORMATOS, FORMATOS_INICIAIS, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type QtdCalcKey } from "../src/lib/formatos";
+import { FORMATOS, FORMATOS_INICIAIS, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type ObraItem, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -66,6 +66,7 @@ async function main() {
   await pctDaEtapaSobreAproveitavelNasEnviadas();
   await testePlanilhaNovaSaoFrancisco();
   await planilhaNovaEmTodas();
+  await dissipadorNosChacreamentos();
 }
 
 /**
@@ -128,6 +129,30 @@ async function planilhaNovaEmTodas() {
     await db.$executeRaw`UPDATE "Proposal" SET "inputs" = ${marca}::jsonb || "inputs" WHERE "id" = ${r.id}`;
   }
   if (lista.length) console.log(`Planilha nova ligada em ${lista.length} proposta(s) não bloqueada(s)`);
+}
+
+/**
+ * Pedido do Fernando (03/11/2026): nos templates do Chacreamento Aberto e do Chacreamento Condomínio, o
+ * "Dissipador de drenagem" sai de "A projetar" e fica com 1 un. (como nos tipos urbanos), para o exemplo.
+ * Cria uma versão nova do tipo (como o editor de templates); as propostas não mudam. Uma vez só: versões
+ * salvas depois do pedido ficam como estiverem.
+ */
+async function dissipadorNosChacreamentos() {
+  const PEDIDO = new Date("2026-11-03T04:00:00Z");
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    for (const f of ["chacreamento_aberto", "chacreamento_condominio"] as const) {
+      const v = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!v || v.createdAt >= PEDIDO) continue;
+      const c = parseContent(v.content, f);
+      const umDissipador = (i: ObraItem): ObraItem =>
+        /dissipador/i.test(i.obra) && i.qtd.kind === "projetar" ? { ...i, qtd: { kind: "fixa", text: "1 un." } } : i;
+      const infra = c.infra.map(umDissipador), complementar = c.complementar.map(umDissipador);
+      if (infra.every((x, n) => x === c.infra[n]) && complementar.every((x, n) => x === c.complementar[n])) continue;
+      await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, infra, complementar } as object } });
+      console.log(`Dissipador de drenagem com 1 un. no template ${c.label}`);
+    }
+  }
 }
 
 async function pctDaEtapaSobreAproveitavelNasEnviadas() {
