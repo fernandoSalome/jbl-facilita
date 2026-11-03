@@ -27,6 +27,7 @@ import JblPadrao from "./JblPadrao";
 import ModoToggle from "./ModoToggle";
 import DestinatarioPicker from "@/components/proposals/DestinatarioPicker";
 import type { Destinatario } from "@/lib/proposals";
+import { regiaoDaUf } from "@/lib/orcamento2026";
 
 /**
  * Editor do template base. Os textos, imagens e cores são os mesmos nos 4 tipos de
@@ -149,8 +150,12 @@ export default function TemplateEditor({
   const tipo = draft.tipos[key];
   const junto = useMemo(() => juntar(draft.comum, tipo), [draft.comum, tipo]);
   const formato = useMemo(() => ({ ...junto, overrides: {} }), [junto]);
-  // primeira etapa ligada no exemplo, para os textos dela poderem ser editados no template
-  const inputs = useMemo(() => ({ ...DEFAULT_INPUTS, areaTotal: 137338.46, primeiraEtapa: true, areaEtapa1: 42552, ...tipo.padroes }), [tipo.padroes]);
+  // primeira etapa ligada no exemplo, para os textos dela poderem ser editados no template;
+  // obras pela planilha nova (orçamento com os preços da região), como nas propostas
+  const inputs = useMemo(
+    () => ({ ...DEFAULT_INPUTS, areaTotal: 137338.46, primeiraEtapa: true, areaEtapa1: 42552, ...tipo.padroes, planilhaNova: true, regiao: regiaoDaUf(PROJETO_EXEMPLO.uf) }),
+    [tipo.padroes],
+  );
   const total = FORMATOS.reduce((s, f) => s + (counts[f]?.total ?? 0), 0);
   const enviadas = FORMATOS.reduce((s, f) => s + (counts[f]?.enviadas ?? 0), 0);
   const nomeTipo = (f: FormatoKey) => draft.tipos[f].label;

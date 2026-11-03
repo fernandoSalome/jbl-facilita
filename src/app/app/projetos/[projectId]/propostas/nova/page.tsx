@@ -3,6 +3,7 @@ import { DEFAULT_INPUTS } from "@/lib/calc";
 import PageHeader from "@/components/PageHeader";
 import NewProposalForm from "@/components/proposals/NewProposalForm";
 import { formatosDoTemplate } from "@/lib/formato-server";
+import { regiaoDaUf } from "@/lib/orcamento2026";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function NewProposal({ params }: { params: { projectId: str
           project={{ name: project.name, tipo: project.tipo, municipio: project.municipio, uf: project.uf, matricula: project.matricula, aerialImage: project.aerialImage }}
           templates={templates}
           formatos={formatos}
-          initialInputs={{ ...DEFAULT_INPUTS, areaTotal: project.areaTotal }}
+          initialInputs={{ ...DEFAULT_INPUTS, areaTotal: project.areaTotal, planilhaNova: true, regiao: regiaoDaUf(project.uf) }}
         />
       </div>
     </>
