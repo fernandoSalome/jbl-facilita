@@ -160,8 +160,8 @@
   .jblt .tbl-pay:not(.tbl-bank) th + th { border-left: 1px solid rgba(255, 255, 255, .22); }
   .jblt .tbl-pay:not(.tbl-bank) td + td { border-left: 1px solid var(--line); }
   /* mais baixa, para a tabela inteira caber na tela do computador (com folga em cima e embaixo de cada célula) */
-  .jblt .tbl-pay:not(.tbl-bank) th { padding: 12px 20px; line-height: 1.35; }
-  .jblt .tbl-pay:not(.tbl-bank) td { padding: 14px 20px; line-height: 1.4; vertical-align: middle; }
+  .jblt .tbl-pay:not(.tbl-bank) th { padding: 10px 20px; line-height: 1.35; }
+  .jblt .tbl-pay:not(.tbl-bank) td { padding: 11px 20px; line-height: 1.4; vertical-align: middle; }
   /* mais espaço entre a tabela e as notas de baixo */
   .jblt .tbl-pay:not(.tbl-bank) + .note { margin-top: 22px; }
 }
