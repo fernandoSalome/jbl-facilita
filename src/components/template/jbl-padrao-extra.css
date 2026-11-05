@@ -160,8 +160,10 @@
   .jblt .tbl-pay:not(.tbl-bank) th + th { border-left: 1px solid rgba(255, 255, 255, .22); }
   .jblt .tbl-pay:not(.tbl-bank) td + td { border-left: 1px solid var(--line); }
   /* mais baixa, para a tabela inteira caber na tela do computador (com folga em cima e embaixo de cada célula) */
-  .jblt .tbl-pay:not(.tbl-bank) th { padding: 11px 20px; line-height: 1.35; }
-  .jblt .tbl-pay:not(.tbl-bank) td { padding: 10px 20px; line-height: 1.4; vertical-align: middle; }
+  .jblt .tbl-pay:not(.tbl-bank) th { padding: 12px 20px; line-height: 1.35; }
+  .jblt .tbl-pay:not(.tbl-bank) td { padding: 14px 20px; line-height: 1.4; vertical-align: middle; }
+  /* mais espaço entre a tabela e as notas de baixo */
+  .jblt .tbl-pay:not(.tbl-bank) + .note { margin-top: 22px; }
 }
 
 /* ---------- números em destaque pulsando ---------- */
@@ -289,7 +291,13 @@
 /* Prévia da carta: deixa claro que é só a minuta (a assinatura vem depois, pela Autentique) */
 /* marca d'água: a carta do site é só uma amostra de como a minuta fica */
 .jblt .intent-grid .preview { position: relative; isolation: isolate; overflow: hidden; }
-.jblt .intent-grid .preview::before { content: "MINUTA"; position: absolute; left: 50%; top: 50%; z-index: -1; transform: translate(-50%, -50%) rotate(-30deg); font: 700 clamp(56px, 9vw, 120px)/1 var(--body); letter-spacing: .12em; color: rgba(18, 42, 69, .07); pointer-events: none; user-select: none; white-space: nowrap; }
+/* três marcas: no começo, no meio e no fim da carta */
+.jblt .intent-grid .preview {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='300'%3E%3Ctext x='320' y='150' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 320 150)' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='118' letter-spacing='14' fill='rgb(18,42,69)' fill-opacity='.07'%3EMINUTA%3C/text%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='300'%3E%3Ctext x='320' y='150' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 320 150)' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='118' letter-spacing='14' fill='rgb(18,42,69)' fill-opacity='.07'%3EMINUTA%3C/text%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='300'%3E%3Ctext x='320' y='150' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 320 150)' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='118' letter-spacing='14' fill='rgb(18,42,69)' fill-opacity='.07'%3EMINUTA%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center 4%, center 50%, center 96%;
+  background-size: min(92%, 640px) auto;
+}
 .jblt .intent-grid .preview .minuta-aviso { display: grid; gap: 2px; margin: -6px 0 16px; padding: 10px 14px; background: var(--gold-soft); border-left: 3px solid var(--gold); border-radius: 4px; font-family: var(--body); text-align: left; }
 .jblt .intent-grid .preview .minuta-aviso strong { font-size: 15px; color: var(--navy); }
 .jblt .intent-grid .preview .minuta-aviso span { font-size: 13px; color: var(--muted); line-height: 1.45; }
