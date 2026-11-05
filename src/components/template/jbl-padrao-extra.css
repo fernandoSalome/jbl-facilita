@@ -159,6 +159,9 @@
 @media (min-width: 761px) {
   .jblt .tbl-pay:not(.tbl-bank) th + th { border-left: 1px solid rgba(255, 255, 255, .22); }
   .jblt .tbl-pay:not(.tbl-bank) td + td { border-left: 1px solid var(--line); }
+  /* mais baixa, para a tabela inteira caber na tela do computador (com folga em cima e embaixo de cada célula) */
+  .jblt .tbl-pay:not(.tbl-bank) th { padding: 11px 20px; line-height: 1.35; }
+  .jblt .tbl-pay:not(.tbl-bank) td { padding: 10px 20px; line-height: 1.4; vertical-align: middle; }
 }
 
 /* ---------- números em destaque pulsando ---------- */
