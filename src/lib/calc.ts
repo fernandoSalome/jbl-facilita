@@ -138,6 +138,13 @@ export type StudyInputs = {
   mesesObra: number | null;
   /** DADOS C17: % da sociedade do investidor (sai da parte do incorporador). Só aparece na planilha */
   investidorPct: number | null;
+  /**
+   * Parceria da 1ª etapa (só na planilha, uso interno; a proposta não usa): % do incorporador e do corretor
+   * negociados para a etapa. Vazio = os da gleba geral.
+   */
+  incorporadorPctE1: number | null;
+  intermediacaoPctE1: number | null;
+  intermediacaoOrigemE1?: "inc" | "ter" | "ambos";
   /** Observações da equipe na planilha (gleba geral e 1ª etapa): uso interno, nunca vão para a página pública nem para o PDF */
   obsGleba?: string;
   obsEtapa1?: string;
@@ -212,6 +219,8 @@ export const DEFAULT_INPUTS: StudyInputs = {
   reajusteManual: null,
   mesesObra: null,
   investidorPct: null,
+  incorporadorPctE1: null,
+  intermediacaoPctE1: null,
 };
 
 /** Números do financiamento da 1ª etapa (obrigatórios com finE1Exigido) */

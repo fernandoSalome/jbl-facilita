@@ -14,7 +14,7 @@ type Kind = "m2" | "pct" | "brl" | "num" | "anos" | "m" | "lotes" | "ruas" | "me
 type NumKey = { [K in keyof StudyInputs]-?: StudyInputs[K] extends number | null ? K : never }[keyof StudyInputs];
 
 const SUFFIX: Record<Kind, string> = { m2: "m²", pct: "%", brl: "R$", num: "×", anos: "anos", m: "m", lotes: "lotes", ruas: "ruas", meses: "meses" };
-const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual", "ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1", "mesesObra", "investidorPct"];
+const OPTIONAL: NumKey[] = ["viasPct", "quadraMax", "intermediacaoPct", "extensaoRede", "lotesEtapa1", "areaEtapa1", "loteEtapa1", "valorM2Etapa1", "areaPerimetralE1", "ruaE1", "descontoE1", "ruasObrigE1", "compQuadraE1", "frenteE1", "compLoteE1", "compLote", "reajusteManual", "ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1", "mesesObra", "investidorPct", "incorporadorPctE1", "intermediacaoPctE1"];
 
 function toText(v: number | null | undefined, kind: Kind) {
   if (v === null || v === undefined || Number.isNaN(v)) return "";
@@ -48,7 +48,7 @@ const KINDS: Partial<Record<NumKey, Kind>> = {
   entradaIncTerPct: "pct", parcelaEntregaPct: "pct", balaoPct: "pct", frenteLote: "m", viasPct: "pct", larguraVia: "m", larguraCalcada: "m", quadraMax: "m", intermediacaoPct: "pct", custoInfraM2: "brl", extensaoRede: "m",
   lotesEtapa1: "lotes", areaEtapa1: "m2", loteEtapa1: "m2", valorM2Etapa1: "brl", areaPerimetralE1: "m", ruaE1: "m", descontoE1: "m", ruasObrigE1: "ruas", compQuadraE1: "m", frenteE1: "m", compLoteE1: "m", compLote: "m", desagio: "pct", taxaAplicacao: "pct", reajusteManual: "pct",
   ipcaE1: "pct", jurosAnoE1: "pct", jurosMesE1: "pct", entradaPctE1: "pct", multiplicadorE1: "num", anosE1: "anos",
-  mesesObra: "meses", investidorPct: "pct",
+  mesesObra: "meses", investidorPct: "pct", incorporadorPctE1: "pct", intermediacaoPctE1: "pct",
 };
 
 /**
@@ -158,7 +158,7 @@ export function useStudyState(initial: StudyInputs) {
     setInputs((s) => ({ ...s, reajusteManual: null }));
   }
   /** Opções do corretor da parceria: quem paga e se aparece na proposta */
-  function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
+  function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; intermediacaoOrigemE1?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
     setInputs((s) => ({ ...s, ...c }));
   }
   /** Planilha nova: região, pavimento, energia e o que será implantado */
@@ -254,8 +254,11 @@ function useCelula() {
 /** Números que a planilha precisa (vazio ou zero quebra as contas): ficam em vermelho com aviso */
 const OBRIGATORIOS: NumKey[] = ["areaTotal", "aproveitamento", "frenteLote", "compLote", "valorM2", "incorporadorPct", "multiplicador", "anos", "larguraVia"];
 
-function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string }) {
+/** igual: valor usado com o campo vazio (o da gleba geral), escrito na célula; digitar substitui, apagar volta */
+function In({ s, k, label, disabled, nota, erro: erroProp, ph, igual }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string; igual?: number | null }) {
   const kind = KINDS[k]!;
+  const texto = s.texts[k] ?? "";
+  const usaIgual = igual !== undefined && !texto.trim();
   const celula = useCelula();
   const valor = s.inputs[k] as number | null;
   const erro = disabled ? null : erroProp !== undefined ? erroProp : OBRIGATORIOS.includes(k) && !(typeof valor === "number" && valor > 0) ? "Preencha com um número maior que zero" : null;
@@ -272,7 +275,7 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: 
             if (v !== null) s.set(k, toText(v, kind));
           }}
           disabled={disabled}
-          value={disabled ? "" : (s.texts[k] ?? "")}
+          value={disabled ? "" : usaIgual ? toText(igual, kind) : texto}
           onChange={(e) => s.set(k, e.target.value)}
           placeholder={disabled ? "a definir" : ph ? ph : k === "valorM2Etapa1" ? "obrigatório" : ""}
           aria-invalid={!!erro}
@@ -282,6 +285,7 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: 
       </span>
       {erro && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] font-semibold text-rose-700">{erro}</span>}
       {nota && <span className="col-start-2 -mt-0.5 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
+      {usaIgual && !disabled && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] text-navy/60">igual à gleba geral</span>}
     </label>
   );
 }
@@ -773,6 +777,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       </div>
     </div>
     {!off && <FinanciamentoEtapa s={s} r={r} />}
+    {!off && r.etapa1 && <ParceriaEtapa s={s} r={r} />}
     {q && !off && <Desenho q={q} lote={r.etapa1!.lote} />}
     </div>
   );
@@ -825,6 +830,64 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
         <Out label={`VGV a prazo da 1ª etapa (${f?.nParcelas ?? r.nParcelas} meses)`} value={v((f) => fmtBRL(f.cenario.carteiraEmp))} strong />
         <Out label="Parte do Incorporador" value={v((f) => fmtBRL(f.cenario.carteiraInc))} navy />
         <Out label="Parte do Terrenista" value={v((f) => fmtBRL(f.cenario.carteiraTer))} navy />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Parceria da 1ª etapa: o incorporador e o terrenista podem negociar outros % para a etapa (e o corretor).
+ * Só na planilha (uso interno): a proposta continua com os % da gleba geral. Vazio = igual à gleba geral.
+ */
+function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+  const i = r.inputs;
+  const e = r.etapa1!;
+  const prazo = e.prazo;
+  const anos = e.fin ? e.fin.nParcelas / 12 : r.nParcelas / 12;
+  const inc = i.incorporadorPctE1 ?? i.incorporadorPct;
+  const ter = 1 - inc;
+  const pct = i.intermediacaoPctE1 ?? i.intermediacaoPct ?? 0;
+  const origem = i.intermediacaoOrigemE1 ?? i.intermediacaoOrigem ?? "inc";
+  // como na gleba geral: o % do corretor incide sobre a parte de quem paga
+  const deInc = origem !== "ter" ? pct * inc : 0;
+  const deTer = origem !== "inc" ? pct * ter : 0;
+  const pctTxt = `${fmtNum(pct * 100, Number.isInteger(Math.round(pct * 1e4) / 100) ? 0 : 2)}%`;
+  const aPrazo = (x: number) => (prazo != null ? fmtBRL(prazo * x) : "a definir (preencha o reajuste e os recebimentos)");
+  const rotPrazo = `a prazo (${fmtNum(anos, anos % 1 ? 1 : 0)} anos)`;
+  return (
+    <div className="border-t border-gold/30">
+      <div className="divide-y divide-gold/30">
+        <Titulo n={4}>Parceria da 1ª etapa (uso interno)</Titulo>
+        <p className="px-3 py-1.5 text-[12px] leading-snug text-muted">
+          Os % que o incorporador e o terrenista negociarem para a 1ª etapa. Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
+        </p>
+        <In s={s} k="incorporadorPctE1" label="Incorporador (%)" igual={i.incorporadorPct} />
+        <Out label="VGV Incorporador à vista" value={fmtBRL(e.avista * inc)} navy />
+        <Out label={`VGV Incorporador ${rotPrazo}`} value={aPrazo(inc)} navy />
+        <Out label="Terrenista (%)" value={fmtNum(ter * 100)} sufixo="%" strong />
+        <Out label="VGV Terrenista à vista" value={fmtBRL(e.avista * ter)} navy />
+        <Out label={`VGV Terrenista ${rotPrazo}`} value={aPrazo(ter)} navy />
+        <In s={s} k="intermediacaoPctE1" label="Corretor (%)" igual={i.intermediacaoPct} />
+        {pct > 0 && (
+          <>
+            <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
+              <span className="text-[13px] font-semibold text-navy">Corretor pago por</span>
+              <select className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] px-2 py-1 text-[13px] font-semibold text-navy outline-none focus:border-gold" value={origem} onChange={(ev) => s.setCorretor({ intermediacaoOrigemE1: ev.target.value as "inc" | "ter" | "ambos" })}>
+                <option value="inc">Incorporador (JBL)</option>
+                <option value="ter">Terrenista</option>
+                <option value="ambos">Incorporador e terrenista</option>
+              </select>
+            </label>
+            <Out label="VGV Corretor à vista" value={fmtBRL(e.avista * (deInc + deTer))} navy />
+            <Out label={`VGV Corretor ${rotPrazo}`} value={aPrazo(deInc + deTer)} navy />
+            <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
+              {[
+                deInc ? `${pctTxt} de ${fmtBRL(e.avista * inc)} (VGV Incorporador) = ${fmtBRL(e.avista * deInc)}` : "",
+                deTer ? `${pctTxt} de ${fmtBRL(e.avista * ter)} (VGV Terrenista) = ${fmtBRL(e.avista * deTer)}` : "",
+              ].filter(Boolean).join(" + ")}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
