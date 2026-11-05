@@ -854,9 +854,11 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const pctTxt = `${fmtNum(pct * 100, Number.isInteger(Math.round(pct * 1e4) / 100) ? 0 : 2)}%`;
   const aPrazo = (x: number) => (prazo != null ? fmtBRL(prazo * x) : "a definir (preencha o reajuste e os recebimentos)");
   const rotPrazo = `a prazo (${fmtNum(anos, anos % 1 ? 1 : 0)} anos)`;
+  const largo = useContext(LarguraCtx) >= 760;
   return (
-    <div className="border-t border-gold/30">
-      <div className="divide-y divide-gold/30">
+    // metade da largura (como as colunas dos quadros de cima) na janela larga
+    <div className={`border-t border-gold/30 ${largo ? "grid grid-cols-2" : ""}`}>
+      <div className={`divide-y divide-gold/30 ${largo ? "border-r border-gold/30" : ""}`}>
         <Titulo n={4}>Parceria da 1ª etapa (uso interno)</Titulo>
         <p className="px-3 py-1.5 text-[12px] leading-snug text-muted">
           Os % que o incorporador e o terrenista negociarem para a 1ª etapa. Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
