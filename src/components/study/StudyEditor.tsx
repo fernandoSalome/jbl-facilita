@@ -777,7 +777,6 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
       </div>
     </div>
     {!off && <FinanciamentoEtapa s={s} r={r} />}
-    {!off && r.etapa1 && <ParceriaEtapa s={s} r={r} />}
     {q && !off && <Desenho q={q} lote={r.etapa1!.lote} />}
     </div>
   );
@@ -828,16 +827,17 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
         <Out label="Valor da Parcela que vai para o Contrato" value={v((f) => fmtBRL(f.parcelaContrato))} />
         <Out label="Valor do Lote em Contrato" value={v((f) => fmtBRL(f.valorLoteContrato))} />
         <Out label={`VGV a prazo da 1ª etapa (${f?.nParcelas ?? r.nParcelas} meses)`} value={v((f) => fmtBRL(f.cenario.carteiraEmp))} strong />
-        <Out label="Parte do Incorporador" value={v((f) => fmtBRL(f.cenario.carteiraInc))} navy />
-        <Out label="Parte do Terrenista" value={v((f) => fmtBRL(f.cenario.carteiraTer))} navy />
+        {/* parceria da etapa (uso interno): os % podem ser outros que os da gleba geral */}
+        {r.etapa1 && <ParceriaEtapa s={s} r={r} />}
       </div>
     </div>
   );
 }
 
 /**
- * Parceria da 1ª etapa: o incorporador e o terrenista podem negociar outros % para a etapa (e o corretor).
- * Só na planilha (uso interno): a proposta continua com os % da gleba geral. Vazio = igual à gleba geral.
+ * Parceria da 1ª etapa, no fim dos recebimentos: o incorporador e o terrenista podem negociar outros % para a
+ * etapa (e o corretor). Só na planilha (uso interno): a proposta continua com os % da gleba geral.
+ * Vazio = igual à gleba geral.
  */
 function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const i = r.inputs;
@@ -854,14 +854,11 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const pctTxt = `${fmtNum(pct * 100, Number.isInteger(Math.round(pct * 1e4) / 100) ? 0 : 2)}%`;
   const aPrazo = (x: number) => (prazo != null ? fmtBRL(prazo * x) : "a definir (preencha o reajuste e os recebimentos)");
   const rotPrazo = `a prazo (${fmtNum(anos, anos % 1 ? 1 : 0)} anos)`;
-  const largo = useContext(LarguraCtx) >= 760;
   return (
-    // metade da largura (como as colunas dos quadros de cima) na janela larga
-    <div className={`border-t border-gold/30 ${largo ? "grid grid-cols-2" : ""}`}>
-      <div className={`divide-y divide-gold/30 ${largo ? "border-r border-gold/30" : ""}`}>
-        <Titulo n={4}>Parceria da 1ª etapa (uso interno)</Titulo>
+    <>
+        <Titulo>Parceria da 1ª etapa (uso interno)</Titulo>
         <p className="px-3 py-1.5 text-[12px] leading-snug text-muted">
-          Os % que o incorporador e o terrenista negociarem para a 1ª etapa. Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
+          Os % negociados para a 1ª etapa. Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
         </p>
         <In s={s} k="incorporadorPctE1" label="Incorporador (%)" igual={i.incorporadorPct} />
         <Out label="VGV Incorporador à vista" value={fmtBRL(e.avista * inc)} navy />
@@ -881,7 +878,6 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
               </select>
             </label>
             <Out label="VGV Corretor à vista" value={fmtBRL(e.avista * (deInc + deTer))} navy />
-            <Out label={`VGV Corretor ${rotPrazo}`} value={aPrazo(deInc + deTer)} navy />
             <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
               {[
                 deInc ? `${pctTxt} de ${fmtBRL(e.avista * inc)} (VGV Incorporador) = ${fmtBRL(e.avista * deInc)}` : "",
@@ -890,8 +886,7 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
             </p>
           </>
         )}
-      </div>
-    </div>
+    </>
   );
 }
 
