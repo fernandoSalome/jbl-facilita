@@ -856,7 +856,7 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const rotPrazo = `a prazo (${fmtNum(anos, anos % 1 ? 1 : 0)} anos)`;
   return (
     <>
-        <Titulo>Parceria da 1ª etapa (uso interno)</Titulo>
+        <Titulo n={4}>Parceria da 1ª etapa (uso interno)</Titulo>
         <p className="px-3 py-1.5 text-[12px] leading-snug text-muted">
           Os % negociados para a 1ª etapa. Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
         </p>
