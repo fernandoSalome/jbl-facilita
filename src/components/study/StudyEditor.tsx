@@ -510,7 +510,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
                     <option value="ambos">Incorporador e terrenista</option>
                   </select>
                 </label>
-                <Out label="Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />
+                <Out label="Corretor à vista" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />
                 {/* de onde sai: o % do corretor sobre o VGV de quem paga */}
                 <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
                   {(() => {
@@ -968,6 +968,9 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
                 deInc ? `${pctTxt} de ${fmtBRL(e.avista * inc)} (VGV Incorporador) = ${fmtBRL(e.avista * deInc)}` : "",
                 deTer ? `${pctTxt} de ${fmtBRL(e.avista * ter)} (VGV Terrenista) = ${fmtBRL(e.avista * deTer)}` : "",
               ].filter(Boolean).join(" + ")}
+            </p>
+            <p className="mx-3 mb-2 rounded-sm bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
+              Atenção: verificar o abatimento do corretor na primeira etapa.
             </p>
           </>
         )}
