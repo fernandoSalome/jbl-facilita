@@ -510,7 +510,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
                     <option value="ambos">Incorporador e terrenista</option>
                   </select>
                 </label>
-                <Out label="VGV Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />
+                <Out label="Corretor" value={fmtBRL(r.vgvAvista * r.intermediacaoPct)} navy />
                 {/* de onde sai: o % do corretor sobre o VGV de quem paga */}
                 <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
                   {(() => {
@@ -529,7 +529,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
                 {i.mostrarCorretor !== false && (
                   <label className="flex items-center gap-2 px-3 py-1.5 pl-8 text-[13px] font-semibold text-navy">
                     <input type="checkbox" className="accent-[#C1943D]" checked={i.mostrarValorCorretor !== false} onChange={(e) => s.setCorretor({ mostrarValorCorretor: e.target.checked })} />
-                    Mostrar o valor (VGV) do corretor
+                    Mostrar o valor do corretor
                   </label>
                 )}
               </>
@@ -792,12 +792,7 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           label={i.e1PctAproveitavel ? "Da área aproveitável" : "Da área total do terreno"}
           value={off ? "a definir" : r.etapa1 ? fmtPct(i.e1PctAproveitavel ? r.etapa1.pct : r.etapa1.pctTotal) : "—"}
         />
-        <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} />
-        <Out
-          label={r.etapa1?.fin ? `VGV parcial em ${r.etapa1.fin.nParcelas} meses` : "VGV parcial a prazo"}
-          value={off ? "a definir" : r.etapa1?.prazo != null ? fmtBRL(r.etapa1.prazo) : r.etapa1 ? "a definir (preencha o reajuste e os recebimentos)" : "—"}
-          strong
-        />
+        <Out label="VGV parcial à vista" value={off ? "a definir" : r.etapa1 ? fmtBRL(r.etapa1.avista) : "—"} strong />
         {!off && <RecebimentosEtapa s={s} r={r} />}
       </div>
     </div>
@@ -949,9 +944,9 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <Out label="VGV Terrenista à vista" value={fmtBRL(e.avista * ter)} navy />
         <Out label={`VGV Terrenista ${rotPrazo}`} value={aPrazo(ter)} navy />
         {copia ? (
-          <Out label="Corretor (%)" value={fmtNum(pct * 100)} sufixo="%" strong />
+          <Out label="Corretor da intermediação (%)" value={fmtNum(pct * 100)} sufixo="%" strong />
         ) : (
-          <In s={s} k="intermediacaoPctE1" label="Corretor (%)" />
+          <In s={s} k="intermediacaoPctE1" label="Corretor da intermediação (%)" />
         )}
         {pct > 0 && (
           <>
@@ -967,7 +962,7 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
               </select>
             </label>
             )}
-            <Out label="VGV Corretor à vista" value={fmtBRL(e.avista * (deInc + deTer))} navy />
+            <Out label="Corretor à vista" value={fmtBRL(e.avista * (deInc + deTer))} navy />
             <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
               {[
                 deInc ? `${pctTxt} de ${fmtBRL(e.avista * inc)} (VGV Incorporador) = ${fmtBRL(e.avista * deInc)}` : "",
