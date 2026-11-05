@@ -64,6 +64,14 @@ describe("só as propostas marcadas usam a planilha nova", () => {
     expect(r.custoInfra).toBe(50000 * 35);
     expect(r.custoInfraM2).toBe(35);
   });
+  it("1ª etapa na planilha nova: índice e juros vazios seguem a gleba geral (a antiga fica a definir)", () => {
+    const e1 = { primeiraEtapa: true, lotesEtapa1: 10, valorM2Etapa1: 300, finE1Exigido: true, entradaPctE1: 0.06, multiplicadorE1: 1.68, anosE1: 20, ipcaE1: null, jurosAnoE1: null, jurosMesE1: null, ipca: 0.045, jurosMes: 0.0067 };
+    const nova = calcular({ ...base, ...e1, planilhaNova: true });
+    expect(nova.etapa1!.fin!.reajuste).toBeCloseTo(0.045 + 0.0067 * 12, 10);
+    expect(calcular({ ...base, ...e1 }).etapa1!.fin).toBeNull();
+    const mexeu = calcular({ ...base, ...e1, planilhaNova: true, jurosMesE1: 0.01, jurosAnoE1: 0 });
+    expect(mexeu.etapa1!.fin!.reajuste).toBeCloseTo(0.045 + 0.12, 10);
+  });
   it("pavimento padrão: CBUQ 3 cm (asfalto)", () => {
     const r = calcular({ ...base, planilhaNova: true });
     expect(r.orcamento!.grupos.find((g) => g.nome === "Pavimentação")!.itens[0].nome).toBe("Base e sub-base (CBUQ 3 cm)");

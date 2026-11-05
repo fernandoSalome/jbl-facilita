@@ -65,9 +65,12 @@ function comComprimentos(i: StudyInputs): StudyInputs {
   // estudo (os que a proposta já usava) e passam a ser obrigatórios. A proposta não muda.
   if ((n.primeiraEtapa || n.lotesEtapa1) && !n.etapaADefinir && !n.finE1Exigido) {
     const fixo = n.reajusteManual; // reajuste fixo antigo: vira o índice, sem juros (o total é o mesmo)
-    n.ipcaE1 ??= fixo ?? n.ipca;
-    n.jurosAnoE1 ??= fixo !== null ? 0 : n.jurosAno;
-    n.jurosMesE1 ??= fixo !== null ? 0 : n.jurosMes;
+    // planilha nova: índice e juros vazios seguem a gleba geral (só o reajuste fixo antigo precisa ser copiado)
+    if (!n.planilhaNova || fixo !== null) {
+      n.ipcaE1 ??= fixo ?? n.ipca;
+      n.jurosAnoE1 ??= fixo !== null ? 0 : n.jurosAno;
+      n.jurosMesE1 ??= fixo !== null ? 0 : n.jurosMes;
+    }
     n.entradaPctE1 ??= n.entradaPct;
     n.multiplicadorE1 ??= n.multiplicador;
     n.anosE1 ??= n.anos;
@@ -402,6 +405,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
           <Box title="Condição de Venda" right="Dados">
             <Sub>À Vista</Sub>
             <Out label="Valor do Lote a ser Comercializado" value={fmtBRL(r.valorLote)} strong />
+            <Out label="VGV à vista (Valor Geral de Vendas)" value={fmtBRL(r.vgvAvista)} strong />
             <Sub n={5}>PARCELADO</Sub>
             <In s={s} k="entradaPct" label="Entrada (%)" />
             <Out label="Valor da Entrada" value={fmtBRL(r.entrada)} />
@@ -414,6 +418,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
             <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={fmtBRL(r.parcela)} strong />
             <Out label="Valor da Parcela que vai para o Contrato" value={fmtBRL(r.parcelaContrato)} />
             <Out label="Valor do Lote em Contrato" value={fmtBRL(r.valorLoteContrato)} />
+            <Out label={`VGV a prazo (${r.nParcelas} meses)`} value={fmtBRL(r.principal.carteiraEmp)} strong />
           </Box>
         </div>
 
@@ -809,9 +814,20 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
             {INDICES.map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
         </label>
-        <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />
-        <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} erro={falta("jurosMesE1")} />
-        <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
+        {/* planilha nova: vazio = o da gleba geral (escrito na célula); mexeu, fica o da etapa */}
+        {i.planilhaNova ? (
+          <>
+            <In s={s} k="ipcaE1" label={`${indice} ao ano`} igual={i.ipca} />
+            <In s={s} k="jurosMesE1" label="Juros (Mês)" igual={i.jurosMes || i.jurosAno / 12} />
+            <In s={s} k="jurosAnoE1" label="Juros (Ano)" igual={i.jurosAno || i.jurosMes * 12} />
+          </>
+        ) : (
+          <>
+            <In s={s} k="ipcaE1" label={`${indice} ao ano`} ph={est("ipca")} erro={falta("ipcaE1")} />
+            <In s={s} k="jurosMesE1" label="Juros (Mês)" ph={est("jurosMes")} erro={falta("jurosMesE1")} />
+            <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
+          </>
+        )}
         <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
         <Observacoes s={s} k="obsEtapa1" titulo="Observações da 1ª etapa" />
       </div>

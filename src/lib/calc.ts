@@ -532,7 +532,9 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
     if (qtd > 0 || quadras) {
       // financiamento da etapa: as mesmas contas do estudo, com as taxas dela (vazio = a do estudo).
       // Com tudo vazio dá o mesmo que antes (carteira do estudo na proporção do VGV à vista).
-      const falta = !!i.finE1Exigido && FIN_E1.some((k) => i[k] === null || i[k] === undefined);
+      // planilha nova: índice e juros da etapa vazios = os da gleba geral (obrigatórios só entrada, multiplicador e anos)
+      const exigidos = i.planilhaNova ? FIN_E1.filter((k) => k !== "ipcaE1" && k !== "jurosAnoE1" && k !== "jurosMesE1") : FIN_E1;
+      const falta = !!i.finE1Exigido && exigidos.some((k) => i[k] === null || i[k] === undefined);
       const taxasProprias = i.ipcaE1 !== null || i.jurosAnoE1 !== null || i.jurosMesE1 !== null;
       const reajE = taxasProprias ? (i.ipcaE1 ?? i.ipca) + (i.jurosAnoE1 ?? i.jurosAno) + (i.jurosMesE1 ?? i.jurosMes) * 12 : reajuste;
       const multE = i.multiplicadorE1 ?? i.multiplicador;
