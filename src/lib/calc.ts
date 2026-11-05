@@ -143,6 +143,12 @@ export type StudyInputs = {
    * negociados para a etapa. Vazio = os da gleba geral.
    */
   incorporadorPctE1: number | null;
+  /**
+   * Planilha nova, 1ª etapa: "Copiar da Planilha Geral" ligado (índice e juros / % da parceria iguais aos da gleba
+   * geral) ou desligado (os da etapa). Vazio = ligado enquanto a etapa não tiver números próprios.
+   */
+  reajusteE1Geral?: boolean;
+  parceriaE1Geral?: boolean;
   intermediacaoPctE1: number | null;
   intermediacaoOrigemE1?: "inc" | "ter" | "ambos";
   /** Observações da equipe na planilha (gleba geral e 1ª etapa): uso interno, nunca vão para a página pública nem para o PDF */
@@ -222,6 +228,14 @@ export const DEFAULT_INPUTS: StudyInputs = {
   incorporadorPctE1: null,
   intermediacaoPctE1: null,
 };
+
+/** Planilha nova: índice e juros da 1ª etapa copiados da gleba geral (botão "Copiar da Planilha Geral") */
+export const copiaReajusteE1 = (i: StudyInputs) =>
+  !!i.planilhaNova && (i.reajusteE1Geral ?? (i.ipcaE1 === null && i.jurosAnoE1 === null && i.jurosMesE1 === null));
+
+/** % do incorporador e do corretor da 1ª etapa copiados da gleba geral (só na planilha) */
+export const copiaParceriaE1 = (i: StudyInputs) =>
+  i.parceriaE1Geral ?? (i.incorporadorPctE1 === null && i.intermediacaoPctE1 === null && !i.intermediacaoOrigemE1);
 
 /** Números do financiamento da 1ª etapa (obrigatórios com finE1Exigido) */
 export const FIN_E1 = ["ipcaE1", "jurosAnoE1", "jurosMesE1", "entradaPctE1", "multiplicadorE1", "anosE1"] as const;
@@ -535,7 +549,8 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       // planilha nova: índice e juros da etapa vazios = os da gleba geral (obrigatórios só entrada, multiplicador e anos)
       const exigidos = i.planilhaNova ? FIN_E1.filter((k) => k !== "ipcaE1" && k !== "jurosAnoE1" && k !== "jurosMesE1") : FIN_E1;
       const falta = !!i.finE1Exigido && exigidos.some((k) => i[k] === null || i[k] === undefined);
-      const taxasProprias = i.ipcaE1 !== null || i.jurosAnoE1 !== null || i.jurosMesE1 !== null;
+      const copia = copiaReajusteE1(i);
+      const taxasProprias = !copia && (i.ipcaE1 !== null || i.jurosAnoE1 !== null || i.jurosMesE1 !== null);
       const reajE = taxasProprias ? (i.ipcaE1 ?? i.ipca) + (i.jurosAnoE1 ?? i.jurosAno) + (i.jurosMesE1 ?? i.jurosMes) * 12 : reajuste;
       const multE = i.multiplicadorE1 ?? i.multiplicador;
       const nE = Math.round((i.anosE1 ?? i.anos) * 12);
@@ -548,7 +563,7 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
         lotes: qtd, lote, valorM2: valorM2E, areaUtil: qtd * lote, pct: (qtd * lote) / areaUtil, pctTotal: i.areaTotal > 0 ? (qtd * lote) / i.areaTotal : 0, avista, quadras,
         prazo: falta ? null : cen.carteiraEmp,
         fin: falta ? null : {
-          indice: i.indiceE1 || i.indice, reajuste: reajE, valorLote: valorLoteE, entrada: entradaE, nParcelas: nE, parcela: parcelaE,
+          indice: copia ? i.indice : i.indiceE1 || i.indice, reajuste: reajE, valorLote: valorLoteE, entrada: entradaE, nParcelas: nE, parcela: parcelaE,
           parcelaContrato: parcelaContratoE, valorLoteContrato: parcelaContratoE * nE + entradaE, cenario: cen,
         },
       };

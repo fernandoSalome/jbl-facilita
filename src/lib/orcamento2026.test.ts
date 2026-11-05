@@ -71,6 +71,10 @@ describe("só as propostas marcadas usam a planilha nova", () => {
     expect(calcular({ ...base, ...e1 }).etapa1!.fin).toBeNull();
     const mexeu = calcular({ ...base, ...e1, planilhaNova: true, jurosMesE1: 0.01, jurosAnoE1: 0 });
     expect(mexeu.etapa1!.fin!.reajuste).toBeCloseTo(0.045 + 0.12, 10);
+    // "Copiar da Planilha Geral" ligado: os números da etapa ficam guardados, mas vale a gleba geral
+    const ligado = calcular({ ...base, ...e1, planilhaNova: true, jurosMesE1: 0.01, jurosAnoE1: 0, indiceE1: "INCC", reajusteE1Geral: true });
+    expect(ligado.etapa1!.fin!.reajuste).toBeCloseTo(0.045 + 0.0067 * 12, 10);
+    expect(ligado.etapa1!.fin!.indice).toBe("IPCA");
   });
   it("pavimento padrão: CBUQ 3 cm (asfalto)", () => {
     const r = calcular({ ...base, planilhaNova: true });

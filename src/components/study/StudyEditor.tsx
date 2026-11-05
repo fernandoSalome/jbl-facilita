@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { calcular, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
+import { calcular, copiaParceriaE1, copiaReajusteE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 import { IMPLANTA_PADRAO, PAVIMENTOS, REGIOES, type Implanta, type Regiao } from "@/lib/orcamento2026";
 
@@ -164,6 +164,27 @@ export function useStudyState(initial: StudyInputs) {
   function setCorretor(c: { intermediacaoOrigem?: "inc" | "ter" | "ambos"; intermediacaoOrigemE1?: "inc" | "ter" | "ambos"; mostrarCorretor?: boolean; mostrarValorCorretor?: boolean }) {
     setInputs((s) => ({ ...s, ...c }));
   }
+  /**
+   * 1ª etapa, "Copiar da Planilha Geral": ligado usa os números da gleba geral; desligado usa os da etapa.
+   * Ao desligar pela primeira vez, a etapa começa com os números da gleba geral (para personalizar a partir deles).
+   */
+  function setCopiaGeral(c: { reajusteE1Geral?: boolean; parceriaE1Geral?: boolean }) {
+    setInputs((s) => {
+      const n = { ...s, ...c };
+      const t: Record<string, string> = {};
+      if (c.reajusteE1Geral === false && s.ipcaE1 === null && s.jurosAnoE1 === null && s.jurosMesE1 === null) {
+        Object.assign(n, { ipcaE1: s.ipca, jurosMesE1: s.jurosMes, jurosAnoE1: s.jurosAno, indiceE1: s.indice });
+        // o juro zerado mostra o equivalente do outro, como na gleba geral
+        Object.assign(t, { ipcaE1: toText(s.ipca, "pct"), jurosMesE1: toText(s.jurosMes || s.jurosAno / 12, "pct"), jurosAnoE1: toText(s.jurosAno || s.jurosMes * 12, "pct") });
+      }
+      if (c.parceriaE1Geral === false && s.incorporadorPctE1 === null && s.intermediacaoPctE1 === null && !s.intermediacaoOrigemE1) {
+        Object.assign(n, { incorporadorPctE1: s.incorporadorPct, intermediacaoPctE1: s.intermediacaoPct, intermediacaoOrigemE1: s.intermediacaoOrigem ?? "inc" });
+        Object.assign(t, { incorporadorPctE1: toText(s.incorporadorPct, "pct"), intermediacaoPctE1: toText(s.intermediacaoPct, "pct") });
+      }
+      if (Object.keys(t).length) setTexts((x) => ({ ...x, ...t }));
+      return n;
+    });
+  }
   /** Planilha nova: região, pavimento, energia e o que será implantado */
   function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta>; obrasPorM2?: boolean }) {
     setInputs((s) => ({ ...s, ...c, implanta: c.implanta ? { ...s.implanta, ...c.implanta } : s.implanta }));
@@ -172,7 +193,7 @@ export function useStudyState(initial: StudyInputs) {
   function setObs(k: "obsGleba" | "obsEtapa1", texto: string) {
     setInputs((s) => ({ ...s, [k]: texto }));
   }
-  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setOrcamento, setObs };
+  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setCopiaGeral, setOrcamento, setObs };
 }
 
 type State = ReturnType<typeof useStudyState>;
@@ -257,11 +278,8 @@ function useCelula() {
 /** Números que a planilha precisa (vazio ou zero quebra as contas): ficam em vermelho com aviso */
 const OBRIGATORIOS: NumKey[] = ["areaTotal", "aproveitamento", "frenteLote", "compLote", "valorM2", "incorporadorPct", "multiplicador", "anos", "larguraVia"];
 
-/** igual: valor usado com o campo vazio (o da gleba geral), escrito na célula; digitar substitui, apagar volta */
-function In({ s, k, label, disabled, nota, erro: erroProp, ph, igual }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string; igual?: number | null }) {
+function In({ s, k, label, disabled, nota, erro: erroProp, ph }: { s: State; k: NumKey; label: string; hint?: string; disabled?: boolean; nota?: string; erro?: string | null; ph?: string }) {
   const kind = KINDS[k]!;
-  const texto = s.texts[k] ?? "";
-  const usaIgual = igual !== undefined && !texto.trim();
   const celula = useCelula();
   const valor = s.inputs[k] as number | null;
   const erro = disabled ? null : erroProp !== undefined ? erroProp : OBRIGATORIOS.includes(k) && !(typeof valor === "number" && valor > 0) ? "Preencha com um número maior que zero" : null;
@@ -278,7 +296,7 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph, igual }: { s: Sta
             if (v !== null) s.set(k, toText(v, kind));
           }}
           disabled={disabled}
-          value={disabled ? "" : usaIgual ? toText(igual, kind) : texto}
+          value={disabled ? "" : (s.texts[k] ?? "")}
           onChange={(e) => s.set(k, e.target.value)}
           placeholder={disabled ? "a definir" : ph ? ph : k === "valorM2Etapa1" ? "obrigatório" : ""}
           aria-invalid={!!erro}
@@ -288,7 +306,6 @@ function In({ s, k, label, disabled, nota, erro: erroProp, ph, igual }: { s: Sta
       </span>
       {erro && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] font-semibold text-rose-700">{erro}</span>}
       {nota && <span className="col-start-2 -mt-0.5 text-right text-[12px] font-semibold text-gold-deep">{nota}</span>}
-      {usaIgual && !disabled && <span className="col-start-2 -mt-0.5 text-right text-[11.5px] text-navy/60">igual à gleba geral</span>}
     </label>
   );
 }
@@ -748,6 +765,8 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <Out label="Quadra menor" value={v(q ? (q.lotesResto ? `${fmtNum(q.resto)} m = ${fmtNum(q.lotesResto)} lotes` : "não sobra") : "")} />
         <Out label="Total de quadras" value={v(q ? String(q.quarteiroes) : "")} />
         <Out label="Ruas entre as quadras" value={v(q ? (q.ruasEntre ? `${q.ruasEntre} ${q.ruasEntre === 1 ? "rua" : "ruas"} × ${fmtNum(q.rua, 0)} metros` : "nenhuma") : "")} />
+        {/* cada coluna segue direto (sem buraco embaixo da mais curta): reajuste aqui, recebimentos na outra */}
+        {!off && <ReajusteEtapa s={s} r={r} />}
       </div>
       <div className="divide-y divide-gold/30">
         <Titulo>Área da 1ª etapa</Titulo>
@@ -779,47 +798,76 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
           value={off ? "a definir" : r.etapa1?.prazo != null ? fmtBRL(r.etapa1.prazo) : r.etapa1 ? "a definir (preencha o reajuste e os recebimentos)" : "—"}
           strong
         />
+        {!off && <RecebimentosEtapa s={s} r={r} />}
       </div>
     </div>
-    {!off && <FinanciamentoEtapa s={s} r={r} />}
     {q && !off && <Desenho q={q} lote={r.etapa1!.lote} />}
     </div>
   );
 }
 
+/** Botão "Copiar da Planilha Geral": ligado, a 1ª etapa usa os números da gleba geral; desligado, os dela */
+function CopiaGeral({ ligado, onChange }: { ligado: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-2 bg-[#F4F7FB] px-3 py-1.5">
+      <span className="text-[13px] font-semibold text-navy">
+        Copiar da Planilha Geral
+        <span className="ml-1.5 text-[11.5px] font-normal text-muted">{ligado ? "(ligado: igual à gleba geral)" : "(desligado: personalizado)"}</span>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={ligado}
+        onClick={() => onChange(!ligado)}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition ${ligado ? "bg-gold" : "bg-navy/25"}`}
+      >
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${ligado ? "left-[18px]" : "left-0.5"}`} />
+      </button>
+    </label>
+  );
+}
+
 /**
- * Reajuste e recebimentos da 1ª etapa: é outra etapa, com outras taxas. Mesmas contas do quadro do
- * estudo. Os 6 números são obrigatórios (mesmo que zero): faltando um, a etapa a prazo fica "a definir".
+ * Reajuste da 1ª etapa: é outra etapa, com outras taxas. Planilha nova: botão "Copiar da Planilha Geral".
+ * Propostas antigas: os números são obrigatórios (mesmo que zero), senão a etapa a prazo fica "a definir".
  */
-function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+function ReajusteEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const i = r.inputs;
-  const largo = useContext(LarguraCtx) >= 760;
   const f = r.etapa1?.fin ?? null;
   const exigido = !!i.finE1Exigido;
   const falta = (k: (typeof FIN_E1)[number]) => (exigido && (i[k] === null || i[k] === undefined) ? "Obrigatório (mesmo que seja zero)" : null);
   const est = (k: NumKey) => (exigido ? "obrigatório" : `${toText(i[k] as number, KINDS[k]!)} (estudo)`);
-  const v = (x: (f: NonNullable<NonNullable<typeof r.etapa1>["fin"]>) => string) => (f ? x(f) : "a definir");
-  const indice = i.indiceE1 || i.indice;
+  const copia = copiaReajusteE1(i);
+  const indice = copia ? i.indice : i.indiceE1 || i.indice;
   return (
-    <div className={`grid border-t border-gold/30 ${largo ? "grid-cols-2 divide-x divide-gold/30" : ""}`}>
-      <div className="flex flex-col divide-y divide-gold/30">
+    <>
         <Titulo n={2}>Reajuste da 1ª etapa</Titulo>
-        <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
-          <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
-          <select
-            value={indice}
-            onChange={(e) => s.setIndiceE1(e.target.value)}
-            className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
-          >
-            {INDICES.map((x) => <option key={x} value={x}>{x}</option>)}
-          </select>
-        </label>
-        {/* planilha nova: vazio = o da gleba geral (escrito na célula); mexeu, fica o da etapa */}
-        {i.planilhaNova ? (
+        {i.planilhaNova && <CopiaGeral ligado={copia} onChange={(v) => s.setCopiaGeral({ reajusteE1Geral: v })} />}
+        {copia ? (
+          <Out label="Índice Financeiro" value={indice} />
+        ) : (
+          <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
+            <span className="text-[13px] font-semibold text-navy">Índice Financeiro</span>
+            <select
+              value={indice}
+              onChange={(e) => s.setIndiceE1(e.target.value)}
+              className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] py-1 pl-2 text-[13.5px] font-semibold text-navy outline-none focus:border-gold"
+            >
+              {INDICES.map((x) => <option key={x} value={x}>{x}</option>)}
+            </select>
+          </label>
+        )}
+        {copia ? (
           <>
-            <In s={s} k="ipcaE1" label={`${indice} ao ano`} igual={i.ipca} />
-            <In s={s} k="jurosMesE1" label="Juros (Mês)" igual={i.jurosMes || i.jurosAno / 12} />
-            <In s={s} k="jurosAnoE1" label="Juros (Ano)" igual={i.jurosAno || i.jurosMes * 12} />
+            <Out label={`${indice} ao ano`} value={toText(i.ipca, "pct")} sufixo="%" />
+            <Out label="Juros (Mês)" value={toText(i.jurosMes || i.jurosAno / 12, "pct")} sufixo="%" />
+            <Out label="Juros (Ano)" value={toText(i.jurosAno || i.jurosMes * 12, "pct")} sufixo="%" />
+          </>
+        ) : i.planilhaNova ? (
+          <>
+            <In s={s} k="ipcaE1" label={`${indice} ao ano`} />
+            <In s={s} k="jurosMesE1" label="Juros (Mês)" />
+            <In s={s} k="jurosAnoE1" label="Juros (Ano)" />
           </>
         ) : (
           <>
@@ -828,10 +876,22 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
             <In s={s} k="jurosAnoE1" label="Juros (Ano)" ph={est("jurosAno")} erro={falta("jurosAnoE1")} />
           </>
         )}
-        <Out label="Total do Reajuste" value={v((f) => fmtPct(f.reajuste))} strong />
+        <Out label="Total do Reajuste" value={f ? fmtPct(f.reajuste) : "a definir"} strong />
         <Observacoes s={s} k="obsEtapa1" titulo="Observações da 1ª etapa" />
-      </div>
-      <div className="divide-y divide-gold/30">
+    </>
+  );
+}
+
+/** Recebimentos da 1ª etapa (mesmas contas do quadro do estudo) e, no fim, a parceria da etapa */
+function RecebimentosEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+  const i = r.inputs;
+  const f = r.etapa1?.fin ?? null;
+  const exigido = !!i.finE1Exigido;
+  const falta = (k: (typeof FIN_E1)[number]) => (exigido && (i[k] === null || i[k] === undefined) ? "Obrigatório (mesmo que seja zero)" : null);
+  const est = (k: NumKey) => (exigido ? "obrigatório" : `${toText(i[k] as number, KINDS[k]!)} (estudo)`);
+  const v = (x: (f: NonNullable<NonNullable<typeof r.etapa1>["fin"]>) => string) => (f ? x(f) : "a definir");
+  return (
+    <>
         <Titulo n={3}>Recebimentos da 1ª etapa</Titulo>
         <Out label="Valor do Lote da 1ª etapa" value={v((f) => fmtBRL(f.valorLote))} strong />
         <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} erro={falta("entradaPctE1")} />
@@ -845,8 +905,7 @@ function FinanciamentoEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular>
         <Out label={`VGV a prazo da 1ª etapa (${f?.nParcelas ?? r.nParcelas} meses)`} value={v((f) => fmtBRL(f.cenario.carteiraEmp))} strong />
         {/* parceria da etapa (uso interno): os % podem ser outros que os da gleba geral */}
         {r.etapa1 && <ParceriaEtapa s={s} r={r} />}
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -860,10 +919,12 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
   const e = r.etapa1!;
   const prazo = e.prazo;
   const anos = e.fin ? e.fin.nParcelas / 12 : r.nParcelas / 12;
-  const inc = i.incorporadorPctE1 ?? i.incorporadorPct;
+  const copia = copiaParceriaE1(i);
+  const inc = copia ? i.incorporadorPct : i.incorporadorPctE1 ?? i.incorporadorPct;
   const ter = 1 - inc;
-  const pct = i.intermediacaoPctE1 ?? i.intermediacaoPct ?? 0;
-  const origem = i.intermediacaoOrigemE1 ?? i.intermediacaoOrigem ?? "inc";
+  const pct = (copia ? i.intermediacaoPct : i.intermediacaoPctE1 ?? i.intermediacaoPct) ?? 0;
+  const origem = (copia ? i.intermediacaoOrigem : i.intermediacaoOrigemE1 ?? i.intermediacaoOrigem) ?? "inc";
+  const nomeOrigem = { inc: "Incorporador (JBL)", ter: "Terrenista", ambos: "Incorporador e terrenista" }[origem];
   // como na gleba geral: o % do corretor incide sobre a parte de quem paga
   const deInc = origem !== "ter" ? pct * inc : 0;
   const deTer = origem !== "inc" ? pct * ter : 0;
@@ -874,17 +935,29 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
     <>
         <Titulo n={4}>Parceria da 1ª etapa (uso interno)</Titulo>
         <p className="px-3 py-1.5 text-[12px] leading-snug text-muted">
-          Os % negociados para a 1ª etapa. Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
+          Os % da 1ª etapa (ligado: iguais aos da gleba geral; desligado: os negociados para a etapa). Só aparecem aqui na planilha; a proposta continua com os % da gleba geral.
         </p>
-        <In s={s} k="incorporadorPctE1" label="Incorporador (%)" igual={i.incorporadorPct} />
+        <CopiaGeral ligado={copia} onChange={(v) => s.setCopiaGeral({ parceriaE1Geral: v })} />
+        {copia ? (
+          <Out label="Incorporador (%)" value={fmtNum(inc * 100)} sufixo="%" strong />
+        ) : (
+          <In s={s} k="incorporadorPctE1" label="Incorporador (%)" />
+        )}
         <Out label="VGV Incorporador à vista" value={fmtBRL(e.avista * inc)} navy />
         <Out label={`VGV Incorporador ${rotPrazo}`} value={aPrazo(inc)} navy />
         <Out label="Terrenista (%)" value={fmtNum(ter * 100)} sufixo="%" strong />
         <Out label="VGV Terrenista à vista" value={fmtBRL(e.avista * ter)} navy />
         <Out label={`VGV Terrenista ${rotPrazo}`} value={aPrazo(ter)} navy />
-        <In s={s} k="intermediacaoPctE1" label="Corretor (%)" igual={i.intermediacaoPct} />
+        {copia ? (
+          <Out label="Corretor (%)" value={fmtNum(pct * 100)} sufixo="%" strong />
+        ) : (
+          <In s={s} k="intermediacaoPctE1" label="Corretor (%)" />
+        )}
         {pct > 0 && (
           <>
+            {copia ? (
+              <Out label="Corretor pago por" value={nomeOrigem} />
+            ) : (
             <label className="grid grid-cols-[1fr_minmax(118px,46%)] items-center gap-2 px-3 py-1">
               <span className="text-[13px] font-semibold text-navy">Corretor pago por</span>
               <select className="rounded-sm border border-[#9DC3E6] bg-[#DDEBF7] px-2 py-1 text-[13px] font-semibold text-navy outline-none focus:border-gold" value={origem} onChange={(ev) => s.setCorretor({ intermediacaoOrigemE1: ev.target.value as "inc" | "ter" | "ambos" })}>
@@ -893,6 +966,7 @@ function ParceriaEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
                 <option value="ambos">Incorporador e terrenista</option>
               </select>
             </label>
+            )}
             <Out label="VGV Corretor à vista" value={fmtBRL(e.avista * (deInc + deTer))} navy />
             <p className="px-3 pb-1 text-[12px] leading-snug text-muted">
               {[
