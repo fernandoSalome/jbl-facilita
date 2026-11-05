@@ -1,0 +1,1014 @@
+{
+ "arquivo": "Planilha_Infra_Quintana.xlsx",
+ "lidoEm": "2026-11-05T14:15:47.405Z",
+ "total": 1342308.6823835247,
+ "info": {
+  "tipo": "Chacreamento",
+  "area": 65000,
+  "lotes": 42.4125,
+  "lote": 1200,
+  "regiao": "Sudeste",
+  "meses": 24
+ },
+ "resumo": [
+  {
+   "id": "r-estruturacao-juridica",
+   "nome": "Estruturação Jurídica",
+   "pct": 0.026763888568617177,
+   "valor": 35925.4
+  },
+  {
+   "id": "r-documentacao-registro-aprovacao",
+   "nome": "Documentação / Registro - Aprovação",
+   "pct": 0.012347165255290032,
+   "valor": 16573.707125
+  },
+  {
+   "id": "r-projetos",
+   "nome": "Projetos",
+   "pct": 0.088899633568715,
+   "valor": 119330.75
+  },
+  {
+   "id": "r-sede-da-empresa",
+   "nome": "Sede da Empresa",
+   "pct": 0.009833803634914203,
+   "valor": 13200
+  },
+  {
+   "id": "r-marketing",
+   "nome": "Marketing",
+   "pct": 0.06011061468866078,
+   "valor": 80687
+  },
+  {
+   "id": "r-custo-de-canteiro-de-obra",
+   "nome": "Custo de Canteiro de obra",
+   "pct": 0.17298554575962713,
+   "valor": 232200
+  },
+  {
+   "id": "r-preparacao-da-area",
+   "nome": "Preparação da Área",
+   "pct": -0.02133183956551263,
+   "valor": -28633.91346
+  },
+  {
+   "id": "r-energia",
+   "nome": "Energia",
+   "pct": 0.17626422528972238,
+   "valor": 236601
+  },
+  {
+   "id": "r-pavimentacao",
+   "nome": "Pavimentação",
+   "pct": 0.11346242633964009,
+   "valor": 152301.6
+  },
+  {
+   "id": "r-rede-de-agua",
+   "nome": "Rede de Água",
+   "pct": 0.2597799808109771,
+   "valor": 348704.923752
+  },
+  {
+   "id": "r-rede-de-esgoto",
+   "nome": "Rede de Esgoto",
+   "pct": 0.07884458795170489,
+   "valor": 105833.77496652491
+  },
+  {
+   "id": "r-paisagismos",
+   "nome": "Paisagismos",
+   "pct": 0.022039967697644026,
+   "valor": 29584.440000000002
+  }
+ ],
+ "obras": [
+  {
+   "id": "custo-de-canteiro-de-obra",
+   "nome": "Custo de Canteiro de obra",
+   "total": 232200,
+   "implanta": true,
+   "itens": [
+    {
+     "id": "custo-de-canteiro-de-obra.implantacao-e-ligacao-de-um-ponto-de-agua",
+     "nome": "Implantação e Ligação de um Ponto de Água",
+     "opcao": null,
+     "unitario": 540,
+     "quantidade": 1,
+     "unidade": null,
+     "total": 540
+    },
+    {
+     "id": "custo-de-canteiro-de-obra.implantacao-e-ligacao-de-um-ponto-de-energia",
+     "nome": "Implantação e Ligação de um Ponto de Energia",
+     "opcao": null,
+     "unitario": 1620,
+     "quantidade": 1,
+     "unidade": null,
+     "total": 1620
+    },
+    {
+     "id": "custo-de-canteiro-de-obra.custo-de-preparo-do-canteiro-de-obra",
+     "nome": "Preparo do Canteiro de Obra",
+     "opcao": null,
+     "unitario": 16200.000000000002,
+     "quantidade": 1,
+     "unidade": null,
+     "total": 16200.000000000002
+    },
+    {
+     "id": "custo-de-canteiro-de-obra.custo-mensal-de-alarme-e-monitoramento",
+     "nome": "Alarme e Monitoramento (mensal)",
+     "opcao": null,
+     "unitario": 486.00000000000006,
+     "quantidade": 24,
+     "unidade": "mês",
+     "total": 11664.000000000002
+    },
+    {
+     "id": "custo-de-canteiro-de-obra.custo-mensal-de-acompanhamento-de-um-engenheiro",
+     "nome": "Acompanhamento de um Engenheiro (mensal)",
+     "opcao": null,
+     "unitario": 6480,
+     "quantidade": 24,
+     "unidade": "mês",
+     "total": 155520
+    },
+    {
+     "id": "custo-de-canteiro-de-obra.custo-mensal-de-acompanhamento-da-topografia",
+     "nome": "Acompanhamento da Topografia (mensal)",
+     "opcao": null,
+     "unitario": 1080,
+     "quantidade": 24,
+     "unidade": "mês",
+     "total": 25920
+    },
+    {
+     "id": "custo-de-canteiro-de-obra.custo-mensal-do-aluguel-de-container",
+     "nome": "Aluguel de Container (mensal)",
+     "opcao": null,
+     "unitario": 864,
+     "quantidade": 24,
+     "unidade": "mês",
+     "total": 20736
+    }
+   ]
+  },
+  {
+   "id": "preparacao-da-area",
+   "nome": "Preparação da Área",
+   "total": -28633.91346,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "preparacao-da-area.suprecao-vegetal-m",
+     "nome": "Supressão vegetal (m²)",
+     "opcao": null,
+     "unitario": 3.024,
+     "quantidade": 0,
+     "unidade": "m²",
+     "total": 0
+    },
+    {
+     "id": "preparacao-da-area.rocadas-m",
+     "nome": "Roçadas (m²)",
+     "opcao": null,
+     "unitario": 0.162,
+     "quantidade": 52669.67,
+     "unidade": "m²",
+     "total": 8532.48654
+    },
+    {
+     "id": "preparacao-da-area.custo-hora-maquina",
+     "nome": "Hora Máquina",
+     "opcao": null,
+     "unitario": 410.40000000000003,
+     "quantidade": 24,
+     "unidade": "hora",
+     "total": 9849.6
+    },
+    {
+     "id": "preparacao-da-area.custo-diaria-de-caminhao",
+     "nome": "Diária de Caminhão",
+     "opcao": null,
+     "unitario": 1944.0000000000002,
+     "quantidade": 3,
+     "unidade": "dia",
+     "total": 5832.000000000001
+    },
+    {
+     "id": "preparacao-da-area.taxa-para-descarte-bota-fora",
+     "nome": "Taxa para descarte - Bota Fora",
+     "opcao": null,
+     "unitario": 48.6,
+     "quantidade": 20,
+     "unidade": null,
+     "total": 972
+    },
+    {
+     "id": "preparacao-da-area.custo-do-m-de-terraplanagem-compra-do-aterro",
+     "nome": "Terraplanagem - Compra do Aterro",
+     "opcao": null,
+     "unitario": 59.400000000000006,
+     "quantidade": 0,
+     "unidade": "m³",
+     "total": 0
+    },
+    {
+     "id": "preparacao-da-area.custo-do-m-de-terraplanagem-aterro",
+     "nome": "Terraplanagem - Aterro",
+     "opcao": null,
+     "unitario": 19.44,
+     "quantidade": 0,
+     "unidade": "m³",
+     "total": 0
+    },
+    {
+     "id": "preparacao-da-area.custo-do-m-de-terraplanagem-corte",
+     "nome": "Terraplanagem - Corte",
+     "opcao": null,
+     "unitario": 15.120000000000001,
+     "quantidade": null,
+     "unidade": "m³",
+     "total": 0
+    },
+    {
+     "id": "preparacao-da-area.custo-do-m-de-terraplanagem-transporte-interno",
+     "nome": "Terraplanagem - Transporte Interno",
+     "opcao": null,
+     "unitario": 8.64,
+     "quantidade": 0,
+     "unidade": "m³",
+     "total": 0
+    },
+    {
+     "id": "preparacao-da-area.custo-do-m-de-terraplanagem-abertura-de-logradouros",
+     "nome": "Terraplanagem - Abertura de Logradouros",
+     "opcao": null,
+     "unitario": 15,
+     "quantidade": 3588,
+     "unidade": "m²",
+     "total": 53820
+    }
+   ]
+  },
+  {
+   "id": "energia",
+   "nome": "Energia",
+   "total": 236601,
+   "implanta": true,
+   "itens": [
+    {
+     "id": "energia.custo-de-energia-por-metro-linear-aerea",
+     "nome": "Energia por metro linear aérea",
+     "opcao": null,
+     "unitario": 297,
+     "quantidade": 765,
+     "unidade": "m",
+     "total": 227205
+    },
+    {
+     "id": "energia.custo-de-energia-por-metro-linear-subterranea",
+     "nome": "Energia por metro linear subterrânea",
+     "opcao": null,
+     "unitario": 891.0000000000001,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "energia.custo-de-iluminacao-publica",
+     "nome": "Iluminação Pública",
+     "opcao": null,
+     "unitario": 324,
+     "quantidade": 29,
+     "unidade": null,
+     "total": 9396
+    }
+   ]
+  },
+  {
+   "id": "pavimentacao",
+   "nome": "Pavimentação",
+   "total": 152301.6,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "pavimentacao.custo-do-m-da-base-e-sub-base",
+     "nome": "Base e Sub-Base",
+     "opcao": null,
+     "unitario": 8.64,
+     "quantidade": null,
+     "unidade": "m²",
+     "total": 0
+    },
+    {
+     "id": "pavimentacao.custo-do-m-de-pavimentacao",
+     "nome": "Pavimentação",
+     "opcao": "Cascalhamento",
+     "unitario": 5.4,
+     "quantidade": 14102,
+     "unidade": "m²",
+     "total": 76150.8
+    },
+    {
+     "id": "pavimentacao.custo-do-m-da-aplicacao-mao-de-obra",
+     "nome": "Aplicação - Mão de Obra",
+     "opcao": null,
+     "unitario": 5.4,
+     "quantidade": 14102,
+     "unidade": "m²",
+     "total": 76150.8
+    },
+    {
+     "id": "pavimentacao.custo-do-metro-linear-da-guia-e-sarjeta",
+     "nome": "Guia e Sarjeta",
+     "opcao": null,
+     "unitario": 43.2,
+     "quantidade": null,
+     "unidade": "m",
+     "total": 0
+    }
+   ]
+  },
+  {
+   "id": "rede-de-agua",
+   "nome": "Rede de Água",
+   "total": 348704.923752,
+   "implanta": true,
+   "itens": [
+    {
+     "id": "rede-de-agua.custo-do-metro-linera-de-rede-de-agua-50mm",
+     "nome": "Rede de Água 50mm",
+     "opcao": "Simples",
+     "unitario": 22.14,
+     "quantidade": null,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-agua.custo-do-metro-linera-de-rede-de-agua-75mm",
+     "nome": "Rede de Água 75mm",
+     "opcao": "Simples",
+     "unitario": 45.9756,
+     "quantidade": 1175.42,
+     "unidade": "m",
+     "total": 54040.639752
+    },
+    {
+     "id": "rede-de-agua.custo-do-metro-linera-de-rede-de-agua-100mm",
+     "nome": "Rede de Água 100mm",
+     "opcao": "Simples",
+     "unitario": 79.92,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-agua.custo-metro-linear-de-ligacao",
+     "nome": "Ligação",
+     "opcao": null,
+     "unitario": 5.4,
+     "quantidade": 466.5375,
+     "unidade": "m",
+     "total": 2519.3025000000002
+    },
+    {
+     "id": "rede-de-agua.custo-de-reservatorio-1-100-lotes",
+     "nome": "Reservatório - 1/100 lotes",
+     "opcao": null,
+     "unitario": 129600.00000000001,
+     "quantidade": 1,
+     "unidade": null,
+     "total": 129600.00000000001
+    },
+    {
+     "id": "rede-de-agua.custo-de-implantacao-de-um-poco",
+     "nome": "Implantação de um Poço",
+     "opcao": null,
+     "unitario": 140400,
+     "quantidade": 1,
+     "unidade": null,
+     "total": 140400
+    },
+    {
+     "id": "rede-de-agua.custo-do-metro-linear-da-rede-de-agua-ate-o-empreendimento",
+     "nome": "Rede de Água até o Empreendimento",
+     "opcao": null,
+     "unitario": 0,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-agua.custo-de-coneccoes-e-outros",
+     "nome": "Conexões e Outros",
+     "opcao": null,
+     "unitario": 2519.3025000000002,
+     "quantidade": 0.2,
+     "unidade": null,
+     "total": 503.86050000000006
+    },
+    {
+     "id": "rede-de-agua.custo-de-implantacao-de-registro-1-100-lotes",
+     "nome": "Implantação de Registro 1/100 Lotes",
+     "opcao": null,
+     "unitario": 5400,
+     "quantidade": 1,
+     "unidade": null,
+     "total": 5400
+    },
+    {
+     "id": "rede-de-agua.custo-para-implantacao-de-uma-casa-quimica",
+     "nome": "Implantação de uma Casa Química",
+     "opcao": null,
+     "unitario": 60480.00000000001,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "rede-de-agua.custo-de-mao-de-obra",
+     "nome": "Mão de Obra",
+     "opcao": null,
+     "unitario": 2.16,
+     "quantidade": 1641.9541666666669,
+     "unidade": null,
+     "total": 3546.6210000000005
+    },
+    {
+     "id": "rede-de-agua.custo-hora-maquina",
+     "nome": "Hora Máquina",
+     "opcao": null,
+     "unitario": 4320,
+     "quantidade": 2.938541666666667,
+     "unidade": "hora",
+     "total": 12694.500000000002
+    }
+   ]
+  },
+  {
+   "id": "rede-de-esgoto",
+   "nome": "Rede de Esgoto",
+   "total": 105833.77496652491,
+   "implanta": true,
+   "itens": [
+    {
+     "id": "rede-de-esgoto.custo-do-metro-linear-de-rede-de-esgoto-100mm",
+     "nome": "Rede de Esgoto 100mm",
+     "opcao": "Simples",
+     "unitario": 38.016000000000005,
+     "quantidade": null,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-esgoto.custo-do-metro-linear-de-rede-de-esgoto-150mm",
+     "nome": "Rede de Esgoto 150mm",
+     "opcao": "Simples",
+     "unitario": 52.812000000000005,
+     "quantidade": 1175.42,
+     "unidade": "m",
+     "total": 62076.28104000001
+    },
+    {
+     "id": "rede-de-esgoto.custo-do-metro-linear-de-rede-de-esgoto-200mm",
+     "nome": "Rede de Esgoto 200mm",
+     "opcao": "Simples",
+     "unitario": 183.10320000000002,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-esgoto.custo-do-metro-linear-de-rede-de-esgoto-250mm",
+     "nome": "Rede de Esgoto 250mm",
+     "opcao": "Simples",
+     "unitario": 286.7724,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-esgoto.custo-para-implantacao-de-uma-estacao-elevatoria",
+     "nome": "Implantação de uma Estação Elevatória",
+     "opcao": null,
+     "unitario": 378000,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "rede-de-esgoto.custo-para-implantacao-de-uma-estacao-de-tratamento",
+     "nome": "Implantação de uma Estação de Tratamento",
+     "opcao": null,
+     "unitario": 1026000.0000000001,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "rede-de-esgoto.custo-do-metro-linear-da-rede-de-esgoto-externa",
+     "nome": "Rede de Esgoto Externa",
+     "opcao": null,
+     "unitario": 183.60000000000002,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "rede-de-esgoto.custo-para-implantacao-de-um-poco-de-visita-pv",
+     "nome": "Implantação de um Poço de Visita - PV",
+     "opcao": null,
+     "unitario": 2916,
+     "quantidade": 1.4426852148576443,
+     "unidade": null,
+     "total": 4206.870086524891
+    }
+   ]
+  },
+  {
+   "id": "drenagem",
+   "nome": "Drenagem",
+   "total": 0,
+   "implanta": false,
+   "itens": [
+    {
+     "id": "drenagem.metro-linear-de-tubo-de-600mm",
+     "nome": "Tubo de 600mm",
+     "opcao": null,
+     "unitario": 145.9728,
+     "quantidade": 235.08333333333337,
+     "unidade": "m",
+     "total": 34315.77240000001
+    },
+    {
+     "id": "drenagem.metro-linear-de-tubo-de-800mm",
+     "nome": "Tubo de 800mm",
+     "opcao": null,
+     "unitario": 396.97560000000004,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "drenagem.metro-linear-de-tubo-de-1000mm",
+     "nome": "Tubo de 1000mm",
+     "opcao": null,
+     "unitario": 566.3844,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "drenagem.metro-linear-de-tubo-de-1200mm",
+     "nome": "Tubo de 1200mm",
+     "opcao": null,
+     "unitario": 845.9208000000001,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "drenagem.metro-linear-de-tubo-de-1500mm",
+     "nome": "Tubo de 1500mm",
+     "opcao": null,
+     "unitario": 1225.5516,
+     "quantidade": 0,
+     "unidade": "m",
+     "total": 0
+    },
+    {
+     "id": "drenagem.metro-linear-de-tubo-de-400mm-bigode",
+     "nome": "Tubo de 400mm - Bigode",
+     "opcao": null,
+     "unitario": 128.54160000000002,
+     "quantidade": 15.388257575757576,
+     "unidade": "m",
+     "total": 1978.0312500000002
+    },
+    {
+     "id": "drenagem.custo-para-implantacao-de-uma-boca-de-lobo-simples",
+     "nome": "Implantação de uma Boca de Lobo Simples",
+     "opcao": null,
+     "unitario": 2700,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "drenagem.custo-para-implantacao-de-uma-boca-de-lobo-dupla",
+     "nome": "Implantação de uma Boca de Lobo Dupla",
+     "opcao": null,
+     "unitario": 4536,
+     "quantidade": 3.847064393939394,
+     "unidade": null,
+     "total": 17450.284090909092
+    },
+    {
+     "id": "drenagem.custo-para-implantacao-de-um-dissipador",
+     "nome": "Implantação de um Dissipador",
+     "opcao": null,
+     "unitario": 19440,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    }
+   ]
+  },
+  {
+   "id": "paisagismos",
+   "nome": "Paisagismos",
+   "total": 29584.440000000002,
+   "implanta": true,
+   "itens": [
+    {
+     "id": "paisagismos.arvore-por-lote-verba",
+     "nome": "Árvore por Lote (verba)",
+     "opcao": null,
+     "unitario": 48.6,
+     "quantidade": 42.4125,
+     "unidade": null,
+     "total": 2061.2475
+    },
+    {
+     "id": "paisagismos.arvore-para-avenida-verba",
+     "nome": "Árvore para Avenida (verba)",
+     "opcao": null,
+     "unitario": 162,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "paisagismos.jardim-verba",
+     "nome": "Jardim (verba)",
+     "opcao": null,
+     "unitario": 12960,
+     "quantidade": 2,
+     "unidade": null,
+     "total": 25920
+    },
+    {
+     "id": "paisagismos.plantio-verba",
+     "nome": "Plantio (verba)",
+     "opcao": null,
+     "unitario": 37.800000000000004,
+     "quantidade": 42.4125,
+     "unidade": null,
+     "total": 1603.1925000000003
+    },
+    {
+     "id": "paisagismos.recomposicao-da-vegetacao-verba",
+     "nome": "Recomposição da Vegetação (verba)",
+     "opcao": null,
+     "unitario": 48.6,
+     "quantidade": 0,
+     "unidade": null,
+     "total": 0
+    }
+   ]
+  }
+ ],
+ "gestao": [
+  {
+   "id": "g-estruturacao-juridica",
+   "nome": "Estruturação Jurídica",
+   "total": 35925.4,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "g-estruturacao-juridica.abertura-da-spe",
+     "nome": "Abertura da SPE",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 1621
+    },
+    {
+     "id": "g-estruturacao-juridica.servicos-advocaticios",
+     "nome": "Serviços Advocatícios",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 34304.4
+    }
+   ]
+  },
+  {
+   "id": "g-documentacao-registro-aprovacao",
+   "nome": "Documentação / Registro - Aprovação",
+   "total": 16573.707125,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-de-registro-dos-lotes-no-cartorio-unid",
+     "nome": "Taxa de Registro dos Lotes no Cartório - unid.",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "un.",
+     "total": 35
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-municipal-de-aprovacao-unid",
+     "nome": "Taxa municipal de Aprovação - unid.",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "un.",
+     "total": 102
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.custo-do-contrato-de-compra-e-venda-unid",
+     "nome": "Contrato de Compra e Venda - unid.",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "un.",
+     "total": 0
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.custo-de-emissao-de-boleto",
+     "nome": "Emissão de Boleto",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 1.49
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-de-licenciamento-ambiental",
+     "nome": "Taxa de Licenciamento Ambiental",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 3500
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-de-aprovacao-dos-projetos-complementares",
+     "nome": "Taxa de Aprovação dos Projetos Complementares",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 3500
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-de-aprovacao-do-urbanistico",
+     "nome": "Taxa de Aprovação do Urbanístico",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 3500
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-de-solicitacao-da-gdu",
+     "nome": "Taxa de solicitação da GDU",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 200
+    },
+    {
+     "id": "g-documentacao-registro-aprovacao.taxa-de-registro-de-condominio",
+     "nome": "Taxa de Registro de Condomínio",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 0
+    }
+   ]
+  },
+  {
+   "id": "g-projetos",
+   "nome": "Projetos",
+   "total": 119330.75,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "g-projetos.projeto-urbanistico",
+     "nome": "Projeto Urbanístico",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 55000
+    },
+    {
+     "id": "g-projetos.projetos-complementares",
+     "nome": "Projetos Complementares",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 55000
+    },
+    {
+     "id": "g-projetos.projeto-arquitetonico",
+     "nome": "Projeto Arquitetônico",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": null
+    },
+    {
+     "id": "g-projetos.levantamentos-topograficos",
+     "nome": "Levantamentos Topográficos",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "g-projetos.demarcacao-dos-lotes",
+     "nome": "Demarcação dos Lotes",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 220
+    }
+   ]
+  },
+  {
+   "id": "g-sede-da-empresa",
+   "nome": "Sede da Empresa",
+   "total": 13200,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "g-sede-da-empresa.aluguel-mensal",
+     "nome": "Aluguel (mensal)",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "mês",
+     "total": 0
+    },
+    {
+     "id": "g-sede-da-empresa.energia-mensal",
+     "nome": "Energia (mensal)",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "mês",
+     "total": 0
+    },
+    {
+     "id": "g-sede-da-empresa.agua-mensal",
+     "nome": "Água (mensal)",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "mês",
+     "total": 0
+    },
+    {
+     "id": "g-sede-da-empresa.telefone-mensal",
+     "nome": "Telefone (mensal)",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "mês",
+     "total": 0
+    },
+    {
+     "id": "g-sede-da-empresa.sistema-mensal",
+     "nome": "Sistema (mensal)",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "mês",
+     "total": 550
+    },
+    {
+     "id": "g-sede-da-empresa.colaborador-mensal",
+     "nome": "Colaborador (mensal)",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": "mês",
+     "total": 0
+    }
+   ]
+  },
+  {
+   "id": "g-marketing",
+   "nome": "Marketing",
+   "total": 80687,
+   "implanta": null,
+   "itens": [
+    {
+     "id": "g-marketing.equipe",
+     "nome": "Equipe",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "g-marketing.instagram-montagem-e-acompanhamento",
+     "nome": "Instagram - Montagem e Acompanhamento",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 800
+    },
+    {
+     "id": "g-marketing.site-montagem",
+     "nome": "Site - Montagem",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 900
+    },
+    {
+     "id": "g-marketing.arte-desenvolver-material",
+     "nome": "Arte - Desenvolver Material",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 5000
+    },
+    {
+     "id": "g-marketing.grafica-panfleto-e-outros",
+     "nome": "Gráfica - Panfleto e Outros",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 6000
+    },
+    {
+     "id": "g-marketing.outdoor-producao",
+     "nome": "Outdoor - Produção",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 12000
+    },
+    {
+     "id": "g-marketing.outdoor-locacao",
+     "nome": "Outdoor - Locação",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": null
+    },
+    {
+     "id": "g-marketing.camiseta",
+     "nome": "Camiseta",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": null
+    },
+    {
+     "id": "g-marketing.stand-de-vendas",
+     "nome": "Stand de Vendas",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 5000
+    },
+    {
+     "id": "g-marketing.trafego",
+     "nome": "Tráfego",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 0
+    },
+    {
+     "id": "g-marketing.agencia-de-marketing",
+     "nome": "Agência de Marketing",
+     "opcao": null,
+     "unitario": null,
+     "quantidade": null,
+     "unidade": null,
+     "total": 32587
+    }
+   ]
+  }
+ ]
+}

@@ -286,3 +286,24 @@ model Compromisso {
 
   @@index([userId, inicio])
 }
+
+/// Página de apresentação de custos (ex.: Chácaras Primavera), fora da plataforma: o rascunho é editado em
+/// /apresentacao/editar/<slug> e o link compartilhado (/apresentacao/<token>) mostra a versão publicada.
+model Apresentacao {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  /// Números da aba "CUSTOS" da planilha (lidos do arquivo, sem recalcular)
+  dados       Json
+  /// Textos alterados à mão: { chave: texto }
+  textos      Json      @default("{}")
+  /// Aparência de cada texto: { chave: { fonte, tamanho, negrito, cor, fundo } }
+  formatos    Json      @default("{}")
+  /// Aparência geral: fonte, cores, logo
+  estilo      Json      @default("{}")
+  /// Cópia de dados, textos, formatos e estilo feita em "Gerar link" (é o que o link mostra)
+  publicado   Json?
+  publicadoEm DateTime?
+  token       String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
