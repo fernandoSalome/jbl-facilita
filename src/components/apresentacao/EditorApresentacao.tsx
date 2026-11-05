@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Apresentacao from "./Apresentacao";
+import PlanilhaNaPagina from "./PlanilhaNaPagina";
 import { ESTILO_PADRAO, FONTES, type Conteudo, type Estilo, type Formato } from "@/lib/apresentacao/tipos";
 import type { DadosCustos } from "@/lib/apresentacao/planilha";
 
@@ -19,20 +20,21 @@ export default function EditorApresentacao({ slug, inicial, link, publicadoEm }:
   const [copiado, setCopiado] = useState(false);
   const [painel, setPainel] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [planilhaAberta, setPlanilhaAberta] = useState(false);
   const planilha = useRef<HTMLInputElement>(null);
   const logo = useRef<HTMLInputElement>(null);
 
   // salva o rascunho um pouco depois da última mudança (só quando algo mudou de verdade)
-  const salvo = useRef(JSON.stringify([inicial.textos, inicial.formatos, inicial.estilo]));
+  const salvo = useRef(JSON.stringify([inicial.dados, inicial.textos, inicial.formatos, inicial.estilo]));
   useEffect(() => {
-    const agora = JSON.stringify([c.textos, c.formatos, c.estilo]);
+    const agora = JSON.stringify([c.dados, c.textos, c.formatos, c.estilo]);
     if (agora === salvo.current) return;
     setStatus("salvando");
     const t = setTimeout(async () => {
       const r = await fetch(`/api/apresentacao/${slug}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ textos: c.textos, formatos: c.formatos, estilo: c.estilo }),
+        body: JSON.stringify({ dados: c.dados, textos: c.textos, formatos: c.formatos, estilo: c.estilo }),
       }).catch(() => null);
       if (r?.ok) {
         salvo.current = agora;
@@ -45,7 +47,7 @@ export default function EditorApresentacao({ slug, inicial, link, publicadoEm }:
       }
     }, 700);
     return () => clearTimeout(t);
-  }, [slug, c.textos, c.formatos, c.estilo]);
+  }, [slug, c.dados, c.textos, c.formatos, c.estilo]);
 
   const setTexto = (k: string, v: string) => setC((x) => ({ ...x, textos: { ...x.textos, [k]: v } }));
   const fmt = sel ? c.formatos[sel] ?? {} : {};
@@ -87,6 +89,7 @@ export default function EditorApresentacao({ slug, inicial, link, publicadoEm }:
     const j = await r?.json().catch(() => ({}));
     if (!r?.ok) return setAviso(j?.error ?? "Não foi possível ler a planilha.");
     const d = j.dados as DadosCustos;
+    salvo.current = JSON.stringify([d, c.textos, c.formatos, c.estilo]); // já está gravado no servidor
     setC((x) => ({ ...x, dados: d }));
     setAviso(`Dados atualizados com a planilha ${d.arquivo}: custo total ${d.total?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. Clique em “Gerar link” para o link mostrar a versão nova.`);
   }
@@ -119,7 +122,8 @@ export default function EditorApresentacao({ slug, inicial, link, publicadoEm }:
             </div>
           </div>
           <button className={btn} onClick={() => setPainel((v) => !v)} aria-expanded={painel}>Página e logo</button>
-          <button className={btn} disabled={enviando} onClick={() => planilha.current?.click()}>{enviando ? "Lendo a planilha…" : "Atualizar dados da planilha"}</button>
+          <button className="rounded bg-white px-3 py-1.5 text-[13px] font-bold text-[#122A45] hover:bg-white/90" onClick={() => setPlanilhaAberta(true)}>Abrir planilha</button>
+          <button className={btn} disabled={enviando} onClick={() => planilha.current?.click()} title="Troca todos os números pelos de um arquivo .xlsx">{enviando ? "Lendo a planilha…" : "Atualizar dados da planilha"}</button>
           <input ref={planilha} type="file" accept=".xlsx" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarPlanilha(f); e.target.value = ""; }} />
           <button className="rounded bg-[#C1943D] px-4 py-1.5 text-[13px] font-bold text-[#122A45] hover:brightness-105" onClick={gerarLink}>Gerar link</button>
         </div>
@@ -200,6 +204,14 @@ export default function EditorApresentacao({ slug, inicial, link, publicadoEm }:
       </div>
 
       <Apresentacao c={c} ed={{ selecionado: sel, selecionar: setSel, setTexto }} />
+      {planilhaAberta && (
+        <PlanilhaNaPagina
+          dados={c.dados}
+          nomes={(k, padrao) => c.textos[k] ?? padrao}
+          onChange={(dados) => setC((x) => ({ ...x, dados }))}
+          onFechar={() => setPlanilhaAberta(false)}
+        />
+      )}
     </div>
   );
 }
