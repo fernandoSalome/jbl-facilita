@@ -64,6 +64,15 @@ describe("os números da página fecham", () => {
     const dem = proj.itens.find((i) => /demarca/i.test(i.nome))!;
     expect([dem.unitario, dem.quantidade, dem.unidade, dem.total]).toEqual([220, 47, "lote", 10340]);
   });
+  it("Preparação da Área soma a abertura de logradouros (a planilha subtraía)", () => {
+    const excel = calcularAbas(montarModelo(lerXlsx(arquivo)))[0].celulas.get("M4") as number;
+    const d = lerPlanilhaCustos(arquivo, "Planilha_Infra_Quintana.xlsx");
+    const prep = d.obras.find((g) => /prepara/i.test(g.nome))!;
+    expect(prep.total).toBeCloseTo(79006.09, 2);
+    expect(prep.itens.every((i) => (i.total ?? 0) >= 0)).toBe(true);
+    expect(d.total!).toBeCloseTo(excel + 2 * 53820, 2);
+    expect(confere(d)).toEqual([]);
+  });
 });
 
 import inicial from "./primavera-inicial.json";

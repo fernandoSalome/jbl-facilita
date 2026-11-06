@@ -4,7 +4,7 @@
  * (as fórmulas), para a planilha aberta na página refazer as contas quando alguém troca um número.
  */
 import { analisar, avaliar, resultado } from "./formulas";
-import { calcularAbas, montarModelo, type Ajustes, type ModeloPlanilha } from "./modelo";
+import { calcularAbas, corrigirModelo, montarModelo, type Ajustes, type ModeloPlanilha } from "./modelo";
 import { lerXlsx, type Aba, type Valor } from "./xlsx";
 
 /** linha = linha da aba CUSTOS (as células que a página muda: G, H e I nas obras, C na gestão) */
@@ -87,7 +87,10 @@ const GRUPOS_GESTAO = /^\s*(área|estruturação jurídica|integralização da �
 
 export function lerPlanilhaCustos(arquivo: Buffer, nomeArquivo: string): DadosCustos {
   const abas = lerXlsx(arquivo);
-  return { ...extrairCustos(abas, nomeArquivo, new Date().toISOString()), modelo: montarModelo(abas), ajustes: {} };
+  const modelo = montarModelo(abas), certo = corrigirModelo(modelo);
+  const d: DadosCustos = { ...extrairCustos(abas, nomeArquivo, new Date().toISOString()), modelo: certo ?? modelo, ajustes: {} };
+  // fórmula corrigida: os números são refeitos (os guardados no arquivo são os da fórmula errada)
+  return certo ? recalcular(d, {}) : d;
 }
 
 /** Refaz as contas da planilha com os números trocados na página (mesmos nomes e ids de antes) */

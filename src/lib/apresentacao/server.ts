@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { newToken } from "@/lib/token";
 import { LINK_BASE } from "@/lib/site";
 import inicialPrimavera from "./primavera-inicial.json";
+import { corrigirModelo } from "./modelo";
 import { ajustesDaVersaoAntiga, recalcular, type DadosCustos } from "./planilha";
 
 /** Apresentações que existem (endereço de edição → dados iniciais, lidos da planilha do projeto) */
@@ -18,12 +19,20 @@ export async function apresentacaoDe(slug: string) {
   const a = await db.apresentacao.findUnique({ where: { slug } });
   if (a) {
     // salva antes das fórmulas na página: passa a ter o modelo, com os números já trocados como ajustes
-    const d = a.dados as unknown as DadosCustos;
+    let d = a.dados as unknown as DadosCustos;
     const base = conf.inicial as unknown as DadosCustos;
+    let mudou = false;
     if (!d.modelo && base.modelo && d.arquivo === base.arquivo) {
-      const dados = recalcular(base, ajustesDaVersaoAntiga(d, base));
-      return db.apresentacao.update({ where: { id: a.id }, data: { dados: dados as object, updatedAt: a.updatedAt } });
+      d = recalcular(base, ajustesDaVersaoAntiga(d, base));
+      mudou = true;
     }
+    // fórmula errada da planilha (ex.: Preparação da Área): corrige e refaz, mantendo os números trocados
+    const certo = d.modelo ? corrigirModelo(d.modelo) : null;
+    if (certo) {
+      d = recalcular({ ...d, modelo: certo }, d.ajustes ?? {});
+      mudou = true;
+    }
+    if (mudou) return db.apresentacao.update({ where: { id: a.id }, data: { dados: d as object, updatedAt: a.updatedAt } });
     return a;
   }
   return db.apresentacao.upsert({

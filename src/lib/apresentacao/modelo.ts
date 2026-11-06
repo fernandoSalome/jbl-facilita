@@ -123,6 +123,24 @@ export function calcularAbas(m: ModeloPlanilha, ajustes: Ajustes = {}): Aba[] {
   });
 }
 
+/** Erros de fórmula da planilha de origem, corrigidos no modelo (vale também ao subir a planilha de novo) */
+const CORRECOES = [
+  // Preparação da Área subtraía a abertura de logradouros, que é custo: passa a somar (06/11/2026)
+  { aba: "CUSTOS", celula: "I12", errada: "SUM(I13:I21)-(I22)", certa: "SUM(I13:I22)" },
+];
+
+/** Modelo com as correções (null se não havia o que corrigir) */
+export function corrigirModelo(m: ModeloPlanilha): ModeloPlanilha | null {
+  let mudou = false;
+  const abas = m.abas.map((a) => {
+    const cs = CORRECOES.filter((x) => chaveAba(x.aba) === chaveAba(a.nome) && a.formulas[x.celula]?.replace(/\s/g, "") === x.errada);
+    if (!cs.length) return a;
+    mudou = true;
+    return { ...a, formulas: { ...a.formulas, ...Object.fromEntries(cs.map((x) => [x.celula, x.certa])) } };
+  });
+  return mudou ? { abas } : null;
+}
+
 /** Opções de uma célula que a planilha procura numa lista (ex.: a região, procurada no cabeçalho de Planilha1) */
 export function opcoesDaRegiao(m: ModeloPlanilha): string[] {
   const p1 = m.abas.find((a) => chaveAba(a.nome) === "PLANILHA1");
