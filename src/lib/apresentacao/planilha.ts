@@ -83,12 +83,6 @@ function unicos<T extends { id: string }>(lista: T[]) {
   return lista;
 }
 
-/** Nome de item copiado de outra linha por engano na planilha (a célula do nome é a fórmula indicada) */
-const NOMES_CERTOS: { formula: string; nome: string; unidade: string }[] = [
-  // linha 50 (=E55) aparecia como "Poço de Visita", mas é a ligação de esgoto: metros × R$/m (06/11/2026)
-  { formula: "E55", nome: "Ligações de Esgoto", unidade: "m" },
-];
-
 const GRUPOS_GESTAO = /^\s*(área|estruturação jurídica|integralização da área|documentação|projetos|sede da empresa|marketing)\b/i;
 
 export function lerPlanilhaCustos(arquivo: Buffer, nomeArquivo: string): DadosCustos {
@@ -177,15 +171,13 @@ export function extrairCustos(abas: Aba[], nomeArquivo: string, lidoEm: string, 
     if (ehItem(nome)) {
       if (!g) continue;
       const nomeLimpo = limpar(nome);
-      // o id segue o texto da célula (os textos trocados na página ficam no mesmo item)
-      const certo = NOMES_CERTOS.find((x) => c.formulas?.get(`E${r}`)?.replace(/\$/g, "") === x.formula);
       g.itens.push({
         id: `${g.id}.${slug(nomeLimpo)}`,
-        nome: certo?.nome ?? nomeSimples(nomeLimpo),
+        nome: nomeSimples(nomeLimpo),
         opcao: txt(cel(c, `F${r}`)),
         unitario: num(cel(c, `G${r}`)),
         quantidade: num(cel(c, `H${r}`)),
-        unidade: certo?.unidade ?? unidadeDe(nomeLimpo),
+        unidade: unidadeDe(nomeLimpo),
         total: num(cel(c, `I${r}`)),
         linha: r,
       });

@@ -32,15 +32,13 @@ export async function apresentacaoDe(slug: string) {
       d = recalcular({ ...d, modelo: certo }, d.ajustes ?? {});
       mudou = true;
     }
-    // linha 50 (ligações de esgoto) tinha o nome de Poço de Visita e recebeu 3 poços: volta à conta da planilha
-    // e os 3 poços vão para o Poço de Visita de verdade (linha 55) (06/11/2026)
+    // desfaz a troca de 06/11/2026 na rede de esgoto (pedido do Fernando): a linha 50 volta a 3 × R$ 2.916 como o
+    // Marcelo tinha digitado e o Poço de Visita (linha 55) volta à conta da planilha
     const aj = d.ajustes ?? {};
-    if (d.modelo && aj["CUSTOS!H50"] === 3) {
-      const novos: Ajustes = { ...aj, "CUSTOS!H55": 3 };
-      delete novos["CUSTOS!G50"];
-      delete novos["CUSTOS!H50"];
-      delete novos["CUSTOS!I50"];
-      d = recalcular(d, novos);
+    if (d.modelo && aj["CUSTOS!H55"] === 3 && !("CUSTOS!H50" in aj) && !("CUSTOS!G50" in aj)) {
+      const antes: Ajustes = { ...aj, "CUSTOS!H50": 3, "CUSTOS!G50": 2916 };
+      delete antes["CUSTOS!H55"];
+      d = recalcular(d, antes);
       mudou = true;
     }
     // item que o Marcelo chamou de "Esgotamento sanitário" é por unidade, não por metro (06/11/2026)
