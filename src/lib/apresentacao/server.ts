@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { newToken } from "@/lib/token";
 import { LINK_BASE } from "@/lib/site";
 import inicialPrimavera from "./primavera-inicial.json";
-import { corrigirModelo } from "./modelo";
+import { corrigirModelo, type Ajustes } from "./modelo";
 import { ajustesDaVersaoAntiga, recalcular, type DadosCustos } from "./planilha";
 
 /** Apresentações que existem (endereço de edição → dados iniciais, lidos da planilha do projeto) */
@@ -30,6 +30,17 @@ export async function apresentacaoDe(slug: string) {
     const certo = d.modelo ? corrigirModelo(d.modelo) : null;
     if (certo) {
       d = recalcular({ ...d, modelo: certo }, d.ajustes ?? {});
+      mudou = true;
+    }
+    // linha 50 (ligações de esgoto) tinha o nome de Poço de Visita e recebeu 3 poços: volta à conta da planilha
+    // e os 3 poços vão para o Poço de Visita de verdade (linha 55) (06/11/2026)
+    const aj = d.ajustes ?? {};
+    if (d.modelo && aj["CUSTOS!H50"] === 3) {
+      const novos: Ajustes = { ...aj, "CUSTOS!H55": 3 };
+      delete novos["CUSTOS!G50"];
+      delete novos["CUSTOS!H50"];
+      delete novos["CUSTOS!I50"];
+      d = recalcular(d, novos);
       mudou = true;
     }
     // item que o Marcelo chamou de "Esgotamento sanitário" é por unidade, não por metro (06/11/2026)
