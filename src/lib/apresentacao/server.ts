@@ -41,6 +41,13 @@ export async function apresentacaoDe(slug: string) {
       d = recalcular(d, antes);
       mudou = true;
     }
+    // sem os poços de visita da rede de esgoto (linha 55) e da drenagem (linha 65): o total deles vai a zero (sai
+    // do custo e da apresentação); a quantidade fica, porque o tubo "bigode" da drenagem usa (06/11/2026)
+    const semPv = d.ajustes ?? {};
+    if (d.modelo && !("CUSTOS!I55" in semPv) && !("CUSTOS!I65" in semPv)) {
+      d = recalcular(d, { ...semPv, "CUSTOS!I55": 0, "CUSTOS!I65": 0 });
+      mudou = true;
+    }
     // item que o Marcelo chamou de "Esgotamento sanitário" é por unidade, não por metro (06/11/2026)
     const textos = { ...((a.textos ?? {}) as Record<string, string>) };
     let unidade = false;
