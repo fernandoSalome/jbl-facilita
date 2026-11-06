@@ -48,7 +48,7 @@ type Props = {
 
 /* ---------------- painel de números (salva sozinho) ---------------- */
 
-function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (d: Data) => void; dataAtual?: string }) {
+function NumbersPanel({ value, onChange, dataAtual, bloqueada }: { value: Data; onChange: (d: Data) => void; dataAtual?: string; bloqueada?: boolean }) {
   const study = useStudyState(value.inputs);
   const first = useRef(true);
   const latest = useRef(value);
@@ -67,7 +67,7 @@ function NumbersPanel({ value, onChange, dataAtual }: { value: Data; onChange: (
         <label><span className="label">Proprietário</span><input className="input" value={m.ownerName} onChange={(e) => setMeta({ ownerName: e.target.value })} /></label>
       </div>
       <DataField value={m.options.data} atual={dataAtual} onChange={(v) => setMeta({ options: { ...m.options, data: v } })} />
-      <StudyEditor state={study} />
+      <StudyEditor state={study} bloqueada={bloqueada} />
     </div>
   );
 }
@@ -436,7 +436,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
               <div className="eyebrow">Dados da planilha</div>
               <span className="text-[12.5px] text-muted">Salva sozinho. A proposta logo abaixo muda enquanto você digita.</span>
             </div>
-            <NumbersPanel key={numbersKey} value={data} onChange={changeData} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
+            <NumbersPanel key={numbersKey} value={data} onChange={changeData} bloqueada={bloqueada} dataAtual={dataDaProposta({ createdAt: p.createdAt, publishedAt: p.publishedAt, options: data.meta.options }).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })} />
           </div>
           {/* alça: puxa para baixo ou para cima para a planilha ficar maior ou menor */}
           <div

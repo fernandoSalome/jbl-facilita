@@ -217,12 +217,12 @@ function Box({ n, title, right, children }: { n?: number; title: string; right?:
 }
 
 function Num({ n }: { n: number }) {
-  return <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gold text-[11px] font-bold text-navy">{n}</span>;
+  return <span className="num grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gold text-[11px] font-bold text-navy">{n}</span>;
 }
 
-/** Título grande de cada parte da planilha (gleba geral, primeira etapa) */
-function Parte({ children }: { children: React.ReactNode }) {
-  return <h3 className="border-b-2 border-gold pb-1 text-[15px] font-bold uppercase tracking-wider text-navy">{children}</h3>;
+/** Título grande de cada parte da planilha (gleba geral, primeira etapa); bloqueadas seguem com o título pequeno */
+function Parte({ children, grande }: { children: React.ReactNode; grande?: boolean }) {
+  return <h3 className={`border-b-2 border-gold pb-1 font-bold uppercase tracking-wider text-navy ${grande ? "text-center text-[45px] leading-tight" : "text-[15px]"}`}>{children}</h3>;
 }
 
 function Sub({ children, n }: { children: React.ReactNode; n?: number }) {
@@ -349,7 +349,8 @@ function useLarguraDe(ref: React.RefObject<HTMLElement>) {
   return w;
 }
 
-export default function StudyEditor({ state }: { state: State; compact?: boolean }) {
+/** `bloqueada`: proposta desabilitada fica com a planilha como era (títulos pequenos, 1ª etapa em azul) */
+export default function StudyEditor({ state, bloqueada }: { state: State; compact?: boolean; bloqueada?: boolean }) {
   const s = state;
   const raiz = useRef<HTMLDivElement>(null);
   const w = useLarguraDe(raiz);
@@ -367,7 +368,7 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
         <span className="ml-auto flex items-center gap-1.5"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> calculando ao vivo</span>
       </div>
 
-      <Parte>Gleba Geral</Parte>
+      <Parte grande={!bloqueada}>Gleba Geral</Parte>
 
       <div className={`grid gap-4 ${w >= 1000 ? "grid-cols-3" : w >= 720 ? "grid-cols-2" : ""}`}>
         {/* coluna 1 (as observações ocupam o espaço que sobra embaixo) */}
@@ -545,10 +546,10 @@ export default function StudyEditor({ state }: { state: State; compact?: boolean
         </div>
       </div>
 
-      <Parte>Primeira Etapa</Parte>
+      <Parte grande={!bloqueada}>Primeira Etapa</Parte>
 
-      {/* Primeira etapa: uma linha de quadras para começar a vender antes */}
-      <div className="overflow-hidden rounded-sm border border-gold/70 bg-white">
+      {/* Primeira etapa: uma linha de quadras para começar a vender antes (em dourado, para não confundir com a gleba geral) */}
+      <div className={`overflow-hidden rounded-sm border border-gold/70 bg-white ${bloqueada ? "" : "etapa-dourada"}`}>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
           {/* uma opção só: sem primeira etapa (padrão), com os números ou a definir */}
           <label className="flex cursor-pointer items-center gap-2">

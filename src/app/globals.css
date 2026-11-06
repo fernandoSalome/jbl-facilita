@@ -56,3 +56,22 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* planilha: a 1ª etapa com as cores invertidas (faixas douradas, letra azul), para não confundir com a gleba geral */
+.etapa-dourada .bg-navy,
+.etapa-dourada .bg-navy\/90 {
+  background-color: #c1943d;
+}
+.etapa-dourada .text-white {
+  color: #122a45;
+}
+.etapa-dourada .text-white\/70 {
+  color: rgb(18 42 69 / 0.75);
+}
+.etapa-dourada .num {
+  background-color: #122a45;
+  color: #c1943d;
+}
+.etapa-dourada input[type="checkbox"] {
+  accent-color: #122a45;
+}
