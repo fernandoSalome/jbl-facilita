@@ -4,11 +4,15 @@
  * (as fórmulas), para a planilha aberta na página refazer as contas quando alguém troca um número.
  */
 import { analisar, avaliar, resultado } from "./formulas";
-import { calcularAbas, corrigirModelo, montarModelo, type Ajustes, type ModeloPlanilha } from "./modelo";
+import { calcularAbas, corrigirModelo, ITENS_NOVOS, montarModelo, type Ajustes, type ModeloPlanilha } from "./modelo";
 import { lerXlsx, type Aba, type Valor } from "./xlsx";
 
 /** linha = linha da aba CUSTOS (as células que a página muda: G, H e I nas obras, C na gestão) */
-export type Item = { id: string; nome: string; opcao: string | null; unitario: number | null; quantidade: number | null; unidade: string | null; total: number | null; linha?: number };
+export type Item = {
+  id: string; nome: string; opcao: string | null; unitario: number | null; quantidade: number | null; unidade: string | null; total: number | null; linha?: number;
+  /** o número da célula é o total, mostrado por mês (unitário = total ÷ prazo): custos administrativos proporcionais */
+  rateio?: boolean;
+};
 export type Grupo = { id: string; nome: string; total: number | null; implanta: boolean | null; itens: Item[]; linha?: number; linhaImplanta?: number };
 export type Resumo = { id: string; nome: string; pct: number | null; valor: number };
 export type DadosCustos = {
@@ -223,6 +227,9 @@ export function extrairCustos(abas: Aba[], nomeArquivo: string, lidoEm: string, 
   const meses = num(cel(c, "C3")), lotes = num(cel(d, "C22"));
   const perto = (a: number, b: number | null) => b !== null && Math.abs(a - b) < 1e-9;
   for (const x of gestao) {
+    // custos que a planilha não tem (só quando a célula nova existe, isto é, com o modelo corrigido)
+    for (const n of ITENS_NOVOS) if (x.linha === n.grupoLinha && cel(c, `C${n.linha}`) !== null)
+      x.itens.push({ id: `${x.id}.${slug(n.nome)}`, nome: n.nome, opcao: null, unitario: null, quantidade: null, unidade: null, total: num(cel(c, `C${n.linha}`)), linha: n.linha, rateio: n.rateio });
     unicos(x.itens);
     const fat = x.linha ? fatores("C", x.linha, x.itens.flatMap((i) => (i.linha ? [i.linha] : []))) : new Map<number, number>();
     for (const i of x.itens) {
@@ -234,6 +241,11 @@ export function extrairCustos(abas: Aba[], nomeArquivo: string, lidoEm: string, 
       i.total = v === null ? null : v * f;
       if (perto(f, meses)) i.unidade = "mês";
       else if (perto(f, lotes)) i.unidade = "lote";
+      if (i.rateio && v !== null && meses) {
+        i.unitario = v / meses;
+        i.quantidade = meses;
+        i.unidade = "mês";
+      }
     }
   }
 

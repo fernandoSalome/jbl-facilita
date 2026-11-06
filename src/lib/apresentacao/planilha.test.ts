@@ -13,7 +13,8 @@ describe("apresentação de custos", () => {
   });
   it("os dados iniciais são os da planilha de Quintana (aba CUSTOS)", () => {
     // 1.342.308,68 no Excel + 2 × 53.820 (Preparação da Área passou a somar a abertura de logradouros)
-    expect(inicial.total).toBeCloseTo(1449948.68, 2);
+    // + 112.800 (custos administrativos proporcionais na Sede da Empresa)
+    expect(inicial.total).toBeCloseTo(1562748.68, 2);
     // o total é a soma das partes do resumo da planilha (colunas K a M)
     expect(inicial.resumo.reduce((s, r) => s + r.valor, 0)).toBeCloseTo(inicial.total, 2);
     expect(inicial.info).toMatchObject({ tipo: "Chacreamento", area: 65000, regiao: "Sudeste", meses: 24 });

@@ -181,10 +181,12 @@ export default function PlanilhaNaPagina({ dados, nomes, onChange, onFechar }: {
                       {g.itens.filter((i) => i.total !== null).map((i) => (
                         <tr key={i.id} className="border-t border-[#EEF2F6] first:border-t-0">
                           <td className="px-3 py-1.5 text-[#2B3A4A]">{nomes(`${i.id}.nome`, i.nome)}</td>
-                          <td className="px-2 py-1 text-right"><Numero valor={i.unitario ?? i.total} marcado={marca(`${c}!C${i.linha}`)} onChange={(v) => onChange(formulas && i.linha ? ajustar(d, `${c}!C${i.linha}`, v) : mudarItemGestao(d, g.id, i.id, v))} /></td>
+                          <td className="px-2 py-1 text-right"><Numero valor={i.rateio ? i.total : i.unitario ?? i.total} marcado={marca(`${c}!C${i.linha}`)} onChange={(v) => onChange(formulas && i.linha ? ajustar(d, `${c}!C${i.linha}`, v) : mudarItemGestao(d, g.id, i.id, v))} /></td>
                           {/* por mês / por lote: o valor digitado × prazo ou lotes, que é o que entra no grupo */}
                           <td className="whitespace-nowrap px-2 py-1 text-right text-[12px] text-[#697683]">
-                            {i.quantidade !== null && <>× {texto(i.quantidade)}{vezes(i.unidade)} = <b className="text-[#122A45]">{brl(i.total)}</b></>}
+                            {i.rateio && i.quantidade !== null
+                              ? <>÷ {texto(i.quantidade)} meses = <b className="text-[#122A45]">{brl(i.unitario)}</b> por mês</>
+                              : i.quantidade !== null && <>× {texto(i.quantidade)}{vezes(i.unidade)} = <b className="text-[#122A45]">{brl(i.total)}</b></>}
                           </td>
                         </tr>
                       ))}

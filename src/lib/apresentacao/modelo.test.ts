@@ -70,8 +70,17 @@ describe("os números da página fecham", () => {
     const prep = d.obras.find((g) => /prepara/i.test(g.nome))!;
     expect(prep.total).toBeCloseTo(79006.09, 2);
     expect(prep.itens.every((i) => (i.total ?? 0) >= 0)).toBe(true);
-    expect(d.total!).toBeCloseTo(excel + 2 * 53820, 2);
+    expect(d.total!).toBeCloseTo(excel + 2 * 53820 + 112800, 2);
     expect(confere(d)).toEqual([]);
+  });
+  it("custos administrativos proporcionais: total digitado na Sede, mostrado por mês (÷ prazo)", () => {
+    const d = recalcular(lerPlanilhaCustos(arquivo, "Planilha_Infra_Quintana.xlsx"), { "CUSTOS!C3": 18 });
+    const adm = d.gestao.find((g) => g.nome === "Sede da Empresa")!.itens.find((i) => i.rateio)!;
+    expect([adm.total, adm.quantidade, adm.unidade]).toEqual([112800, 18, "mês"]);
+    expect(adm.unitario).toBeCloseTo(6266.67, 2);
+    const menos = recalcular(d, { ...d.ajustes, "CUSTOS!C150": 90000 });
+    expect(menos.total!).toBeCloseTo(d.total! - 22800, 2);
+    expect(confere(menos)).toEqual([]);
   });
 });
 

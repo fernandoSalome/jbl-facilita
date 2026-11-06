@@ -123,10 +123,21 @@ export function calcularAbas(m: ModeloPlanilha, ajustes: Ajustes = {}): Aba[] {
   });
 }
 
-/** Erros de fórmula da planilha de origem, corrigidos no modelo (vale também ao subir a planilha de novo) */
-const CORRECOES = [
+/**
+ * Erros de fórmula da planilha de origem e custos que a planilha não tem, corrigidos no modelo (vale também ao subir
+ * a planilha de novo). `valores`: células novas (fora da área usada da planilha) com o número inicial.
+ */
+const CORRECOES: { aba: string; celula: string; errada: string; certa: string; valores?: Record<string, Valor> }[] = [
   // Preparação da Área subtraía a abertura de logradouros, que é custo: passa a somar (06/11/2026)
   { aba: "CUSTOS", celula: "I12", errada: "SUM(I13:I21)-(I22)", certa: "SUM(I13:I22)" },
+  // Sede da Empresa ganha os custos administrativos proporcionais (C150, valor total; por mês = ÷ prazo) (06/11/2026)
+  { aba: "CUSTOS", celula: "C37", errada: "SUM(C38:C43)*C3", certa: "SUM(C38:C43)*C3+C150", valores: { C150: 112800 } },
+];
+
+/** Custos que não existem na planilha: aparecem como item do grupo da linha indicada (gestão, coluna C) */
+export const ITENS_NOVOS = [
+  // valor total digitado; a página mostra por mês (÷ prazo)
+  { grupoLinha: 37, linha: 150, nome: "Custos administrativos proporcionais", rateio: true },
 ];
 
 /** Modelo com as correções (null se não havia o que corrigir) */
@@ -136,7 +147,9 @@ export function corrigirModelo(m: ModeloPlanilha): ModeloPlanilha | null {
     const cs = CORRECOES.filter((x) => chaveAba(x.aba) === chaveAba(a.nome) && a.formulas[x.celula]?.replace(/\s/g, "") === x.errada);
     if (!cs.length) return a;
     mudou = true;
-    return { ...a, formulas: { ...a.formulas, ...Object.fromEntries(cs.map((x) => [x.celula, x.certa])) } };
+    const valores = { ...a.valores };
+    for (const x of cs) for (const [k, v] of Object.entries(x.valores ?? {})) if (!(k in valores)) valores[k] = v;
+    return { ...a, valores, formulas: { ...a.formulas, ...Object.fromEntries(cs.map((x) => [x.celula, x.certa])) } };
   });
   return mudou ? { abas } : null;
 }
