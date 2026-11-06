@@ -75,6 +75,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
       date={dataDaProposta({ ...p, options: parseOptions(p.options) }).toISOString()}
       cartaProtocolo={carta?.protocolo ?? null}
       bloqueada={!!p.lockedAt}
+      bloqueadaEm={p.lockedAt?.toISOString() ?? null}
     />
   );
 }

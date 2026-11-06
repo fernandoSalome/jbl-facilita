@@ -12,6 +12,7 @@ import { E, EditProvider, Img, Lnk, Sec, ThemeRoot, Fotos } from "./Editable";
 import IntentForm from "./IntentForm";
 import { ListaBenfeitorias, ListaContatos, TabelaObras } from "./Listas";
 import Tracker from "./Tracker";
+import { classesCongeladas } from "@/lib/congelada";
 
 /**
  * Template "Proposta JBL padrão": mesma estrutura, classes e textos do site da
@@ -46,6 +47,8 @@ export type TemplateProps = {
   cartaProtocolo?: string | null;
   /** Proposta bloqueada para edição: a carta de intenção segue como era (seção 02 sempre à vista, nada obrigatório) */
   bloqueada?: boolean;
+  /** Quando foi bloqueada: mudanças do código depois disso não valem nela (src/lib/congelada.ts) */
+  bloqueadaEm?: string | null;
 };
 
 /** Texto do template. Chave "txt.<k>". */
@@ -489,7 +492,7 @@ export default function JblPadrao(props: TemplateProps) {
 
   return (
     <EditProvider overrides={props.overrides} base={baseSemObs} editable={editing} onSave={props.onSave} trocas={trocas}>
-      <ThemeRoot className={`jblt ${editing ? "editing" : ""} ${mode !== "public" ? "embedded" : ""}`}>
+      <ThemeRoot className={`jblt ${editing ? "editing" : ""} ${mode !== "public" ? "embedded" : ""} ${classesCongeladas(props.bloqueadaEm)}`}>
         <div ref={root}>
           {mode === "public" && !props.printing && <Tracker token={props.token} />}
 

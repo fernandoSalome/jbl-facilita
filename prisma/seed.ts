@@ -69,6 +69,62 @@ async function main() {
   await dissipadorNosChacreamentos();
   await biodigestorPorLoteNosChacreamentos();
   await obrasSemEtapa1EmTodas();
+  await primaveraComoChacreamentoAberto();
+  await listarBloqueadas();
+}
+
+/**
+ * Pedido do Fernando (05/11/2026): cópia da proposta da Chácara Primavera (Santa Isabel) como Chacreamento Aberto,
+ * com as mesmas informações (planilha, textos, opções). A original não muda. A cópia é rascunho, com link novo e a
+ * versão atual do Chacreamento Aberto no template. Uma vez só: se a cópia já existe (mesmo apagada), não faz nada.
+ */
+async function primaveraComoChacreamentoAberto() {
+  const SUFIXO = " (Chacreamento Aberto)";
+  const original = await db.proposal.findFirst({
+    where: {
+      deletedAt: null,
+      NOT: { name: { endsWith: SUFIXO } },
+      OR: [
+        { project: { name: { contains: "Primavera", mode: "insensitive" }, municipio: { contains: "Isabel", mode: "insensitive" } } },
+        { name: { contains: "Primavera", mode: "insensitive" }, project: { municipio: { contains: "Isabel", mode: "insensitive" } } },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+    include: { project: true },
+  });
+  if (!original) return console.log("Cópia da Chácara Primavera: nenhuma proposta encontrada em Santa Isabel");
+  const nome = `${original.name}${SUFIXO}`;
+  if (await db.proposal.findFirst({ where: { projectId: original.projectId, name: nome } })) return;
+  const versao = await db.formatoVersion.findFirst({ where: { templateId: original.templateId, formato: "chacreamento_aberto" }, orderBy: { createdAt: "desc" } });
+  if (!versao) return console.log("Cópia da Chácara Primavera: o template não tem o Chacreamento Aberto");
+  const { e1PctAproveitavel: _antiga, ...inputs } = (original.inputs ?? {}) as Record<string, unknown>;
+  const copia = await db.proposal.create({
+    data: {
+      projectId: original.projectId,
+      templateId: original.templateId,
+      formato: "chacreamento_aberto",
+      formatoVersionId: versao.id,
+      name: nome,
+      ownerName: original.ownerName,
+      ownerPhone: original.ownerPhone,
+      inputs: { ...inputs, planilhaNova: true, obrasSemEtapa1: true, regiao: inputs.regiao ?? regiaoDaUf(original.project.uf) } as object,
+      options: original.options ?? {},
+      overrides: original.overrides ?? {},
+      publicToken: newToken(),
+      createdById: original.createdById,
+    },
+  });
+  console.log(`Cópia da Chácara Primavera: "${copia.name}" criada a partir de "${original.name}" (${original.formato} → chacreamento_aberto, ${original.project.name}, ${original.project.municipio})`);
+}
+
+/** Só informa no log do deploy quais propostas estão bloqueadas e desde quando (para conferir o congelamento) */
+async function listarBloqueadas() {
+  const lista = await db.proposal.findMany({
+    where: { lockedAt: { not: null }, deletedAt: null },
+    select: { name: true, status: true, lockedAt: true, lockedBy: true, project: { select: { name: true } } },
+    orderBy: { lockedAt: "asc" },
+  });
+  for (const p of lista) console.log(`Bloqueada: ${p.name} (${p.project.name}) · ${p.status} · desde ${p.lockedAt!.toISOString()} por ${p.lockedBy ?? "?"}`);
 }
 
 /**
