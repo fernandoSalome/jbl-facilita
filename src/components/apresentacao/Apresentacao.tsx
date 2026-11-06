@@ -134,7 +134,12 @@ function GrupoGestao({ g }: { g: Grupo }) {
           {itens.map((i) => (
             <li key={i.id}>
               <T k={`${i.id}.nome`} padrao={i.nome} />
-              <span className="ap-tot">{brl(i.total!)}{i.unidade ? <small> / {i.unidade === "mês" ? "mês" : i.unidade === "un." ? "unid." : i.unidade}</small> : null}</span>
+              {i.quantidade !== null && i.unitario !== null ? (
+                // por mês / por lote: o total já é o valor × prazo ou lotes (é o que soma no grupo)
+                <span className="ap-tot">{brl(i.total!)}<small style={{ display: "block", textAlign: "right" }}>{brl(i.unitario)} × {num(i.quantidade)}{i.unidade === "mês" ? " meses" : i.unidade === "lote" ? " lotes" : ""}</small></span>
+              ) : (
+                <span className="ap-tot">{brl(i.total!)}{i.unidade ? <small> / {i.unidade === "mês" ? "mês" : i.unidade === "un." ? "unid." : i.unidade}</small> : null}</span>
+              )}
             </li>
           ))}
         </ul>

@@ -1,11 +1,13 @@
 /**
  * Leitor mínimo de .xlsx (sem dependências): o arquivo é um zip de XMLs. Devolve, por aba, o valor que o
- * Excel guardou em cada célula (o resultado das fórmulas, como estava quando a planilha foi salva).
+ * Excel guardou em cada célula (o resultado das fórmulas, como estava quando a planilha foi salva) e o texto
+ * das fórmulas (as compartilhadas já com as referências andadas para cada célula).
  */
 import { inflateRawSync } from "zlib";
+import { colNum, deslocar } from "./formulas";
 
 export type Valor = number | string | boolean | null;
-export type Aba = { nome: string; celulas: Map<string, Valor> };
+export type Aba = { nome: string; celulas: Map<string, Valor>; formulas?: Map<string, string> };
 
 function descompactar(buf: Buffer): Map<string, Buffer> {
   // fim do diretório central (assinatura 0x06054b50), procurado de trás para frente
@@ -55,11 +57,26 @@ export function lerXlsx(buf: Buffer): Aba[] {
     const rid = /\br:id="([^"]+)"/.exec(m[0])?.[1] ?? "";
     const corpo = ler(rels.get(rid) ?? "");
     const celulas = new Map<string, Valor>();
+    const formulas = new Map<string, string>();
+    const mestres = new Map<string, { f: string; linha: number; col: number }>();
     for (const c of corpo.matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const ref = /\br="([A-Z]+\d+)"/.exec(c[1])?.[1];
       if (!ref || !c[2]) continue;
+      const f = /<f\b([^>]*?)(?:\/>|>([\s\S]*?)<\/f>)/.exec(c[2]);
+      if (f) {
+        const [, col, lin] = /([A-Z]+)(\d+)/.exec(ref)!;
+        const si = /\bt="shared"/.test(f[1]) ? /\bsi="(\d+)"/.exec(f[1])?.[1] : undefined;
+        if (f[2]) {
+          const texto = xml(f[2]);
+          formulas.set(ref, texto);
+          if (si !== undefined) mestres.set(si, { f: texto, linha: Number(lin), col: colNum(col) });
+        } else if (si !== undefined && mestres.has(si)) {
+          const m = mestres.get(si)!;
+          formulas.set(ref, deslocar(m.f, Number(lin) - m.linha, colNum(col) - m.col));
+        }
+      }
       const tipo = /\bt="([^"]+)"/.exec(c[1])?.[1] ?? "n";
-      const v = /<v>([\s\S]*?)<\/v>/.exec(c[2])?.[1];
+      const v = /<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/.exec(c[2])?.[1];
       let val: Valor = null;
       if (tipo === "s") val = v !== undefined ? compartilhados[Number(v)] ?? null : null;
       else if (tipo === "inlineStr") val = textos(c[2]);
@@ -69,7 +86,7 @@ export function lerXlsx(buf: Buffer): Aba[] {
       else val = v !== undefined && v !== "" ? Number(v) : null;
       celulas.set(ref, val);
     }
-    abas.push({ nome, celulas });
+    abas.push({ nome, celulas, formulas });
   }
   return abas;
 }

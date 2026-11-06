@@ -1,9 +1,11 @@
 /**
- * Contas da planilha aberta na página (edição dos números sem o Excel). Só refaz o que foi mexido:
+ * Contas da planilha aberta na página (edição dos números sem o Excel). Com o modelo (fórmulas) guardado, cada
+ * troca refaz a planilha inteira (ajustar). Sem ele (dados antigos), só refaz o que foi mexido:
  * o total do item (quantidade × valor unitário) e a soma do grupo das obras; o resumo e o total geral
  * são a soma dos grupos, como na aba CUSTOS (colunas K a M).
  */
-import type { DadosCustos, Grupo, Item } from "./planilha";
+import { recalcular, type DadosCustos, type Grupo, type Item } from "./planilha";
+import type { Valor } from "./xlsx";
 
 const slug = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x";
@@ -42,3 +44,17 @@ export function mudarGrupo(d: DadosCustos, lado: "obras" | "gestao", grupo: stri
 export function mudarItemGestao(d: DadosCustos, grupo: string, item: string, total: number | null): DadosCustos {
   return { ...d, gestao: d.gestao.map((g) => (g.id === grupo ? { ...g, itens: g.itens.map((i) => (i.id === item ? { ...i, total } : i)) } : g)) };
 }
+
+/**
+ * Com o modelo da planilha: troca o valor de uma célula ("CUSTOS!H13") e refaz todas as contas pelas fórmulas.
+ * Vazio (null) devolve a célula ao que está na planilha.
+ */
+export function ajustar(d: DadosCustos, celula: string, valor: Valor): DadosCustos {
+  const ajustes = { ...(d.ajustes ?? {}) };
+  if (valor === null || valor === "") delete ajustes[celula];
+  else ajustes[celula] = valor;
+  return recalcular(d, ajustes);
+}
+
+/** A célula foi trocada na página (não é a da planilha)? */
+export const ajustada = (d: DadosCustos, celula: string) => !!d.ajustes && celula in d.ajustes;
