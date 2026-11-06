@@ -80,6 +80,9 @@ function Logo({ pequena = false }: { pequena?: boolean }) {
 }
 
 function GrupoObras({ g }: { g: Grupo }) {
+  const { c } = useContext(Ctx);
+  // unidade trocada à mão (textos "<item>.unidade"), ex.: item renomeado que passou a ser por unidade
+  const un = (i: Grupo["itens"][number]) => c.textos[`${i.id}.unidade`] ?? i.unidade;
   const fora = g.implanta === false;
   const itens = g.itens.filter((i) => i.total);
   return (
@@ -107,7 +110,7 @@ function GrupoObras({ g }: { g: Grupo }) {
                 <T k={`${i.id}.nome`} padrao={i.nome} />
                 {i.opcao && <small className="ap-op">{i.opcao}</small>}
               </span>
-              <span role="cell" data-l="Quantidade">{i.quantidade !== null ? `${num(i.quantidade)}${i.unidade ? ` ${i.unidade}` : ""}` : "—"}</span>
+              <span role="cell" data-l="Quantidade">{i.quantidade !== null ? `${num(i.quantidade)}${un(i) ? ` ${un(i)}` : ""}` : "—"}</span>
               <span role="cell" data-l="Valor unitário">{i.unitario !== null ? brl(i.unitario) : "—"}</span>
               <span role="cell" data-l="Total" className="ap-tot">{brl(i.total!)}</span>
             </div>

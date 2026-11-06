@@ -147,7 +147,7 @@ export default function PlanilhaNaPagina({ dados, nomes, onChange, onFechar }: {
                         return (
                           <tr key={i.id} className="border-t border-[#EEF2F6]">
                             <td className="px-3 py-1.5 text-[#2B3A4A]">{nomes(`${i.id}.nome`, i.nome)}{i.opcao && <small className="ml-1.5 font-bold text-[#A2782F]">{i.opcao}</small>}</td>
-                            <td className="px-2 py-1 text-right"><Numero valor={i.quantidade} marcado={marca(`${c}!H${i.linha}`)} onChange={(v) => mudar("H", "quantidade", v)} />{i.unidade && <span className="ml-1 text-[11px] text-[#697683]">{i.unidade}</span>}</td>
+                            <td className="px-2 py-1 text-right"><Numero valor={i.quantidade} marcado={marca(`${c}!H${i.linha}`)} onChange={(v) => mudar("H", "quantidade", v)} />{nomes(`${i.id}.unidade`, i.unidade ?? "") && <span className="ml-1 text-[11px] text-[#697683]">{nomes(`${i.id}.unidade`, i.unidade ?? "")}</span>}</td>
                             <td className="px-2 py-1 text-right"><Numero valor={i.unitario} marcado={marca(`${c}!G${i.linha}`)} onChange={(v) => mudar("G", "unitario", v)} /></td>
                             <td className="px-2 py-1 text-right font-bold text-[#122A45]">
                               {auto ? brl(i.total) : <Numero valor={i.total} marcado={marca(`${c}!I${i.linha}`)} onChange={(v) => mudar("I", "total", v)} />}

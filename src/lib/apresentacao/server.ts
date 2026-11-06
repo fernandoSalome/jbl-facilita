@@ -32,7 +32,15 @@ export async function apresentacaoDe(slug: string) {
       d = recalcular({ ...d, modelo: certo }, d.ajustes ?? {});
       mudou = true;
     }
-    if (mudou) return db.apresentacao.update({ where: { id: a.id }, data: { dados: d as object, updatedAt: a.updatedAt } });
+    // item que o Marcelo chamou de "Esgotamento sanitário" é por unidade, não por metro (06/11/2026)
+    const textos = { ...((a.textos ?? {}) as Record<string, string>) };
+    let unidade = false;
+    for (const [k, v] of Object.entries(textos)) {
+      const item = k.endsWith(".nome") ? k.slice(0, -5) : null;
+      if (item && /esgotamento sanit/i.test(v) && !(`${item}.unidade` in textos)) { textos[`${item}.unidade`] = "un."; unidade = true; }
+    }
+    if (mudou || unidade)
+      return db.apresentacao.update({ where: { id: a.id }, data: { ...(mudou ? { dados: d as object } : {}), ...(unidade ? { textos } : {}), updatedAt: a.updatedAt } });
     return a;
   }
   return db.apresentacao.upsert({
