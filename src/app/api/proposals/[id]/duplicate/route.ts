@@ -30,7 +30,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
 }
 
 function novaPlanilha(i: Record<string, unknown>, uf: string) {
-  return { ...i, planilhaNova: true, obrasSemEtapa1: true, regiao: i.regiao ?? regiaoDaUf(uf) };
+  return { ...i, planilhaNova: true, obrasSemEtapa1: true, recebE1Copia: true, regiao: i.regiao ?? regiaoDaUf(uf) };
 }
 
 function semMarcaAntiga(v: unknown): Record<string, unknown> {

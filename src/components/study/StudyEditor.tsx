@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { calcular, copiaParceriaE1, copiaReajusteE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
+import { calcular, copiaParceriaE1, copiaReajusteE1, copiaRecebimentosE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 import { IMPLANTA_PADRAO, PAVIMENTOS, REGIOES, type Implanta, type Regiao } from "@/lib/orcamento2026";
 
@@ -168,7 +168,7 @@ export function useStudyState(initial: StudyInputs) {
    * 1ª etapa, "Copiar da Planilha Geral": ligado usa os números da gleba geral; desligado usa os da etapa.
    * Ao desligar pela primeira vez, a etapa começa com os números da gleba geral (para personalizar a partir deles).
    */
-  function setCopiaGeral(c: { reajusteE1Geral?: boolean; parceriaE1Geral?: boolean }) {
+  function setCopiaGeral(c: { reajusteE1Geral?: boolean; parceriaE1Geral?: boolean; recebimentosE1Geral?: boolean }) {
     setInputs((s) => {
       const n = { ...s, ...c };
       const t: Record<string, string> = {};
@@ -176,6 +176,10 @@ export function useStudyState(initial: StudyInputs) {
         Object.assign(n, { ipcaE1: s.ipca, jurosMesE1: s.jurosMes, jurosAnoE1: s.jurosAno, indiceE1: s.indice });
         // o juro zerado mostra o equivalente do outro, como na gleba geral
         Object.assign(t, { ipcaE1: toText(s.ipca, "pct"), jurosMesE1: toText(s.jurosMes || s.jurosAno / 12, "pct"), jurosAnoE1: toText(s.jurosAno || s.jurosMes * 12, "pct") });
+      }
+      if (c.recebimentosE1Geral === false && s.entradaPctE1 === null && s.multiplicadorE1 === null && s.anosE1 === null) {
+        Object.assign(n, { entradaPctE1: s.entradaPct, multiplicadorE1: s.multiplicador, anosE1: s.anos });
+        Object.assign(t, { entradaPctE1: toText(s.entradaPct, "pct"), multiplicadorE1: toText(s.multiplicador, "num"), anosE1: toText(s.anos, "anos") });
       }
       if (c.parceriaE1Geral === false && s.incorporadorPctE1 === null && s.intermediacaoPctE1 === null && !s.intermediacaoOrigemE1) {
         Object.assign(n, { incorporadorPctE1: s.incorporadorPct, intermediacaoPctE1: s.intermediacaoPct, intermediacaoOrigemE1: s.intermediacaoOrigem ?? "inc" });
@@ -885,14 +889,26 @@ function RecebimentosEtapa({ s, r }: { s: State; r: ReturnType<typeof calcular> 
   const falta = (k: (typeof FIN_E1)[number]) => (exigido && (i[k] === null || i[k] === undefined) ? "Obrigatório (mesmo que seja zero)" : null);
   const est = (k: NumKey) => (exigido ? "obrigatório" : `${toText(i[k] as number, KINDS[k]!)} (estudo)`);
   const v = (x: (f: NonNullable<NonNullable<typeof r.etapa1>["fin"]>) => string) => (f ? x(f) : "a definir");
+  const copia = copiaRecebimentosE1(i);
   return (
     <>
         <Titulo n={3}>Recebimentos da 1ª etapa</Titulo>
         <Out label="Valor do Lote da 1ª etapa" value={v((f) => fmtBRL(f.valorLote))} strong />
-        <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} erro={falta("entradaPctE1")} />
+        {/* como o reajuste: ligado usa entrada, multiplicador e anos da gleba geral; desligado, os da etapa */}
+        {i.recebE1Copia && <CopiaGeral ligado={copia} onChange={(x) => s.setCopiaGeral({ recebimentosE1Geral: x })} />}
+        {copia ? <Out label="Entrada (%)" value={toText(i.entradaPct, "pct")} sufixo="%" /> : <In s={s} k="entradaPctE1" label="Entrada (%)" ph={est("entradaPct")} erro={falta("entradaPctE1")} />}
         <Out label="Valor da Entrada" value={v((f) => fmtBRL(f.entrada))} />
-        <In s={s} k="multiplicadorE1" label="Multiplicador para encontrar a Parcela" ph={est("multiplicador")} erro={falta("multiplicadorE1")} />
-        <In s={s} k="anosE1" label="Em quantos Anos ocorrerá o Parcelamento" ph={est("anos")} erro={falta("anosE1")} />
+        {copia ? (
+          <>
+            <Out label="Multiplicador para encontrar a Parcela" value={toText(i.multiplicador, "num")} sufixo="×" />
+            <Out label="Em quantos Anos ocorrerá o Parcelamento" value={toText(i.anos, "anos")} sufixo="anos" />
+          </>
+        ) : (
+          <>
+            <In s={s} k="multiplicadorE1" label="Multiplicador para encontrar a Parcela" ph={est("multiplicador")} erro={falta("multiplicadorE1")} />
+            <In s={s} k="anosE1" label="Em quantos Anos ocorrerá o Parcelamento" ph={est("anos")} erro={falta("anosE1")} />
+          </>
+        )}
         <Out label="Número de Parcelas" value={v((f) => String(f.nParcelas))} />
         <Out label="Valor da Parcela com Desconto (pagamento em dia)" value={v((f) => fmtBRL(f.parcela))} strong />
         <Out label="Valor da Parcela que vai para o Contrato" value={v((f) => fmtBRL(f.parcelaContrato))} />

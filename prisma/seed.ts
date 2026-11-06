@@ -69,6 +69,7 @@ async function main() {
   await dissipadorNosChacreamentos();
   await biodigestorPorLoteNosChacreamentos();
   await obrasSemEtapa1EmTodas();
+  await recebimentosE1CopiaEmTodas();
   await primaveraComoChacreamentoAberto();
   await listarBloqueadas();
 }
@@ -139,6 +140,19 @@ async function obrasSemEtapa1EmTodas() {
     UPDATE "Proposal" SET "inputs" = '{"obrasSemEtapa1": true}'::jsonb || COALESCE("inputs", '{}'::jsonb), "pdfKey" = NULL
     WHERE "lockedAt" IS NULL AND NOT (COALESCE("inputs", '{}'::jsonb) ? 'obrasSemEtapa1')`;
   if (n) console.log(`Obras sem a área da 1ª etapa em ${n} proposta(s) não bloqueada(s)`);
+}
+
+/**
+ * Pedido do Fernando (06/11/2026): recebimentos da 1ª etapa (entrada, multiplicador e anos) com o botão "Copiar da
+ * Planilha Geral", como o reajuste: ligado copia da gleba geral, desligado usa os da etapa. Todas as propostas menos
+ * as bloqueadas, que seguem como foram enviadas. Só acrescenta a marca, sem mexer na data de alteração, e descarta o
+ * PDF guardado. Rodar de novo não marca as que já têm.
+ */
+async function recebimentosE1CopiaEmTodas() {
+  const n = await db.$executeRaw`
+    UPDATE "Proposal" SET "inputs" = '{"recebE1Copia": true}'::jsonb || COALESCE("inputs", '{}'::jsonb), "pdfKey" = NULL
+    WHERE "lockedAt" IS NULL AND NOT (COALESCE("inputs", '{}'::jsonb) ? 'recebE1Copia')`;
+  if (n) console.log(`Recebimentos da 1ª etapa com "Copiar da Planilha Geral" em ${n} proposta(s) não bloqueada(s)`);
 }
 
 /**

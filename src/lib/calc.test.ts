@@ -409,3 +409,21 @@ describe("obras sem a área da 1ª etapa (todas menos as bloqueadas)", () => {
     expect(calcular({ ...base, obrasSemEtapa1: true, etapaADefinir: true }).areaObras).toBe(60000);
   });
 });
+
+describe("recebimentos da 1ª etapa: Copiar da Planilha Geral", () => {
+  const base = { ...parseInputs({}), areaTotal: 100000, aproveitamento: 0.6, custoInfraM2: 160, primeiraEtapa: true, lotesEtapa1: 100, loteEtapa1: 250, valorM2Etapa1: 600, finE1Exigido: true, planilhaNova: true, entradaPctE1: null, multiplicadorE1: null, anosE1: null };
+  it("com a marca e sem números da etapa: ligado, usa entrada, multiplicador e anos da gleba geral", () => {
+    const f = calcular({ ...base, recebE1Copia: true }).etapa1!.fin!;
+    expect(f.nParcelas).toBe(Math.round(base.anos * 12));
+    expect(f.entrada).toBeCloseTo(base.entradaPct * 250 * 600, 6);
+  });
+  it("desligado usa os da etapa; ligado ignora os da etapa", () => {
+    const proprios = { ...base, recebE1Copia: true, entradaPctE1: 0.2, multiplicadorE1: 1.5, anosE1: 10 };
+    expect(calcular(proprios).etapa1!.fin!.nParcelas).toBe(120);
+    expect(calcular({ ...proprios, recebimentosE1Geral: true }).etapa1!.fin!.nParcelas).toBe(Math.round(base.anos * 12));
+  });
+  it("sem a marca (bloqueadas): como antes, sem os números da etapa fica a definir", () => {
+    expect(calcular(base).etapa1!.fin).toBeNull();
+    expect(calcular({ ...base, recebimentosE1Geral: true }).etapa1!.fin).toBeNull();
+  });
+});

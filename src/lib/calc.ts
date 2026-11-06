@@ -149,6 +149,13 @@ export type StudyInputs = {
    */
   reajusteE1Geral?: boolean;
   parceriaE1Geral?: boolean;
+  /**
+   * Recebimentos da 1ª etapa (entrada, multiplicador e anos) com o mesmo "Copiar da Planilha Geral": ligado usa os da
+   * gleba geral; desligado, os da etapa. Vazio = ligado enquanto a etapa não tiver números próprios. Só nas propostas
+   * com a marca recebE1Copia (todas menos as bloqueadas, 06/11/2026); as bloqueadas seguem como eram.
+   */
+  recebimentosE1Geral?: boolean;
+  recebE1Copia?: boolean;
   intermediacaoPctE1: number | null;
   intermediacaoOrigemE1?: "inc" | "ter" | "ambos";
   /** Observações da equipe na planilha (gleba geral e 1ª etapa): uso interno, nunca vão para a página pública nem para o PDF */
@@ -232,6 +239,10 @@ export const DEFAULT_INPUTS: StudyInputs = {
 /** Planilha nova: índice e juros da 1ª etapa copiados da gleba geral (botão "Copiar da Planilha Geral") */
 export const copiaReajusteE1 = (i: StudyInputs) =>
   !!i.planilhaNova && (i.reajusteE1Geral ?? (i.ipcaE1 === null && i.jurosAnoE1 === null && i.jurosMesE1 === null));
+
+/** Entrada, multiplicador e anos da 1ª etapa copiados da gleba geral (botão "Copiar da Planilha Geral" dos recebimentos) */
+export const copiaRecebimentosE1 = (i: StudyInputs) =>
+  !!i.recebE1Copia && (i.recebimentosE1Geral ?? (i.entradaPctE1 === null && i.multiplicadorE1 === null && i.anosE1 === null));
 
 /** % do incorporador e do corretor da 1ª etapa copiados da gleba geral (só na planilha) */
 export const copiaParceriaE1 = (i: StudyInputs) =>
@@ -547,15 +558,19 @@ export function calcular(input: Partial<StudyInputs>): StudyResult {
       // financiamento da etapa: as mesmas contas do estudo, com as taxas dela (vazio = a do estudo).
       // Com tudo vazio dá o mesmo que antes (carteira do estudo na proporção do VGV à vista).
       // planilha nova: índice e juros da etapa vazios = os da gleba geral (obrigatórios só entrada, multiplicador e anos)
-      const exigidos = i.planilhaNova ? FIN_E1.filter((k) => k !== "ipcaE1" && k !== "jurosAnoE1" && k !== "jurosMesE1") : FIN_E1;
+      // recebimentos copiados da gleba geral: entrada, multiplicador e anos também deixam de ser obrigatórios
+      const copiaRec = copiaRecebimentosE1(i);
+      const exigidos = FIN_E1.filter((k) =>
+        !(i.planilhaNova && (k === "ipcaE1" || k === "jurosAnoE1" || k === "jurosMesE1")) &&
+        !(copiaRec && (k === "entradaPctE1" || k === "multiplicadorE1" || k === "anosE1")));
       const falta = !!i.finE1Exigido && exigidos.some((k) => i[k] === null || i[k] === undefined);
       const copia = copiaReajusteE1(i);
       const taxasProprias = !copia && (i.ipcaE1 !== null || i.jurosAnoE1 !== null || i.jurosMesE1 !== null);
       const reajE = taxasProprias ? (i.ipcaE1 ?? i.ipca) + (i.jurosAnoE1 ?? i.jurosAno) + (i.jurosMesE1 ?? i.jurosMes) * 12 : reajuste;
-      const multE = i.multiplicadorE1 ?? i.multiplicador;
-      const nE = Math.round((i.anosE1 ?? i.anos) * 12);
+      const multE = copiaRec ? i.multiplicador : i.multiplicadorE1 ?? i.multiplicador;
+      const nE = Math.round((copiaRec ? i.anos : i.anosE1 ?? i.anos) * 12);
       const valorLoteE = lote * valorM2E;
-      const entradaE = (i.entradaPctE1 ?? i.entradaPct) * valorLoteE;
+      const entradaE = (copiaRec ? i.entradaPct : i.entradaPctE1 ?? i.entradaPct) * valorLoteE;
       const parcelaE = nE > 0 ? ((valorLoteE - entradaE) * multE) / nE : 0;
       const parcelaContratoE = nova2026 ? parcelaE / 0.9 : parcelaE;
       const cen = nE > 0 ? cenario(nE, valorLoteE - entradaE, multE, qtd, reajE, inc, nova2026 ? entradaE * qtd : 0) : cenario(1, 0, 0, 0, 0, 0);

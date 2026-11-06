@@ -33,8 +33,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
         const { e1PctAproveitavel: _antiga, ...novo } = parseInputs(b.inputs);
         const comMarcas = atual.planilhaNova ? { ...novo, planilhaNova: true, regiao: novo.regiao ?? atual.regiao } : novo;
         // obras sem a área da 1ª etapa: só o servidor liga (todas menos as bloqueadas); quem grava não desliga nem liga
-        const { obrasSemEtapa1: _m, ...semMarca } = comMarcas;
-        data.inputs = atual.obrasSemEtapa1 ? { ...semMarca, obrasSemEtapa1: true } : semMarca;
+        const { obrasSemEtapa1: _m, recebE1Copia: _r, ...semMarca } = comMarcas;
+        // recebimentos da 1ª etapa com "Copiar da Planilha Geral": idem (todas menos as bloqueadas, 06/11/2026)
+        data.inputs = { ...semMarca, ...(atual.obrasSemEtapa1 ? { obrasSemEtapa1: true } : {}), ...(atual.recebE1Copia ? { recebE1Copia: true } : {}) };
       }
       if (b.options) {
         const antes = parseOptions(p.options);

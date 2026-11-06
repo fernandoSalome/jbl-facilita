@@ -22,7 +22,7 @@ export default async function NewProposal({ params }: { params: { projectId: str
           project={{ name: project.name, tipo: project.tipo, municipio: project.municipio, uf: project.uf, matricula: project.matricula, aerialImage: project.aerialImage }}
           templates={templates}
           formatos={formatos}
-          initialInputs={{ ...DEFAULT_INPUTS, areaTotal: project.areaTotal, planilhaNova: true, obrasSemEtapa1: true, regiao: regiaoDaUf(project.uf) }}
+          initialInputs={{ ...DEFAULT_INPUTS, areaTotal: project.areaTotal, planilhaNova: true, obrasSemEtapa1: true, recebE1Copia: true, regiao: regiaoDaUf(project.uf) }}
         />
       </div>
     </>
