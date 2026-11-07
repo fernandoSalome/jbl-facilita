@@ -471,7 +471,7 @@ export default function StudyEditor({ state, bloqueada }: { state: State; compac
         {/* coluna 3 */}
         <div className="grid content-start gap-4">
           {/* Dados que a planilha não tem, usados no site da proposta */}
-          <Box n={6} title="Infraestrutura e securitização">
+          <Box n={6} title="Infraestrutura">
             {/* planilha nova: escolhe entre o orçamento item a item e o valor por m² digitado (o que aparece na proposta) */}
             {i.planilhaNova && (
               <div className="grid grid-cols-2 gap-1 px-3 py-2">
@@ -502,12 +502,14 @@ export default function StudyEditor({ state, bloqueada }: { state: State; compac
                 <Out label="Custo das obras" value={fmtBRL(r.custoInfra)} strong />
               </>
             )}
+          </Box>
+          <Box n={7} title="Securitização">
             <In s={s} k="desagio" label="Deságio da antecipação" />
             <In s={s} k="taxaAplicacao" label="Aplicação simulada ao mês" />
             {/* o mesmo valor da conta da antecipação na proposta: carteira do terrenista − deságio */}
             <Out label="Valor da antecipação" value={fmtBRL(r.antecipacao.valor)} strong />
           </Box>
-          <Box n={7} title="Parceria do Parcelamento de Solo">
+          <Box n={8} title="Parceria do Parcelamento de Solo">
             {/* cada parte com o seu VGV à vista logo abaixo, como no Comissionamento */}
             <In s={s} k="incorporadorPct" label="Incorporador (%)" />
             <Out label="VGV Incorporador à vista" value={fmtBRL(r.vgvAvistaInc)} navy />
@@ -564,7 +566,7 @@ export default function StudyEditor({ state, bloqueada }: { state: State; compac
               </>
             )}
           </Box>
-          <Box n={8} title="Valor da Área" right="Valor">
+          <Box n={9} title="Valor da Área" right="Valor">
             <In s={s} k="valorArea" label="Valor" />
           </Box>
         </div>

@@ -1318,13 +1318,6 @@ function mix(a: string, b: string, t: number) {
 }
 
 export const THEME_DEFAULTS = { navy: "#122A45", gold: "#C1943D", bg: "#FFFFFF", alt: "#F8F9FB", fg: "#2B3A4A" };
-const THEME_LABELS: Record<keyof typeof THEME_DEFAULTS, string> = {
-  navy: "Cor principal (azul)",
-  gold: "Cor de destaque (dourado)",
-  bg: "Fundo da página",
-  alt: "Fundo das faixas",
-  fg: "Cor do texto",
-};
 
 export function themeVars(o: Overrides): React.CSSProperties {
   const t = (k: keyof typeof THEME_DEFAULTS) => (o[`theme.${k}`] as string | undefined) ?? THEME_DEFAULTS[k];
@@ -1340,54 +1333,12 @@ export function themeVars(o: Overrides): React.CSSProperties {
   return v as React.CSSProperties;
 }
 
+/** Cores da proposta: as já trocadas continuam valendo; o botão para trocar saiu (pedido do Fernando, 06/11/2026) */
 export function ThemeRoot({ className, children }: { className: string; children: React.ReactNode }) {
-  const { overrides, editable, save, preview } = useContext(EditCtx);
-  const [open, setOpen] = useState(false);
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const custom = Object.keys(overrides).some((k) => k.startsWith("theme."));
-
-  function change(k: string, v: string) {
-    preview(`theme.${k}`, v);
-    clearTimeout(timers.current[k]);
-    timers.current[k] = setTimeout(() => save(`theme.${k}`, v), 500);
-  }
-
+  const { overrides } = useContext(EditCtx);
   return (
     <div className={className} style={themeVars(overrides)}>
       {children}
-      {editable && (
-        <div className="fixed bottom-5 right-5 z-[1500] font-sans">
-          {open && (
-            <div className="mb-2 w-64 rounded-md border-t-[3px] border-gold bg-white p-4 shadow-2xl">
-              <div className="eyebrow mb-3">Cores da proposta</div>
-              <div className="grid gap-2.5">
-                {(Object.keys(THEME_DEFAULTS) as (keyof typeof THEME_DEFAULTS)[]).map((k) => (
-                  <label key={k} className="flex items-center justify-between gap-3 text-[13px] text-ink">
-                    {THEME_LABELS[k]}
-                    <input
-                      type="color"
-                      value={(overrides[`theme.${k}`] as string | undefined) ?? THEME_DEFAULTS[k]}
-                      onChange={(e) => change(k, e.target.value)}
-                      className="h-7 w-11 cursor-pointer rounded border border-line"
-                    />
-                  </label>
-                ))}
-              </div>
-              {custom && (
-                <button
-                  className="btn-ghost mt-3 w-full py-1.5 text-[12.5px]"
-                  onClick={() => (Object.keys(THEME_DEFAULTS) as string[]).forEach((k) => overrides[`theme.${k}`] !== undefined && save(`theme.${k}`, null))}
-                >
-                  ↺ Voltar às cores da JBL
-                </button>
-              )}
-            </div>
-          )}
-          <button onClick={() => setOpen((v) => !v)} className="btn-navy ml-auto flex shadow-xl">
-            🎨 Cores da proposta
-          </button>
-        </div>
-      )}
     </div>
   );
 }
