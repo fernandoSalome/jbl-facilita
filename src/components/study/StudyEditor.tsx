@@ -577,7 +577,7 @@ export default function StudyEditor({ state, bloqueada }: { state: State; compac
 
       {/* Primeira etapa: uma linha de quadras para começar a vender antes (em dourado, para não confundir com a gleba geral) */}
       <div className={`overflow-hidden rounded-sm border border-gold/70 bg-white ${bloqueada ? "" : "etapa-dourada"}`}>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 bg-navy px-3 py-1.5 text-[12.5px] font-bold text-white">
+        <div className={`flex flex-wrap items-center gap-x-6 gap-y-1 bg-navy px-3 py-1.5 font-bold text-white ${bloqueada ? "text-[12.5px]" : "text-[13.75px]"}`}>
           {/* uma opção só: sem primeira etapa (padrão), com os números ou a definir */}
           <label className="flex cursor-pointer items-center gap-2">
             <input
@@ -782,13 +782,13 @@ function EtapaBloco({ s, r, bloqueada }: { s: State; r: ReturnType<typeof calcul
         <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
         {/* ligado copia frente, comprimento e valor do m² da gleba geral (editáveis: editar um desliga); bloqueadas sem a chave */}
+        <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
+        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         {!bloqueada && <CopiaGeral ligado={!!i.medidasE1Geral} onChange={s.setMedidasE1Geral} />}
         <In s={s} k="frenteE1" label="Frente do lote (m)" disabled={off} erro={i.frenteE1 === 0 ? "A frente não pode ser zero (vazio = a do estudo)" : null} />
         <In s={s} k="compLoteE1" label="Comprimento do lote (m)" disabled={off} erro={!(i.compLoteE1 && i.compLoteE1 > 0) ? "Preencha o comprimento (maior que zero)" : null} />
         <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : loteE1Ok ? `${fmtNum(frenteE1 * (i.compLoteE1 ?? 0))} m²` : "— preencha frente e comprimento"} />
         <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
-        <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
-        <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
         {r.etapa1FaltaValor && (
           <p className="bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
             Preencha o valor do m² do lote da 1ª etapa. Sem ele a etapa não é calculada, e na proposta aparece “a definir”.
