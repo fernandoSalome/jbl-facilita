@@ -119,6 +119,13 @@ export function useStudyState(initial: StudyInputs) {
         (n as Record<string, unknown>)[outro] = v === null ? null : 0;
         setTexts((t) => ({ ...t, [outro]: v === null ? "" : toText(v * f, "pct") }));
       }
+      // medidas da 1ª etapa: editar uma desliga a cópia; com a cópia ligada, mudar a gleba geral muda a etapa junto
+      if (key in MEDIDAS_E1 && v !== s[key]) n.medidasE1Geral = false;
+      const daEtapa = (Object.entries(MEDIDAS_E1) as [NumKey, NumKey][]).find(([, g]) => g === key)?.[0];
+      if (daEtapa && s.medidasE1Geral) {
+        (n as Record<string, unknown>)[daEtapa] = v;
+        setTexts((t) => ({ ...t, [daEtapa]: text }));
+      }
       // a metragem é frente × comprimento (guardada junto: a proposta usa ela); sem um dos dois, fica zero
       // (o campo fica em vermelho), para a proposta não seguir com o lote antigo
       if (key === "compLote" || key === "frenteLote") {
@@ -189,6 +196,20 @@ export function useStudyState(initial: StudyInputs) {
       return n;
     });
   }
+  /** Medidas da 1ª etapa: ligar copia frente, comprimento e valor do m² da gleba geral (continuam editáveis) */
+  function setMedidasE1Geral(on: boolean) {
+    setInputs((s) => {
+      if (!on) return { ...s, medidasE1Geral: false };
+      const n = { ...s, medidasE1Geral: true };
+      const t: Record<string, string> = {};
+      for (const [e1, g] of Object.entries(MEDIDAS_E1) as [NumKey, NumKey][]) {
+        (n as Record<string, unknown>)[e1] = s[g];
+        t[e1] = toText(s[g] as number, KINDS[e1]!);
+      }
+      setTexts((x) => ({ ...x, ...t }));
+      return n;
+    });
+  }
   /** Planilha nova: região, pavimento, energia e o que será implantado */
   function setOrcamento(c: { regiao?: Regiao; pavimento?: string; energiaTipo?: "aerea" | "subterranea"; implanta?: Partial<Implanta>; obrasPorM2?: boolean }) {
     setInputs((s) => ({ ...s, ...c, implanta: c.implanta ? { ...s.implanta, ...c.implanta } : s.implanta }));
@@ -197,8 +218,11 @@ export function useStudyState(initial: StudyInputs) {
   function setObs(k: "obsGleba" | "obsEtapa1", texto: string) {
     setInputs((s) => ({ ...s, [k]: texto }));
   }
-  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setCopiaGeral, setOrcamento, setObs };
+  return { inputs, texts, set, setIndice, setIndiceE1, setEtapa, setEtapaADefinir, clearManual, setCorretor, setCopiaGeral, setMedidasE1Geral, setOrcamento, setObs };
 }
+
+/** Medidas da 1ª etapa que a chave "Copiar da Planilha Geral" copia (etapa → gleba geral) */
+const MEDIDAS_E1: Partial<Record<NumKey, NumKey>> = { frenteE1: "frenteLote", compLoteE1: "compLote", valorM2Etapa1: "valorM2" };
 
 type State = ReturnType<typeof useStudyState>;
 
@@ -222,7 +246,7 @@ function Num({ n }: { n: number }) {
 
 /** Título grande de cada parte da planilha (gleba geral, primeira etapa); bloqueadas seguem com o título pequeno */
 function Parte({ children, grande }: { children: React.ReactNode; grande?: boolean }) {
-  return <h3 className={`border-b-2 border-gold pb-1 font-bold uppercase tracking-wider text-navy ${grande ? "text-center text-[45px] leading-tight" : "text-[15px]"}`}>{children}</h3>;
+  return <h3 className={`border-b-2 border-gold pb-1 font-bold uppercase tracking-wider text-navy ${grande ? "text-center text-[36px] leading-tight" : "text-[15px]"}`}>{children}</h3>;
 }
 
 function Sub({ children, n }: { children: React.ReactNode; n?: number }) {
@@ -573,7 +597,7 @@ export default function StudyEditor({ state, bloqueada }: { state: State; compac
             {i.etapaADefinir ? "aparece na proposta com os números “a definir”" : i.primeiraEtapa ? "aparece na proposta" : "a seção “A primeira etapa” não aparece na proposta"}
           </span>
         </div>
-        {i.primeiraEtapa && !i.etapaADefinir && <EtapaBloco s={s} r={r} />}
+        {i.primeiraEtapa && !i.etapaADefinir && <EtapaBloco s={s} r={r} bloqueada={bloqueada} />}
         {i.etapaADefinir && (
           <div className="px-3 py-2.5 text-[13px] text-muted">
             Na proposta, a seção “A primeira etapa” aparece com lotes, metragem, área e VGV <b className="text-navy">a definir</b>. Para colocar os números, marque “Tem primeira etapa”.
@@ -730,7 +754,7 @@ function Titulo({ children, n }: { children: React.ReactNode; n?: number }) {
 }
 
 /** Bloco da primeira etapa: medidas (azuis), quadras, áreas e resultado */
-function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
+function EtapaBloco({ s, r, bloqueada }: { s: State; r: ReturnType<typeof calcular>; bloqueada?: boolean }) {
   const i = r.inputs;
   const largo = useContext(LarguraCtx) >= 760;
   const off = !!i.etapaADefinir;
@@ -754,12 +778,14 @@ function EtapaBloco({ s, r }: { s: State; r: ReturnType<typeof calcular> }) {
         <In s={s} k="areaPerimetralE1" label="Perímetro da área da 1ª etapa (m)" hint="Comprimento da linha de quadras" disabled={off} />
         <In s={s} k="ruaE1" label="Largura das ruas entre as quadras (m)" disabled={off} />
         <In s={s} k="compQuadraE1" label="Comprimento da quadra (m)" hint="Vazio = uma quadra só, do tamanho da linha" disabled={off} />
+        {/* ligado copia frente, comprimento e valor do m² da gleba geral (editáveis: editar um desliga); bloqueadas sem a chave */}
+        {!bloqueada && <CopiaGeral ligado={!!i.medidasE1Geral} onChange={s.setMedidasE1Geral} />}
         <In s={s} k="frenteE1" label="Frente do lote (m)" disabled={off} erro={i.frenteE1 === 0 ? "A frente não pode ser zero (vazio = a do estudo)" : null} />
         <In s={s} k="compLoteE1" label="Comprimento do lote (m)" disabled={off} erro={!(i.compLoteE1 && i.compLoteE1 > 0) ? "Preencha o comprimento (maior que zero)" : null} />
         <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : loteE1Ok ? `${fmtNum(frenteE1 * (i.compLoteE1 ?? 0))} m²` : "— preencha frente e comprimento"} />
+        <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
         <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
-        <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
         {r.etapa1FaltaValor && (
           <p className="bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
             Preencha o valor do m² do lote da 1ª etapa. Sem ele a etapa não é calculada, e na proposta aparece “a definir”.

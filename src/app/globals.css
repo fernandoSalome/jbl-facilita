@@ -75,3 +75,6 @@ body {
 .etapa-dourada input[type="checkbox"] {
   accent-color: #122a45;
 }
+.etapa-dourada [role="switch"][aria-checked="true"] {
+  background-color: #122a45;
+}

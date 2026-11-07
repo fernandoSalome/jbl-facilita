@@ -155,6 +155,8 @@ export type StudyInputs = {
    * com a marca recebE1Copia (todas menos as bloqueadas, 06/11/2026); as bloqueadas seguem como eram.
    */
   recebimentosE1Geral?: boolean;
+  /** Só a planilha: frente, comprimento e valor do m² da 1ª etapa copiados da gleba geral (editáveis; editar desliga) */
+  medidasE1Geral?: boolean;
   recebE1Copia?: boolean;
   intermediacaoPctE1: number | null;
   intermediacaoOrigemE1?: "inc" | "ter" | "ambos";
