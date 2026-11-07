@@ -111,6 +111,9 @@ export function useStudyState(initial: StudyInputs) {
     const v = valorDoCampo(text, kind, OPTIONAL.includes(key));
     if (v === undefined) return;
     setInputs((s) => {
+      // o campo escrito igual ao número guardado (ex.: só clicou e saiu) não troca o número: o comprimento
+      // 500 ÷ 12,30 = 40,650406… fica inteiro, sem virar 40,6504 (senão o lote não fecha 500 m²)
+      if (text === toText(s[key] as number | null, kind)) return s;
       const n = { ...s, [key]: v };
       const par = JUROS_PAR[key];
       if (par) {

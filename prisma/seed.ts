@@ -70,6 +70,7 @@ async function main() {
   await biodigestorPorLoteNosChacreamentos();
   await obrasSemEtapa1EmTodas();
   await recebimentosE1CopiaEmTodas();
+  await comprimentoE1Exato();
   await primaveraComoChacreamentoAberto();
   await listarBloqueadas();
 }
@@ -153,6 +154,31 @@ async function recebimentosE1CopiaEmTodas() {
     UPDATE "Proposal" SET "inputs" = '{"recebE1Copia": true}'::jsonb || COALESCE("inputs", '{}'::jsonb), "pdfKey" = NULL
     WHERE "lockedAt" IS NULL AND NOT (COALESCE("inputs", '{}'::jsonb) ? 'recebE1Copia')`;
   if (n) console.log(`Recebimentos da 1ª etapa com "Copiar da Planilha Geral" em ${n} proposta(s) não bloqueada(s)`);
+}
+
+/**
+ * Pedido do Fernando (06/11/2026): o comprimento do lote da 1ª etapa veio de metragem ÷ frente (500 ÷ 12,30 =
+ * 40,6504…) e foi gravado arredondado (40,65): o lote ficava 499,995 m² e o valor do lote R$ 1,50 a menos. Volta ao
+ * comprimento exato quando frente × comprimento erra a metragem por menos de 0,01 m². Menos nas bloqueadas, sem
+ * mexer na data de alteração; descarta o PDF guardado. Rodar de novo não acha mais nada.
+ */
+async function comprimentoE1Exato() {
+  const lista = await db.$queryRaw<{ id: string; inputs: Record<string, unknown> }[]>`
+    SELECT "id", "inputs" FROM "Proposal" WHERE "lockedAt" IS NULL AND ("inputs"->>'compLoteE1') IS NOT NULL`;
+  const num = (x: unknown) => (typeof x === "number" && x > 0 ? x : null);
+  let n = 0;
+  for (const p of lista) {
+    const i = p.inputs;
+    const comp = num(i.compLoteE1), frente = num(i.frenteE1) ?? num(i.frenteLote), lote = num(i.loteEtapa1) ?? num(i.metragemLote);
+    if (!comp || !frente || !lote) continue;
+    const erro = Math.abs(frente * comp - lote);
+    if (erro < 1e-9 || erro >= 0.01) continue;
+    await db.$executeRaw`
+      UPDATE "Proposal" SET "inputs" = jsonb_set("inputs", '{compLoteE1}', to_jsonb(${lote / frente}::float8)), "pdfKey" = NULL
+      WHERE "id" = ${p.id}`;
+    n++;
+  }
+  if (n) console.log(`Comprimento do lote da 1ª etapa exato (sem arredondar) em ${n} proposta(s) não bloqueada(s)`);
 }
 
 /**
