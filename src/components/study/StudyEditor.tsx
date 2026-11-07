@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { calcular, copiaParceriaE1, copiaReajusteE1, copiaRecebimentosE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
+import { calcular, copiaMedidasE1, copiaParceriaE1,copiaReajusteE1, copiaRecebimentosE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 import { IMPLANTA_PADRAO, PAVIMENTOS, REGIOES, type Implanta, type Regiao } from "@/lib/orcamento2026";
 
@@ -122,13 +122,6 @@ export function useStudyState(initial: StudyInputs) {
         (n as Record<string, unknown>)[outro] = v === null ? null : 0;
         setTexts((t) => ({ ...t, [outro]: v === null ? "" : toText(v * f, "pct") }));
       }
-      // medidas da 1ª etapa: editar uma desliga a cópia; com a cópia ligada, mudar a gleba geral muda a etapa junto
-      if (key in MEDIDAS_E1 && v !== s[key]) n.medidasE1Geral = false;
-      const daEtapa = (Object.entries(MEDIDAS_E1) as [NumKey, NumKey][]).find(([, g]) => g === key)?.[0];
-      if (daEtapa && s.medidasE1Geral) {
-        (n as Record<string, unknown>)[daEtapa] = v;
-        setTexts((t) => ({ ...t, [daEtapa]: text }));
-      }
       // a metragem é frente × comprimento (guardada junto: a proposta usa ela); sem um dos dois, fica zero
       // (o campo fica em vermelho), para a proposta não seguir com o lote antigo
       if (key === "compLote" || key === "frenteLote") {
@@ -199,17 +192,21 @@ export function useStudyState(initial: StudyInputs) {
       return n;
     });
   }
-  /** Medidas da 1ª etapa: ligar copia frente, comprimento e valor do m² da gleba geral (continuam editáveis) */
+  /**
+   * Medidas da 1ª etapa, "Copiar da Planilha Geral" (como os outros): ligado usa frente, comprimento e valor do m² da
+   * gleba geral; desligado, os da etapa. Ao desligar, o que estiver vazio começa com o número da gleba geral.
+   */
   function setMedidasE1Geral(on: boolean) {
     setInputs((s) => {
-      if (!on) return { ...s, medidasE1Geral: false };
-      const n = { ...s, medidasE1Geral: true };
+      const n = { ...s, medidasE1Geral: on };
+      if (on) return n;
       const t: Record<string, string> = {};
       for (const [e1, g] of Object.entries(MEDIDAS_E1) as [NumKey, NumKey][]) {
+        if (s[e1] !== null) continue;
         (n as Record<string, unknown>)[e1] = s[g];
         t[e1] = toText(s[g] as number, KINDS[e1]!);
       }
-      setTexts((x) => ({ ...x, ...t }));
+      if (Object.keys(t).length) setTexts((x) => ({ ...x, ...t }));
       return n;
     });
   }
@@ -784,11 +781,25 @@ function EtapaBloco({ s, r, bloqueada }: { s: State; r: ReturnType<typeof calcul
         {/* ligado copia frente, comprimento e valor do m² da gleba geral (editáveis: editar um desliga); bloqueadas sem a chave */}
         <In s={s} k="ruasObrigE1" label="Desconto de ruas contínuas vindas de fora" hint="Quantidade de ruas. × largura da rua, sai do perímetro (tira lotes, não muda a área)" disabled={off} />
         <In s={s} k="descontoE1" label="Outras medidas a descontar do perímetro (m)" hint="Tira lotes, não muda a área: 2.000 m − 200 m = os lotes são contados em 1.800 m" disabled={off} />
-        {!bloqueada && <CopiaGeral ligado={!!i.medidasE1Geral} onChange={s.setMedidasE1Geral} />}
-        <In s={s} k="frenteE1" label="Frente do lote (m)" disabled={off} erro={i.frenteE1 === 0 ? "A frente não pode ser zero (vazio = a do estudo)" : null} />
-        <In s={s} k="compLoteE1" label="Comprimento do lote (m)" disabled={off} erro={!(i.compLoteE1 && i.compLoteE1 > 0) ? "Preencha o comprimento (maior que zero)" : null} />
+        {/* como os outros: ligado usa frente, comprimento e valor do m² da gleba geral; desligado, os da etapa. Bloqueadas sem a chave */}
+        {!bloqueada && <CopiaGeral ligado={copiaMedidasE1(i)} onChange={s.setMedidasE1Geral} />}
+        {copiaMedidasE1(i) ? (
+          <>
+            <Out label="Frente do lote (m)" value={toText(i.frenteE1, "m")} sufixo="m" />
+            <Out label="Comprimento do lote (m)" value={toText(i.compLoteE1, "m")} sufixo="m" />
+          </>
+        ) : (
+          <>
+            <In s={s} k="frenteE1" label="Frente do lote (m)" disabled={off} erro={i.frenteE1 === 0 ? "A frente não pode ser zero (vazio = a do estudo)" : null} />
+            <In s={s} k="compLoteE1" label="Comprimento do lote (m)" disabled={off} erro={!(i.compLoteE1 && i.compLoteE1 > 0) ? "Preencha o comprimento (maior que zero)" : null} />
+          </>
+        )}
         <Out label="Metragem do lote (frente × comprimento)" value={off ? "a definir" : loteE1Ok ? `${fmtNum(frenteE1 * (i.compLoteE1 ?? 0))} m²` : "— preencha frente e comprimento"} />
-        <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
+        {copiaMedidasE1(i) ? (
+          <Out label="Valor do m² do lote (1ª etapa)" value={toText(i.valorM2Etapa1, "brl")} sufixo="R$" />
+        ) : (
+          <In s={s} k="valorM2Etapa1" label="Valor do m² do lote (1ª etapa)" hint="Obrigatório: sem ele a 1ª etapa não é calculada (não usa o m² do estudo)" disabled={off} />
+        )}
         {r.etapa1FaltaValor && (
           <p className="bg-amber-50 px-3 py-2 text-[12.5px] font-semibold text-amber-800">
             Preencha o valor do m² do lote da 1ª etapa. Sem ele a etapa não é calculada, e na proposta aparece “a definir”.

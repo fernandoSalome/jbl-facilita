@@ -427,3 +427,16 @@ describe("recebimentos da 1ª etapa: Copiar da Planilha Geral", () => {
     expect(calcular({ ...base, recebimentosE1Geral: true }).etapa1!.fin).toBeNull();
   });
 });
+
+describe("medidas da 1ª etapa: Copiar da Planilha Geral", () => {
+  const base = { ...parseInputs({}), areaTotal: 100000, aproveitamento: 0.6, custoInfraM2: 160, primeiraEtapa: true, lotesEtapa1: 100, frenteLote: 15, compLote: 33.333, metragemLote: 500, valorM2: 300, frenteE1: 10, compLoteE1: 20, valorM2Etapa1: 600 };
+  it("desligado usa frente, comprimento e valor do m² da etapa", () => {
+    const e = calcular(base).etapa1!;
+    expect(e.avista).toBeCloseTo(100 * 200 * 600, 6);
+  });
+  it("ligado usa os da gleba geral (o lote fecha a metragem da gleba: 500 m² × R$ 300)", () => {
+    const r = calcular({ ...base, medidasE1Geral: true });
+    expect(r.etapa1!.avista).toBeCloseTo(100 * 500 * 300, 6);
+    expect([r.inputs.frenteE1, r.inputs.valorM2Etapa1]).toEqual([15, 300]);
+  });
+});

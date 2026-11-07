@@ -155,7 +155,7 @@ export type StudyInputs = {
    * com a marca recebE1Copia (todas menos as bloqueadas, 06/11/2026); as bloqueadas seguem como eram.
    */
   recebimentosE1Geral?: boolean;
-  /** Só a planilha: frente, comprimento e valor do m² da 1ª etapa copiados da gleba geral (editáveis; editar desliga) */
+  /** Frente, comprimento e valor do m² da 1ª etapa: ligado usa os da gleba geral (como o reajuste e os recebimentos) */
   medidasE1Geral?: boolean;
   recebE1Copia?: boolean;
   intermediacaoPctE1: number | null;
@@ -243,7 +243,9 @@ export const copiaReajusteE1 = (i: StudyInputs) =>
   !!i.planilhaNova && (i.reajusteE1Geral ?? (i.ipcaE1 === null && i.jurosAnoE1 === null && i.jurosMesE1 === null));
 
 /** Entrada, multiplicador e anos da 1ª etapa copiados da gleba geral (botão "Copiar da Planilha Geral" dos recebimentos) */
-export const copiaRecebimentosE1 = (i: StudyInputs) =>
+/** Medidas da 1ª etapa (frente, comprimento e valor do m²): ligado usa as da gleba geral; desligado, as da etapa */
+export const copiaMedidasE1 = (i: StudyInputs) => !!i.medidasE1Geral;
+export const copiaRecebimentosE1 =(i: StudyInputs) =>
   !!i.recebE1Copia && (i.recebimentosE1Geral ?? (i.entradaPctE1 === null && i.multiplicadorE1 === null && i.anosE1 === null));
 
 /** % do incorporador e do corretor da 1ª etapa copiados da gleba geral (só na planilha) */
@@ -445,7 +447,11 @@ function cenario(meses: number, saldoLote: number, multiplicador: number, lotes:
 }
 
 export function calcular(input: Partial<StudyInputs>): StudyResult {
-  const i: StudyInputs = { ...DEFAULT_INPUTS, ...input };
+  const i0: StudyInputs = { ...DEFAULT_INPUTS, ...input };
+  // medidas da 1ª etapa com "Copiar da Planilha Geral" ligado: frente, lote (o mesmo m² da gleba) e valor do m² da gleba geral
+  const i: StudyInputs = copiaMedidasE1(i0)
+    ? { ...i0, frenteE1: i0.frenteLote, compLoteE1: i0.frenteLote > 0 ? i0.metragemLote / i0.frenteLote : i0.compLote, valorM2Etapa1: i0.valorM2 }
+    : i0;
   // Planilha JBL 2026 é a regra (vazio = 2026); null = contas da planilha anterior
   const nova2026 = i.planilhaInfra !== null;
   const inc = i.incorporadorPct;
