@@ -22,6 +22,7 @@ export default async function Painel() {
   const opened = sent.filter((p) => p.viewCount > 0);
   const letters = proposals.reduce((s, p) => s + p.letters, 0);
   const vgv = sent.reduce((s, p) => s + p.vgvAvista, 0);
+  const vgvPrazo = sent.reduce((s, p) => s + p.vgvGlobal, 0);
   const recent = [...proposals].filter((p) => p.lastViewedAt).sort((a, b) => (b.lastViewedAt! > a.lastViewedAt! ? 1 : -1)).slice(0, 5);
   const waiting = sent.filter((p) => p.viewCount === 0 && p.status !== "expirada").slice(0, 5);
 
@@ -34,13 +35,14 @@ export default async function Painel() {
         actions={<Link className="btn-gold" href="/app/projetos/novo">+ Novo loteamento</Link>}
       />
       <div className="grid gap-6 p-8">
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line lg:grid-cols-6">
           {[
             ["Loteamentos", String(projects.length), "ativos no portal"],
             ["Propostas enviadas", String(sent.length), `${proposals.length - sent.length} em rascunho`],
             ["Abertas pela família", String(opened.length), sent.length ? `${Math.round((opened.length / sent.length) * 100)}% das enviadas` : "—"],
             ["Cartas de intenção", String(letters), "recebidas pelo portal"],
             ["VGV em proposta", fmtMi(vgv), "à vista, propostas enviadas"],
+            ["VGV a prazo", fmtMi(vgvPrazo), "a prazo, propostas enviadas"],
           ].map(([k, v, d]) => (
             <div key={k} className="bg-white px-5 py-4">
               <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted">{k}</div>
