@@ -71,9 +71,9 @@ async function main() {
   await obrasSemEtapa1EmTodas();
   await recebimentosE1CopiaEmTodas();
   await comprimentoE1Exato();
-  // a cópia já foi criada (05/11/2026) e virou Condomínio Urbano (08/11/2026): sem o sufixo "(Chacreamento Aberto)",
+  // a cópia já foi criada (05/11/2026) e mudou de formato (08/11/2026): sem o sufixo "(Chacreamento Aberto)",
   // primaveraComoChacreamentoAberto criaria outra cópia, então não roda mais
-  await primaveraAbertoParaCondominio();
+  await primaveraParaChacreamentoCondominio();
   await listarBloqueadas();
 }
 
@@ -123,22 +123,29 @@ async function primaveraComoChacreamentoAberto() {
 }
 
 /**
- * Pedido do Fernando (08/11/2026): a cópia "Sitio Primavera (Chacreamento Aberto)" passa a ser Condomínio Urbano, sem
- * mudar os números (planilha, opções e textos ficam). Só ela, se não estiver bloqueada; o nome troca o sufixo. Sem
- * mexer na data de alteração; descarta o PDF guardado. Depois de trocada, rodar de novo não acha mais nada.
+ * Pedido do Fernando (08/11/2026): a cópia "Sitio Primavera (Chacreamento Aberto)" virou Condomínio Urbano e, na
+ * verdade, é Chacreamento Condomínio: passa a ser Chacreamento Condomínio, sem mudar os números (planilha, opções e
+ * textos ficam). Só ela, se não estiver bloqueada; o nome troca o sufixo. Sem mexer na data de alteração; descarta o
+ * PDF guardado. Depois de trocada, rodar de novo não acha mais nada.
  */
-async function primaveraAbertoParaCondominio() {
+async function primaveraParaChacreamentoCondominio() {
   const p = await db.proposal.findFirst({
-    where: { deletedAt: null, lockedAt: null, formato: "chacreamento_aberto", name: { endsWith: " (Chacreamento Aberto)" }, project: { municipio: { contains: "Isabel", mode: "insensitive" } } },
+    where: {
+      deletedAt: null, lockedAt: null, project: { municipio: { contains: "Isabel", mode: "insensitive" } },
+      OR: [
+        { formato: "condominio_urbano", name: { endsWith: " (Condomínio Urbano)" } },
+        { formato: "chacreamento_aberto", name: { endsWith: " (Chacreamento Aberto)" } },
+      ],
+    },
   });
   if (!p) return;
-  const versao = await db.formatoVersion.findFirst({ where: { templateId: p.templateId, formato: "condominio_urbano" }, orderBy: { createdAt: "desc" } });
-  if (!versao) return console.log("Primavera → Condomínio Urbano: o template não tem o Condomínio Urbano");
-  const nome = p.name.replace(/ \(Chacreamento Aberto\)$/, " (Condomínio Urbano)");
+  const versao = await db.formatoVersion.findFirst({ where: { templateId: p.templateId, formato: "chacreamento_condominio" }, orderBy: { createdAt: "desc" } });
+  if (!versao) return console.log("Primavera → Chacreamento Condomínio: o template não tem o Chacreamento Condomínio");
+  const nome = p.name.replace(/ \((Condomínio Urbano|Chacreamento Aberto)\)$/, " (Chacreamento Condomínio)");
   await db.$executeRaw`
-    UPDATE "Proposal" SET "formato" = 'condominio_urbano', "formatoVersionId" = ${versao.id}, "name" = ${nome}, "pdfKey" = NULL
+    UPDATE "Proposal" SET "formato" = 'chacreamento_condominio', "formatoVersionId" = ${versao.id}, "name" = ${nome}, "pdfKey" = NULL
     WHERE "id" = ${p.id}`;
-  console.log(`Primavera → Condomínio Urbano: "${p.name}" agora é "${nome}" (chacreamento_aberto → condominio_urbano)`);
+  console.log(`Primavera → Chacreamento Condomínio: "${p.name}" agora é "${nome}" (${p.formato} → chacreamento_condominio)`);
 }
 
 /** Só informa no log do deploy quais propostas estão bloqueadas e desde quando (para conferir o congelamento) */
