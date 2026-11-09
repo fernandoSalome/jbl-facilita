@@ -71,7 +71,9 @@ async function main() {
   await obrasSemEtapa1EmTodas();
   await recebimentosE1CopiaEmTodas();
   await comprimentoE1Exato();
-  await primaveraComoChacreamentoAberto();
+  // a cópia já foi criada (05/11/2026) e virou Condomínio Urbano (08/11/2026): sem o sufixo "(Chacreamento Aberto)",
+  // primaveraComoChacreamentoAberto criaria outra cópia, então não roda mais
+  await primaveraAbertoParaCondominio();
   await listarBloqueadas();
 }
 
@@ -80,6 +82,7 @@ async function main() {
  * com as mesmas informações (planilha, textos, opções). A original não muda. A cópia é rascunho, com link novo e a
  * versão atual do Chacreamento Aberto no template. Uma vez só: se a cópia já existe (mesmo apagada), não faz nada.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function primaveraComoChacreamentoAberto() {
   const SUFIXO = " (Chacreamento Aberto)";
   const original = await db.proposal.findFirst({
@@ -117,6 +120,25 @@ async function primaveraComoChacreamentoAberto() {
     },
   });
   console.log(`Cópia da Chácara Primavera: "${copia.name}" criada a partir de "${original.name}" (${original.formato} → chacreamento_aberto, ${original.project.name}, ${original.project.municipio})`);
+}
+
+/**
+ * Pedido do Fernando (08/11/2026): a cópia "Sitio Primavera (Chacreamento Aberto)" passa a ser Condomínio Urbano, sem
+ * mudar os números (planilha, opções e textos ficam). Só ela, se não estiver bloqueada; o nome troca o sufixo. Sem
+ * mexer na data de alteração; descarta o PDF guardado. Depois de trocada, rodar de novo não acha mais nada.
+ */
+async function primaveraAbertoParaCondominio() {
+  const p = await db.proposal.findFirst({
+    where: { deletedAt: null, lockedAt: null, formato: "chacreamento_aberto", name: { endsWith: " (Chacreamento Aberto)" }, project: { municipio: { contains: "Isabel", mode: "insensitive" } } },
+  });
+  if (!p) return;
+  const versao = await db.formatoVersion.findFirst({ where: { templateId: p.templateId, formato: "condominio_urbano" }, orderBy: { createdAt: "desc" } });
+  if (!versao) return console.log("Primavera → Condomínio Urbano: o template não tem o Condomínio Urbano");
+  const nome = p.name.replace(/ \(Chacreamento Aberto\)$/, " (Condomínio Urbano)");
+  await db.$executeRaw`
+    UPDATE "Proposal" SET "formato" = 'condominio_urbano', "formatoVersionId" = ${versao.id}, "name" = ${nome}, "pdfKey" = NULL
+    WHERE "id" = ${p.id}`;
+  console.log(`Primavera → Condomínio Urbano: "${p.name}" agora é "${nome}" (chacreamento_aberto → condominio_urbano)`);
 }
 
 /** Só informa no log do deploy quais propostas estão bloqueadas e desde quando (para conferir o congelamento) */
