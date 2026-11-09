@@ -13,6 +13,8 @@ import IntentForm from "./IntentForm";
 import { ListaBenfeitorias, ListaContatos, TabelaObras } from "./Listas";
 import Tracker from "./Tracker";
 import { classesCongeladas, mudou } from "@/lib/congelada";
+import { VAR_HTML } from "@/lib/carta";
+import { escapeHtml } from "@/lib/sanitize";
 
 /**
  * Template "Proposta JBL padrão": mesma estrutura, classes e textos do site da
@@ -595,7 +597,8 @@ export default function JblPadrao(props: TemplateProps) {
               <h2 style={{ margin: "6px 0 18px", fontSize: "clamp(26px,4vw,34px)" }}>
                 <DT d={d} k="saudacao">{d.saudacao}</DT>
               </h2>
-              <p><DT d={d} k="carta1" html vars={nv}>{d.pick(
+              {/* "… de Lotes formato Chacreamento": a palavra "formato" sem negrito (o resto do modelo continua em negrito) */}
+              <p><DT d={d} k="carta1" html vars={mudou(props.bloqueadaEm, "formato-sem-negrito") ? { ...nv, modelo: VAR_HTML + escapeHtml(nv.modelo).replace(/\bformato\b/g, '<span class="formato-normal">formato</span>') } : nv}>{d.pick(
                 `Recebam nosso abraço e nosso agradecimento pela oportunidade de conhecer a história e o potencial da gleba <strong>{{gleba}}</strong>. Sabemos que uma área carrega o trabalho, os planos e o cuidado de uma família. É com respeito por essa trajetória que apresentamos nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de <strong>{{modelo}}</strong> (<strong>{{lei}}</strong>), para vossa análise e apreciação. A proposta refere-se à gleba <strong>{{gleba}}</strong>, com área total de <strong>{{area}} m²</strong>, localizada em <strong>{{municipio}} - {{uf}}</strong>.`,
                 `Receba nosso abraço e nosso agradecimento pela oportunidade de conhecer a história e o potencial da gleba <strong>{{gleba}}</strong>. Sabemos que uma área carrega o trabalho, os planos e o cuidado de quem a construiu. É com respeito por essa trajetória que levamos ao seu encontro nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de <strong>{{modelo}}</strong> (<strong>{{lei}}</strong>), para sua análise e apreciação. A proposta refere-se à gleba <strong>{{gleba}}</strong>, com área total de <strong>{{area}} m²</strong>, localizada em <strong>{{municipio}} - {{uf}}</strong>.`,
                 `Montamos esta proposta especialmente para a sua apreciação, e esperamos que goste. Agradecemos a oportunidade de conhecer a história e o potencial da gleba <strong>{{gleba}}</strong>, e é com respeito por essa trajetória que apresentamos nossa Proposta Técnica e Comercial de parceria para o parcelamento do solo sob o modelo de <strong>{{modelo}}</strong> (<strong>{{lei}}</strong>). A proposta refere-se à gleba <strong>{{gleba}}</strong>, com área total de <strong>{{area}} m²</strong>, localizada em <strong>{{municipio}} - {{uf}}</strong>.`,

@@ -16,6 +16,8 @@ export const MUDANCAS = [
   { id: "minuta-3-marcas", desde: "2026-11-05T00:25:57-03:00" },
   // legenda da foto da capa: "Gleba … hectares." e a nota da imagem juntas, uma depois da outra (08/11/2026)
   { id: "legenda-foto-junta", desde: "2026-11-08T21:20:00-03:00" },
+  // carta de apresentação: a palavra "formato" do modelo ("… de Lotes formato Chacreamento") sem negrito (08/11/2026)
+  { id: "formato-sem-negrito", desde: "2026-11-08T21:51:00-03:00" },
 ] as const;
 
 export type Mudanca = (typeof MUDANCAS)[number]["id"];
