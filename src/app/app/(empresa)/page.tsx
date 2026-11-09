@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { listProposals } from "@/lib/queries";
-import { fmtMi, relTime } from "@/lib/format";
+import { fmtMi, fmtNum, relTime } from "@/lib/format";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/proposals/StatusBadge";
 import ProjectCard from "@/components/ProjectCard";
@@ -42,7 +42,8 @@ export default async function Painel() {
             ["Abertas pela família", String(opened.length), sent.length ? `${Math.round((opened.length / sent.length) * 100)}% das enviadas` : "—"],
             ["Cartas de intenção", String(letters), "recebidas pelo portal"],
             ["VGV em proposta", fmtMi(vgv), "à vista, propostas enviadas"],
-            ["VGV a prazo", fmtMi(vgvPrazo), "a prazo, propostas enviadas"],
+            // passa de mil milhões: em bilhões (R$ 1.436,4 mi parecia 1 milhão e pouco)
+            ["VGV a prazo", vgvPrazo >= 1e9 ? `R$ ${fmtNum(vgvPrazo / 1e9, 2)} bi` : fmtMi(vgvPrazo), "a prazo, propostas enviadas"],
           ].map(([k, v, d]) => (
             <div key={k} className="bg-white px-5 py-4">
               <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted">{k}</div>
