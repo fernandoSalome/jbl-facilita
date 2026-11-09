@@ -12,7 +12,7 @@ import { E, EditProvider, Img, Lnk, Sec, ThemeRoot, Fotos } from "./Editable";
 import IntentForm from "./IntentForm";
 import { ListaBenfeitorias, ListaContatos, TabelaObras } from "./Listas";
 import Tracker from "./Tracker";
-import { classesCongeladas } from "@/lib/congelada";
+import { classesCongeladas, mudou } from "@/lib/congelada";
 
 /**
  * Template "Proposta JBL padrão": mesma estrutura, classes e textos do site da
@@ -550,8 +550,18 @@ export default function JblPadrao(props: TemplateProps) {
               <figure className="photo hero-photo">
                 <Fotos k="fotoCapa" src={project.aerialImage || "/demo/foto-exemplo.svg"} alt={`Vista aérea da gleba ${gleba}, contornada em vermelho`} />
                 <div className="photo-bar">
-                  <b><T k="fotoLegenda" vars={nv}>{"Gleba {{gleba}} · {{ha}} hectares"}</T></b>
-                  <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
+                  {mudou(props.bloqueadaEm, "legenda-foto-junta") ? (
+                    // as duas frases juntas, uma depois da outra: a da gleba termina com ponto final
+                    <p className="photo-junta">
+                      <b><T k="fotoLegenda" vars={nv}>{"Gleba {{gleba}} · {{ha}} hectares"}</T>.</b>{" "}
+                      <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
+                    </p>
+                  ) : (
+                    <>
+                      <b><T k="fotoLegenda" vars={nv}>{"Gleba {{gleba}} · {{ha}} hectares"}</T></b>
+                      <span><T k="fotoNota">Imagem fornecida para a proposta. Demarcação indicativa; limites sujeitos à documentação técnica.</T></span>
+                    </>
+                  )}
                 </div>
               </figure>
               <div className="hero-stats">
