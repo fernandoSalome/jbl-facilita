@@ -18,6 +18,8 @@ export const MUDANCAS = [
   { id: "legenda-foto-junta", desde: "2026-11-08T21:20:00-03:00" },
   // carta de apresentação: a palavra "formato" do modelo ("… de Lotes formato Chacreamento") sem negrito (08/11/2026)
   { id: "formato-sem-negrito", desde: "2026-11-08T21:51:00-03:00" },
+  // aplicação no banco: "Rentabilidade final" no meio da célula (10/11/2026)
+  { id: "rentabilidade-centro", desde: "2026-11-10T20:38:00-03:00" },
 ] as const;
 
 export type Mudanca = (typeof MUDANCAS)[number]["id"];

@@ -338,3 +338,8 @@
 /* carta de intenção: campos obrigatórios (*) e os que faltaram no envio */
 .jblt .field .req { color: #B3261E; font-weight: 700; }
 .jblt .field.invalid input, .jblt .field.invalid select { border-color: #B3261E; box-shadow: 0 0 0 1px #B3261E; }
+
+/* ---------- aplicação no banco: "Rentabilidade final" no meio da célula (10/11/2026) ---------- */
+@media (min-width: 761px) {
+  .jblt:not(.antes-rentabilidade-centro) .tbl-bank tr.you td:first-child { text-align: center; vertical-align: middle; }
+}

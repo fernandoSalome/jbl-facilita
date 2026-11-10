@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { displayStatus, parseInputs, parseOptions, parseOverrides } from "@/lib/proposals";
 import { contentForProposal, latestVersion } from "@/lib/formato-server";
-import { parseFormato } from "@/lib/formatos";
+import { parseContent, parseFormato } from "@/lib/formatos";
+import { MSG_KEY } from "@/lib/mensagem";
 import ProposalEditor from "@/components/proposals/ProposalEditor";
 import { pdfKeyOf } from "@/lib/pdf";
 
@@ -23,11 +24,14 @@ export default async function PropostaPage({ params }: { params: { id: string } 
   // proposta presa numa versão anterior do template (salvo com "só nas propostas novas")
   const ultima = await latestVersion(p.templateId, parseFormato(p.formato));
   const templateDesatualizado = !!(p.formatoVersionId && ultima && ultima.id !== p.formatoVersionId);
+  // mensagem de envio: a do template de hoje (mesmo presa numa versão anterior); bloqueada fica com a da versão dela
+  const msgUltima = !p.lockedAt && ultima ? parseContent(ultima.content, parseFormato(p.formato)).overrides?.[MSG_KEY] : undefined;
 
   return (
     <ProposalEditor
       formato={formato}
       templateDesatualizado={templateDesatualizado}
+      msgTemplate={!p.lockedAt && ultima ? { texto: typeof msgUltima === "string" ? msgUltima : undefined } : undefined}
       carta={carta}
       proposal={{
         id: p.id,

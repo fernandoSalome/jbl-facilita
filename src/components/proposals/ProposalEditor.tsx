@@ -32,6 +32,8 @@ type Props = {
   formato: FormatoContent;
   /** a proposta usa uma versão anterior do template */
   templateDesatualizado?: boolean;
+  /** mensagem de envio da versão mais recente do template (não vem nas bloqueadas) */
+  msgTemplate?: { texto?: string };
   /** carta de intenção recebida por esta proposta */
   carta?: { id: string; minutaStatus: string } | null;
   proposal: {
@@ -119,7 +121,7 @@ function useAlturaPlanilha() {
 
 /* ------------------------------------------------------------ tela */
 
-export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado, carta }: Props) {
+export default function ProposalEditor({ formato, proposal: p, project, templateDesatualizado, msgTemplate, carta }: Props) {
   const [cartaAberta, setCartaAberta] = useState(false);
   // bloqueada para edição: abre só para ver, sem nenhum controle de edição
   const bloqueada = !!p.lockedAt;
@@ -280,7 +282,7 @@ export default function ProposalEditor({ formato, proposal: p, project, template
   // mensagem do template (vale para todas as propostas), com o nome escolhido em "Proposta para",
   // o tipo de loteamento, a gleba, o link e a saudação pela hora de São Paulo
   const trat = tratamento(data.meta.options.destinatario);
-  const message = montarMensagem(formato.overrides?.[MSG_KEY], {
+  const message = montarMensagem(msgTemplate ? msgTemplate.texto : formato.overrides?.[MSG_KEY], {
     saudacao: saudacao(),
     nome: trat.nome ? trat.rotulo : data.meta.ownerName,
     tipo: formato.label,
