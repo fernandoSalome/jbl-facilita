@@ -10,6 +10,7 @@ import StatusBadge from "./StatusBadge";
 import EditNumbersModal from "./EditNumbersModal";
 import LetterModal from "./LetterModal";
 import { linkProposta } from "@/lib/site";
+import { BENFEITORIAS_CONFERIDAS } from "@/lib/benfeitorias";
 import { FORMATOS_INICIAIS, parseFormato } from "@/lib/formatos";
 
 function readTime(s: number) {
@@ -49,6 +50,8 @@ function RowMenu({ p, isAdmin, fixada, onFixar, onEdit, onDelete }: { p: Proposa
   }
   async function bloquear(bloqueada: boolean) {
     setOpen(false);
+    // o template traz todas as benfeitorias: as que não valem para a área têm de ter sido retiradas antes de travar
+    if (bloqueada && !confirm(BENFEITORIAS_CONFERIDAS)) return;
     const r = await fetch(`/api/proposals/${p.id}/bloquear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bloqueada }) });
     if (!r.ok) alert((await r.json().catch(() => null))?.error ?? "Não foi possível mudar o bloqueio.");
     router.refresh();

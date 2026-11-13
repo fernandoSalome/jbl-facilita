@@ -18,6 +18,7 @@ import StudyEditor, { useStudyState } from "@/components/study/StudyEditor";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "./StatusBadge";
 import LetterModal from "./LetterModal";
+import { BENFEITORIAS_CONFERIDAS } from "@/lib/benfeitorias";
 
 /**
  * Tela de edição da proposta: tudo salva sozinho e qualquer alteração pode ser
@@ -324,6 +325,8 @@ export default function ProposalEditor({ formato, proposal: p, project, template
 
   // copia o texto e termina a proposta: a edição fica bloqueada (só visualização). Para liberar: lista de propostas, menu ⋯
   async function copiarEBloquear() {
+    // o template traz todas as benfeitorias: as que não valem para a área têm de ter sido retiradas antes de travar
+    if (!confirm(BENFEITORIAS_CONFERIDAS)) return;
     navigator.clipboard.writeText(atualizarSaudacao(texto)); // saudação da hora em que copia
     if (burst.current) await new Promise((r) => setTimeout(r, 900));
     if (!published) await fetch(`/api/proposals/${p.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });

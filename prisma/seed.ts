@@ -5,8 +5,9 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { regiaoDaUf } from "../src/lib/orcamento2026";
+import { doItem, idUniao, listaCompleta, uniaoBenfeitorias } from "../src/lib/benfeitorias";
 import { newToken } from "../src/lib/token";
-import { FORMATOS, FORMATOS_INICIAIS, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type ObraItem, type QtdCalcKey } from "../src/lib/formatos";
+import { FORMATOS, FORMATOS_INICIAIS, aplicarDiff, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type ObraItem, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
 
@@ -75,6 +76,7 @@ async function main() {
   // primaveraComoChacreamentoAberto criaria outra cópia, então não roda mais
   await primaveraParaChacreamentoCondominio();
   await valinhosParaLoteamentoAberto();
+  await todasAsBenfeitoriasEmTodos();
   await listarBloqueadas();
 }
 
@@ -165,6 +167,64 @@ async function valinhosParaLoteamentoAberto() {
     UPDATE "Proposal" SET "formato" = 'loteamento_aberto', "formatoVersionId" = ${versao.id}, "name" = 'Chácaras Contenda', "pdfKey" = NULL
     WHERE "id" = ${p.id}`;
   console.log(`Valinhos → Loteamento Aberto: "${p.name}" agora é "Chácaras Contenda" (condominio_urbano → loteamento_aberto)`);
+}
+
+/**
+ * Pedido do Fernando (13/11/2026): todos os tipos do template com todas as benfeitorias que existem em algum
+ * deles, sem repetir (lib/benfeitorias.ts); na proposta se retira o que não vale. Nos templates: versão nova de
+ * cada tipo. Nas propostas não bloqueadas: as que estão na versão mais recente passam para a nova (só muda isso);
+ * as presas numa versão anterior ganham os itens que faltam como acrescentados na proposta. Itens retirados antes
+ * na proposta voltam (depois se retira de novo o que não vale). Descarta o PDF guardado. Uma vez só: o tipo que já
+ * tem versão depois do pedido não é mexido de novo.
+ */
+async function todasAsBenfeitoriasEmTodos() {
+  const PEDIDO = new Date("2026-11-13T03:07:00Z");
+  // começa pelo tipo com a lista mais completa; os outros acrescentam o que falta
+  const ORDEM = ["chacreamento_condominio", "condominio_urbano", "loteamento_aberto", "chacreamento_aberto", "chacreamento_condominio_infra", "chacreamento_aberto_infra"] as const;
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    const antes = await Promise.all(ORDEM.map((f) => db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f, createdAt: { lt: PEDIDO } }, orderBy: { createdAt: "desc" } })));
+    const conteudos = ORDEM.map((f, n) => (antes[n] ? parseContent(antes[n]!.content, f) : null));
+    const u = uniaoBenfeitorias(conteudos.filter((c) => c !== null).map((c) => ({ itens: c!.benfeitorias, ov: c!.overrides })));
+    if (!u.length) continue;
+    for (const [n, f] of ORDEM.entries()) {
+      const v = antes[n], c = conteudos[n];
+      const ultima = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!v || !c || !ultima || ultima.id !== v.id) continue; // sem versão ou já mexido depois do pedido
+      const nova = await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, benfeitorias: listaCompleta(u, c.benfeitorias, c.overrides) } as object } });
+      console.log(`Benfeitorias: template ${c.label} com ${u.length} itens (antes ${c.benfeitorias.length})`);
+      const ps = await db.proposal.findMany({ where: { templateId: t.id, formato: f, lockedAt: null, deletedAt: null } });
+      let mudaram = 0;
+      for (const p of ps) {
+        const ov = (p.overrides ?? {}) as Record<string, unknown>;
+        const diff = (ov["lista.benfeitorias"] ?? {}) as { added?: { id: string; texto: string; emoji?: string }[]; removed?: string[] };
+        if (!p.formatoVersionId || p.formatoVersionId === v.id) {
+          // mesma versão (ou sem versão fixa, que mostra a mais recente): passa para a nova; os acrescentados na proposta que agora estão no template saem do diff
+          const added = (diff.added ?? []).filter((b) => doItem(u, b, ov) < 0);
+          await db.$executeRaw`
+            UPDATE "Proposal" SET "formatoVersionId" = ${nova.id}, "pdfKey" = NULL,
+              "overrides" = jsonb_set(COALESCE("overrides", '{}'::jsonb), '{lista.benfeitorias}', ${JSON.stringify({ added, removed: [] })}::jsonb, true)
+            WHERE "id" = ${p.id}`;
+        } else {
+          const pv = await db.formatoVersion.findUnique({ where: { id: p.formatoVersionId! } });
+          if (!pv || pv.createdAt >= PEDIDO) continue;
+          const pc = parseContent(pv.content, f);
+          const ovTudo = { ...pc.overrides, ...ov };
+          // versão anterior: tudo o que a proposta tem (template + acrescentados), sem retirar nada, e o que falta no fim
+          const tem = aplicarDiff(pc.benfeitorias, { added: diff.added ?? [] });
+          const ja = new Set(tem.map((b) => doItem(u, b, ovTudo)));
+          const faltam = u.flatMap((x, i) => (ja.has(i) ? [] : [{ id: idUniao(i), texto: x.texto }]));
+          await db.$executeRaw`
+            UPDATE "Proposal" SET "pdfKey" = NULL,
+              "overrides" = jsonb_set(COALESCE("overrides", '{}'::jsonb), '{lista.benfeitorias}', ${JSON.stringify({ added: [...(diff.added ?? []), ...faltam], removed: [] })}::jsonb, true)
+            WHERE "id" = ${p.id}`;
+        }
+        mudaram++;
+      }
+      if (mudaram) console.log(`Benfeitorias: ${mudaram} proposta(s) não bloqueada(s) do tipo ${c.label} com todas`);
+    }
+    console.log(`Benfeitorias (lista única): ${u.map((x) => x.texto).join(" · ")}`);
+  }
 }
 
 /** Só informa no log do deploy quais propostas estão bloqueadas e desde quando (para conferir o congelamento) */

@@ -223,7 +223,10 @@ export function qtdTexto(q: Qtd, r: StudyResult, fmtNum: (n: number, d?: number)
 export function aplicarDiff<T extends { id: string }>(base: T[], diff: unknown): T[] {
   const d = (diff ?? {}) as ListaDiff;
   const removed = new Set(d.removed ?? []);
-  return [...base.filter((i) => !removed.has(i.id)), ...((d.added ?? []) as unknown as T[]).filter((i) => !removed.has(i.id))];
+  const ficam = base.filter((i) => !removed.has(i.id));
+  // item acrescentado na proposta que depois entrou também no template (mesmo id): aparece uma vez só
+  const ids = new Set(ficam.map((i) => i.id));
+  return [...ficam, ...((d.added ?? []) as unknown as T[]).filter((i) => !removed.has(i.id) && !ids.has(i.id))];
 }
 
 /**
