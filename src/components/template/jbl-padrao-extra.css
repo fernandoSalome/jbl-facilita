@@ -350,3 +350,5 @@
 .jblt .pill-ed .bf-drag:active { cursor: grabbing; }
 .jblt .pill-ed.bf-arrastando { opacity: .4; }
 .jblt .pill-ed.bf-sobre { outline: 2px dashed var(--gold); outline-offset: 2px; }
+/* a alça não cresce (a regra do texto, flex: 1, pegava a alça e espremia o texto) */
+.jblt .pills.bf-grid > span > span.bf-drag { flex: none; margin-right: -6px; }
