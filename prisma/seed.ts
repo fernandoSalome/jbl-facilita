@@ -178,7 +178,7 @@ async function valinhosParaLoteamentoAberto() {
  * tem versão depois do pedido não é mexido de novo.
  */
 async function todasAsBenfeitoriasEmTodos() {
-  const PEDIDO = new Date("2026-11-13T03:07:00Z");
+  const PEDIDO = new Date("2026-11-13T03:04:00Z"); // antes das versões novas (03:04:29): o passo não roda de novo
   // começa pelo tipo com a lista mais completa; os outros acrescentam o que falta
   const ORDEM = ["chacreamento_condominio", "condominio_urbano", "loteamento_aberto", "chacreamento_aberto", "chacreamento_condominio_infra", "chacreamento_aberto_infra"] as const;
   const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
