@@ -74,6 +74,7 @@ async function main() {
   // a cópia já foi criada (05/11/2026) e mudou de formato (08/11/2026): sem o sufixo "(Chacreamento Aberto)",
   // primaveraComoChacreamentoAberto criaria outra cópia, então não roda mais
   await primaveraParaChacreamentoCondominio();
+  await valinhosParaLoteamentoAberto();
   await listarBloqueadas();
 }
 
@@ -146,6 +147,24 @@ async function primaveraParaChacreamentoCondominio() {
     UPDATE "Proposal" SET "formato" = 'chacreamento_condominio', "formatoVersionId" = ${versao.id}, "name" = ${nome}, "pdfKey" = NULL
     WHERE "id" = ${p.id}`;
   console.log(`Primavera → Chacreamento Condomínio: "${p.name}" agora é "${nome}" (${p.formato} → chacreamento_condominio)`);
+}
+
+/**
+ * Pedido do Fernando (12/11/2026): a proposta "Valinhos Club" (Condomínio Urbano) é, na verdade, Loteamento Aberto
+ * e passa a se chamar "Chácaras Contenda", sem mudar os números (planilha, opções e textos ficam). Só ela, se não
+ * estiver bloqueada e se houver uma só com esse nome. Sem mexer na data de alteração; descarta o PDF guardado.
+ * Depois de trocada, rodar de novo não acha mais nada.
+ */
+async function valinhosParaLoteamentoAberto() {
+  const ps = await db.proposal.findMany({ where: { deletedAt: null, lockedAt: null, name: "Valinhos Club", formato: "condominio_urbano" } });
+  if (ps.length !== 1) return ps.length && console.log(`Valinhos → Loteamento Aberto: ${ps.length} propostas com esse nome, nada mudou`);
+  const p = ps[0];
+  const versao = await db.formatoVersion.findFirst({ where: { templateId: p.templateId, formato: "loteamento_aberto" }, orderBy: { createdAt: "desc" } });
+  if (!versao) return console.log("Valinhos → Loteamento Aberto: o template não tem o Loteamento Aberto");
+  await db.$executeRaw`
+    UPDATE "Proposal" SET "formato" = 'loteamento_aberto', "formatoVersionId" = ${versao.id}, "name" = 'Chácaras Contenda', "pdfKey" = NULL
+    WHERE "id" = ${p.id}`;
+  console.log(`Valinhos → Loteamento Aberto: "${p.name}" agora é "Chácaras Contenda" (condominio_urbano → loteamento_aberto)`);
 }
 
 /** Só informa no log do deploy quais propostas estão bloqueadas e desde quando (para conferir o congelamento) */
