@@ -5,7 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { regiaoDaUf } from "../src/lib/orcamento2026";
-import { doItem, idUniao, listaCompleta, uniaoBenfeitorias } from "../src/lib/benfeitorias";
+import { doItem, idUniao, listaCompleta, textoBf, uniaoBenfeitorias } from "../src/lib/benfeitorias";
 import { newToken } from "../src/lib/token";
 import { FORMATOS, FORMATOS_INICIAIS, aplicarDiff, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type ObraItem, type QtdCalcKey } from "../src/lib/formatos";
 
@@ -77,6 +77,7 @@ async function main() {
   await primaveraParaChacreamentoCondominio();
   await valinhosParaLoteamentoAberto();
   await todasAsBenfeitoriasEmTodos();
+  await campoSocietyNasBenfeitorias();
   await listarBloqueadas();
 }
 
@@ -224,6 +225,52 @@ async function todasAsBenfeitoriasEmTodos() {
       if (mudaram) console.log(`Benfeitorias: ${mudaram} proposta(s) não bloqueada(s) do tipo ${c.label} com todas`);
     }
     console.log(`Benfeitorias (lista única): ${u.map((x) => x.texto).join(" · ")}`);
+  }
+}
+
+/**
+ * Pedido do Fernando (13/11/2026): a benfeitoria "Espaço gourmet integrado com campo society (25×45, grama natural) e
+ * vestiários" passa a ser "Campo society (25×45, grama natural) e vestiários" (o emoji fica). Nos templates: versão
+ * nova de cada tipo que tem o item. Nas propostas não bloqueadas: as que estão na versão mais recente passam para a
+ * nova, e todas ganham o texto novo no item (vale também onde o texto tinha sido editado). Descarta o PDF guardado.
+ * Uma vez só: o tipo com versão depois do pedido não é mexido de novo.
+ */
+async function campoSocietyNasBenfeitorias() {
+  const PEDIDO = new Date("2026-11-13T03:14:00Z");
+  const NOVO = "Campo society (25×45, grama natural) e vestiários";
+  const velho = (t: string) => /gourmet integrado com campo society/i.test(t);
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    for (const f of FORMATOS) {
+      const v = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!v || v.createdAt >= PEDIDO) continue;
+      const c = parseContent(v.content, f);
+      const alvo = c.benfeitorias.filter((b) => velho(textoBf(b, c.overrides)));
+      if (!alvo.length) continue;
+      const overrides = { ...c.overrides };
+      for (const b of alvo) delete overrides[`li.${b.id}.texto`];
+      const benfeitorias = c.benfeitorias.map((b) => (alvo.includes(b) ? { ...b, texto: `${separarEmoji(b.texto).emoji ?? "⚽"} ${NOVO}` } : b));
+      const nova = await db.formatoVersion.create({ data: { templateId: t.id, formato: f, content: { ...c, benfeitorias, overrides } as object } });
+      console.log(`Campo society: template ${c.label}`);
+      const ps = await db.proposal.findMany({ where: { templateId: t.id, formato: f, lockedAt: null, deletedAt: null } });
+      let n = 0;
+      for (const p of ps) {
+        const ov = (p.overrides ?? {}) as Record<string, unknown>;
+        const pv = !p.formatoVersionId || p.formatoVersionId === v.id ? v : await db.formatoVersion.findUnique({ where: { id: p.formatoVersionId } });
+        if (!pv) continue;
+        const pc = parseContent(pv.content, f);
+        const itens = aplicarDiff(pc.benfeitorias, ov["lista.benfeitorias"]);
+        const ids = itens.filter((b) => velho(textoBf(b, { ...pc.overrides, ...ov }))).map((b) => b.id);
+        const mover = pv.id === v.id;
+        if (!ids.length && !mover) continue;
+        // texto novo por cima no item da proposta (o que estava escrito à mão nele também troca)
+        const textos = JSON.stringify(Object.fromEntries(ids.map((id) => [`li.${id}.texto`, NOVO])));
+        if (mover) await db.$executeRaw`UPDATE "Proposal" SET "formatoVersionId" = ${nova.id}, "pdfKey" = NULL, "overrides" = COALESCE("overrides", '{}'::jsonb) || ${textos}::jsonb WHERE "id" = ${p.id}`;
+        else await db.$executeRaw`UPDATE "Proposal" SET "pdfKey" = NULL, "overrides" = COALESCE("overrides", '{}'::jsonb) || ${textos}::jsonb WHERE "id" = ${p.id}`;
+        if (ids.length) n++;
+      }
+      if (n) console.log(`Campo society: ${n} proposta(s) não bloqueada(s) do tipo ${c.label}`);
+    }
   }
 }
 
