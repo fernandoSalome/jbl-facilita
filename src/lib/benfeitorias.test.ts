@@ -20,3 +20,13 @@ describe("benfeitorias: lista única em todos os tipos", () => {
     }
   });
 });
+
+describe("benfeitorias: ordem arrastada", () => {
+  it("aplica a ordem e deixa no fim os itens fora dela", async () => {
+    const { aplicarDiff } = await import("./formatos");
+    const base = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    expect(aplicarDiff(base, { order: ["c", "a", "b"] }).map((i) => i.id)).toEqual(["c", "a", "b"]);
+    expect(aplicarDiff(base, { order: ["b", "a"], added: [{ id: "d" }] }).map((i) => i.id)).toEqual(["b", "a", "c", "d"]);
+    expect(aplicarDiff(base, {}).map((i) => i.id)).toEqual(["a", "b", "c"]);
+  });
+});

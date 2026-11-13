@@ -132,7 +132,7 @@ export function cleanOverride(key: string, v: unknown): unknown {
   }
   if (/^li\.[^.]+\.emoji$/.test(key)) return typeof v === "string" && v.length <= 16 && !/[<>&]/.test(v) ? v.trim() : undefined;
   if (key.startsWith("lista.")) {
-    const o = v as { added?: unknown; removed?: unknown };
+    const o = v as { added?: unknown; removed?: unknown; order?: unknown };
     if (!o || typeof o !== "object") return undefined;
     const removed = Array.isArray(o.removed) ? o.removed.filter((x) => typeof x === "string" && ID.test(x)).slice(0, 200) : [];
     const added: unknown[] = [];
@@ -150,7 +150,8 @@ export function cleanOverride(key: string, v: unknown): unknown {
         added.push({ id: i.id, obra: short(i.obra), desc: short(i.desc), qtd });
       }
     }
-    return { added, removed };
+    const order = Array.isArray(o.order) ? o.order.filter((x) => typeof x === "string" && ID.test(x)).slice(0, 300) : [];
+    return order.length ? { added, removed, order } : { added, removed };
   }
   if (key.startsWith("block.")) {
     const o = v as { bg?: unknown; hidden?: unknown };

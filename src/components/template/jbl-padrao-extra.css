@@ -343,3 +343,10 @@
 @media (min-width: 761px) {
   .jblt:not(.antes-rentabilidade-centro) .tbl-bank tr.you td:first-child { text-align: center; vertical-align: middle; }
 }
+
+/* ---------- benfeitorias: arrastar e soltar para reordenar (só na edição) ---------- */
+.jblt .pill-ed .bf-drag { flex: none; cursor: grab; user-select: none; color: var(--muted, #8a94a3); font-size: 12px; letter-spacing: -2px; padding: 0 2px; opacity: .6; }
+.jblt .pill-ed:hover .bf-drag { opacity: 1; }
+.jblt .pill-ed .bf-drag:active { cursor: grabbing; }
+.jblt .pill-ed.bf-arrastando { opacity: .4; }
+.jblt .pill-ed.bf-sobre { outline: 2px dashed var(--gold); outline-offset: 2px; }

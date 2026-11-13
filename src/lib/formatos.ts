@@ -198,7 +198,7 @@ export function semEmojiHtml(html: string) {
 export type ListaSecao = "infra" | "complementar" | "benfeitorias" | "contatos";
 
 /** Ajuste de uma lista feito numa proposta: o resto continua vindo do template */
-export type ListaDiff = { added?: (ObraItem | Benfeitoria)[]; removed?: string[] };
+export type ListaDiff = { added?: (ObraItem | Benfeitoria)[]; removed?: string[]; order?: string[] };
 
 export function formatoTemDados(c: FormatoContent | undefined) {
   return !!c && c.infra.length + c.complementar.length + c.benfeitorias.length > 0;
@@ -226,7 +226,12 @@ export function aplicarDiff<T extends { id: string }>(base: T[], diff: unknown):
   const ficam = base.filter((i) => !removed.has(i.id));
   // item acrescentado na proposta que depois entrou também no template (mesmo id): aparece uma vez só
   const ids = new Set(ficam.map((i) => i.id));
-  return [...ficam, ...((d.added ?? []) as unknown as T[]).filter((i) => !removed.has(i.id) && !ids.has(i.id))];
+  const lista = [...ficam, ...((d.added ?? []) as unknown as T[]).filter((i) => !removed.has(i.id) && !ids.has(i.id))];
+  const order = d.order ?? [];
+  if (!order.length) return lista;
+  // ordem arrastada na proposta/template; itens fora dela (novos depois de arrastar) ficam no fim, na ordem de antes
+  const pos = new Map(order.map((id, n) => [id, n]));
+  return lista.map((i, n) => ({ i, k: pos.get(i.id) ?? order.length + n })).sort((a, b) => a.k - b.k).map((x) => x.i);
 }
 
 /**

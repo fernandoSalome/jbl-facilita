@@ -22,7 +22,7 @@ function useLista<T extends { id: string }>(secao: string, base: T[]) {
   const diff = (overrides[key] ?? {}) as ListaDiff;
   const itens = aplicarDiff(base, diff);
   function gravar(d: ListaDiff) {
-    const vazio = !(d.added?.length || d.removed?.length);
+    const vazio = !(d.added?.length || d.removed?.length || d.order?.length);
     save(key, vazio ? null : d);
   }
   return {
@@ -31,10 +31,19 @@ function useLista<T extends { id: string }>(secao: string, base: T[]) {
     remover(id: string) {
       const added = (diff.added ?? []).filter((i) => i.id !== id);
       const isAdded = added.length !== (diff.added ?? []).length;
-      gravar({ added, removed: isAdded ? diff.removed : [...(diff.removed ?? []), id] });
+      gravar({ ...diff, added, removed: isAdded ? diff.removed : [...(diff.removed ?? []), id] });
     },
     adicionar(item: ObraItem | Benfeitoria) {
       gravar({ ...diff, added: [...(diff.added ?? []), item] });
+    },
+    /** arrastar e soltar: o item "de" vai para o lugar do item "para" (grava a ordem inteira) */
+    mover(de: string, para: string) {
+      const ids = itens.map((i) => i.id);
+      const a = ids.indexOf(de), b = ids.indexOf(para);
+      if (a < 0 || b < 0 || a === b) return;
+      ids.splice(a, 1);
+      ids.splice(b, 0, de);
+      gravar({ ...diff, order: ids });
     },
   };
 }
@@ -255,6 +264,9 @@ export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
   const [escolher, setEscolher] = useState<{ id: string; el: HTMLElement } | null>(null);
   // benfeitoria recém-adicionada: abre a grade de emojis dela
   const [nova, setNova] = useState<string | null>(null);
+  // arrastar e soltar para reordenar (só na edição)
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<string | null>(null);
   useEffect(() => {
     if (!nova) return;
     const el = document.querySelector<HTMLElement>(`[data-bf="${nova}"]`);
@@ -269,7 +281,43 @@ export function ListaBenfeitorias({ base }: { base: Benfeitoria[] }) {
       {l.itens.map((b) => {
         const emoji = emojiDe(b, overrides);
         return (
-          <span key={b.id} className={l.editable ? "pill-ed" : undefined}>
+          <span
+            key={b.id}
+            className={l.editable ? `pill-ed${arrastando === b.id ? " bf-arrastando" : ""}${sobre === b.id && arrastando !== b.id ? " bf-sobre" : ""}` : undefined}
+            {...(l.editable && {
+              onDragOver: (e: React.DragEvent) => {
+                if (!arrastando) return;
+                e.preventDefault();
+                if (sobre !== b.id) setSobre(b.id);
+              },
+              onDrop: (e: React.DragEvent) => {
+                e.preventDefault();
+                if (arrastando) l.mover(arrastando, b.id);
+                setArrastando(null);
+                setSobre(null);
+              },
+            })}
+          >
+            {l.editable && (
+              <span
+                className="bf-drag"
+                draggable
+                title="Arraste para mudar a ordem"
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", b.id);
+                  const pill = e.currentTarget.parentElement;
+                  if (pill) e.dataTransfer.setDragImage(pill, 12, 12);
+                  setArrastando(b.id);
+                }}
+                onDragEnd={() => {
+                  setArrastando(null);
+                  setSobre(null);
+                }}
+              >
+                ⋮⋮
+              </span>
+            )}
             {l.editable ? (
               <button
                 type="button"
