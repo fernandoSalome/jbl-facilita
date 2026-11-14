@@ -20,6 +20,8 @@ export const MUDANCAS = [
   { id: "formato-sem-negrito", desde: "2026-11-08T21:51:00-03:00" },
   // aplicação no banco: "Rentabilidade final" no meio da célula (10/11/2026)
   { id: "rentabilidade-centro", desde: "2026-11-10T20:38:00-03:00" },
+  // capa sem a etiqueta "Proposta de participação do proprietário: x%" (entregava o número logo de cara) (14/11/2026)
+  { id: "capa-sem-percentual", desde: "2026-11-14T16:20:00-03:00" },
 ] as const;
 
 export type Mudanca = (typeof MUDANCAS)[number]["id"];

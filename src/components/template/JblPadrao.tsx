@@ -536,7 +536,9 @@ export default function JblPadrao(props: TemplateProps) {
                   <h1><T k="h1" html>{`Sua terra pode dar<br class="d"> origem a um novo<br class="d"> bairro. <em>E a uma nova<br class="d"> receita.</em>`}</T></h1>
                 </div>
                 <div className="hero-right">
-                  <span className="chip"><T k="capaChip2" html vars={nv}>{`Proposta de participação do proprietário: <b class="chip-pct">{{ter}}</b>`}</T></span>
+                  {!mudou(props.bloqueadaEm, "capa-sem-percentual") && (
+                    <span className="chip"><T k="capaChip2" html vars={nv}>{`Proposta de participação do proprietário: <b class="chip-pct">{{ter}}</b>`}</T></span>
+                  )}
                   <p><T k="capaP1">Você participa com a gleba. A JBL propõe financiar e executar a infraestrutura, conduzir o projeto e comercializar os lotes.</T></p>
                   <p><DT d={d} k="capaP2">{d.pick(
                     "Veja abaixo quanto está projetado para o proprietário, como o recebimento funciona e quais são as condições da parceria.",
