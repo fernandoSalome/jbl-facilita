@@ -173,6 +173,8 @@ model IntentLetter {
   pdfAssinado    Bytes?
   pdfAssinadoNome String?
   assinante      String?
+
+  @@index([proposalId])
 }
 
 /// Banco de imagens: fotos e logos usados nas propostas.
@@ -306,4 +308,11 @@ model Apresentacao {
   token       String    @unique
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+/// Senhas erradas no login, por e-mail e IP: depois de várias seguidas, espera um tempo (contra adivinhação)
+model LoginTentativa {
+  chave  String   @id
+  falhas Int      @default(0)
+  desde  DateTime @default(now())
 }
