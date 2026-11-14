@@ -123,8 +123,10 @@ export default function IntentForm({
   const marcados = new Set(faltando.map((f) => f.k));
   const obrig = (k: string) => regras && obrigatorio(k, v.estado_civil);
 
+  // o * aparece nos campos obrigatórios em todas as propostas, também nas bloqueadas (pedido do Fernando, 14/11/2026);
+  // nas bloqueadas é só a marca: o envio continua sem exigir nada
   const L = ({ k, children, lk }: { k: string; children: string; lk?: string }) => (
-    <label htmlFor={`ci-${k}`}><E k={`form.${lk ?? k}`}>{children}</E>{obrig(k) && <span className="req" aria-hidden="true"> *</span>}</label>
+    <label htmlFor={`ci-${k}`}><E k={`form.${lk ?? k}`}>{children}</E>{obrigatorio(k, v.estado_civil) && <span className="req" aria-hidden="true"> *</span>}</label>
   );
   const I = ({ k, label, type = "text", ph, mode, lk }: { k: string; label: string; type?: string; ph?: string; mode?: "numeric" | "decimal"; lk?: string }) => (
     <div className={marcados.has(k) ? "field invalid" : "field"}>
