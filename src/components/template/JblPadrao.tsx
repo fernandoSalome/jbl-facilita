@@ -545,9 +545,11 @@ export default function JblPadrao(props: TemplateProps) {
                     `Veja abaixo quanto está projetado para ${d.quem}, como o recebimento funciona e quais são as condições da parceria.`,
                     "Veja abaixo quanto está projetado para você, como o recebimento funciona e quais são as condições da parceria.",
                   )}</DT></p>
-                  <div className="cover-ctas">
-                    <Lnk k="capaBtn" href="#participacao" className="cover-cta ghost"><T k="capaBtn">Ver minha participação ↓</T></Lnk>
-                  </div>
+                  {!mudou(props.bloqueadaEm, "capa-sem-botao") && (
+                    <div className="cover-ctas">
+                      <Lnk k="capaBtn" href="#participacao" className="cover-cta ghost"><T k="capaBtn">Ver minha participação ↓</T></Lnk>
+                    </div>
+                  )}
                 </div>
               </div>
               {/* sem foto no loteamento: imagem de exemplo, para a seção nunca sumir (troca clicando nela) */}
