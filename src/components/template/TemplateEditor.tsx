@@ -98,7 +98,7 @@ export default function TemplateEditor({
 
   const [leaving, setLeaving] = useState<null | (() => void)>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  // propostas que também mudam ao salvar: todas as não bloqueadas vêm marcadas (pedido do Fernando, 15/11/2026);
+  // propostas que também mudam ao salvar: nenhuma vem marcada, quem salva marca (pedido do Fernando, 15/11/2026);
   // as bloqueadas nunca mudam
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const rascunhos = useMemo(() => propostas.filter((p) => p.status === "rascunho").map((p) => p.id), [propostas]);
@@ -250,7 +250,7 @@ export default function TemplateEditor({
             {msg && <span className="text-[12.5px] font-semibold text-emerald-700">{msg}</span>}
             {dirty && <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Alterações não salvas</span>}
             {dirty && <button className="btn-ghost" onClick={() => setDraft(clone(salvo.draft))}>Descartar</button>}
-            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(naoBloqueadas)); setSaveOpen(true); }}>Salvar</button>
+            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set()); setSaveOpen(true); }}>Salvar</button>
           </div>
         </div>
       </div>
