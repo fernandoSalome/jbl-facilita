@@ -25,6 +25,8 @@ import {
 import Modal from "@/components/ui/Modal";
 import JblPadrao from "./JblPadrao";
 import ModoToggle from "./ModoToggle";
+import TrocarPersonalizadas from "./TrocarPersonalizadas";
+import { chavesMudadas } from "@/lib/personalizadas";
 import DestinatarioPicker from "@/components/proposals/DestinatarioPicker";
 import type { Destinatario } from "@/lib/proposals";
 import { regiaoDaUf } from "@/lib/orcamento2026";
@@ -65,7 +67,7 @@ export default function TemplateEditor({
   counts: Record<string, { total: number; enviadas: number }>;
   inicial: FormatoKey;
   /** bloqueada: proposta travada para edição (não muda ao salvar o template) */
-  propostas: { id: string; name: string; status: string; formato: string; projeto: string; bloqueada?: boolean }[];
+  propostas: { id: string; name: string; status: string; formato: string; projeto: string; bloqueada?: boolean; personalizadas?: string[] }[];
 }) {
   const router = useRouter();
   const [key, setKey] = useState<FormatoKey>(inicial);
@@ -89,6 +91,10 @@ export default function TemplateEditor({
   const comumMudou = estavel(draft.comum) !== estavel(salvo.draft.comum);
   const tiposMudaram = FORMATOS.filter((f) => estavel(draft.tipos[f]) !== estavel(salvo.draft.tipos[f]));
   const dirty = comumMudou || tiposMudaram.length > 0;
+  const mudadasPorFormato = useMemo(
+    () => Object.fromEntries(FORMATOS.map((f) => [f, chavesMudadas(juntar(salvo.draft.comum, salvo.draft.tipos[f]).overrides ?? {}, juntar(draft.comum, draft.tipos[f]).overrides ?? {})])),
+    [draft, salvo],
+  );
   const conflitos = salvo.conflitos;
 
   const [leaving, setLeaving] = useState<null | (() => void)>(null);
@@ -98,6 +104,8 @@ export default function TemplateEditor({
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const rascunhos = useMemo(() => propostas.filter((p) => p.status === "rascunho").map((p) => p.id), [propostas]);
   const naoBloqueadas = useMemo(() => propostas.filter((p) => !p.bloqueada).map((p) => p.id), [propostas]);
+  // textos personalizados nas propostas que podem ser trocados pelo do template ao salvar (nada vem marcado)
+  const [trocas, setTrocas] = useState<Record<string, string[]>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -172,13 +180,20 @@ export default function TemplateEditor({
     const r = await fetch(`/api/templates/${templateId}/salvar`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comum: draft.comum, tipos: draft.tipos, aplicar: "selecionadas", propostas: [...marcadas] }),
+      body: JSON.stringify({
+        comum: draft.comum,
+        tipos: draft.tipos,
+        aplicar: "selecionadas",
+        propostas: [...marcadas],
+        trocas: Object.fromEntries(Object.entries(trocas).filter(([id]) => marcadas.has(id))),
+      }),
     });
     const d = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok) return setMsg(d.error ?? "Não foi possível salvar.");
     setSaveOpen(false);
-    setMsg(d.atualizadas ? `✓ Template salvo: vale para as próximas propostas e foi aplicado em ${d.atualizadas} proposta(s)` : "✓ Template salvo. Vale para as próximas propostas; as que já existem ficaram como estavam");
+    const trocadas = d.trocadas ? `; texto do template no lugar do personalizado em ${d.trocadas} proposta(s)` : "";
+    setMsg(d.atualizadas ? `✓ Template salvo: vale para as próximas propostas e foi aplicado em ${d.atualizadas} proposta(s)${trocadas}` : "✓ Template salvo. Vale para as próximas propostas; as que já existem ficaram como estavam");
     router.refresh();
   }
 
@@ -237,7 +252,7 @@ export default function TemplateEditor({
             {msg && <span className="text-[12.5px] font-semibold text-emerald-700">{msg}</span>}
             {dirty && <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Alterações não salvas</span>}
             {dirty && <button className="btn-ghost" onClick={() => setDraft(clone(salvo.draft))}>Descartar</button>}
-            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(naoBloqueadas)); setSaveOpen(true); }}>Salvar</button>
+            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(naoBloqueadas)); setTrocas({}); setSaveOpen(true); }}>Salvar</button>
           </div>
         </div>
       </div>
@@ -392,6 +407,18 @@ export default function TemplateEditor({
               </div>
             </div>
           )}
+          <TrocarPersonalizadas
+            propostas={propostas}
+            mudadasPorFormato={mudadasPorFormato}
+            marcadas={marcadas}
+            trocas={trocas}
+            onChange={setTrocas}
+            previa={(f, k) => {
+              const v = juntar(draft.comum, draft.tipos[f as FormatoKey]).overrides?.[k];
+              return v === undefined ? "(volta ao texto padrão)" : previa(v);
+            }}
+            nomeTipo={(f) => nomeTipo(f as FormatoKey)}
+          />
           {propostas.some((p) => p.status !== "rascunho" && marcadas.has(p.id)) && (
             <p className="rounded border-l-[3px] border-amber-500 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">⚠ Há proposta já enviada marcada: o cliente vai ver as mudanças no link.</p>
           )}

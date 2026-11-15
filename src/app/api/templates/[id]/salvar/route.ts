@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
-import { latestVersion } from "@/lib/formato-server";
+import { latestVersion, trocarPersonalizadas } from "@/lib/formato-server";
+import { lerTrocas } from "@/lib/personalizadas";
 import { estavel, FORMATOS, juntar, type ComumContent, type FormatoKey, type TipoContent } from "@/lib/formatos";
 import { limparConteudo } from "@/lib/template-salvar";
 
@@ -49,6 +50,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         atualizadas += r.count;
       }
     }
-    return json({ ok: true, atualizadas });
+    // textos personalizados nas propostas escolhidas que passam a seguir o template (marcados na janela de salvar)
+    const trocadas = b.aplicar === "selecionadas" ? await trocarPersonalizadas(tpl.id, lerTrocas(b.trocas, new Set(escolhidas))) : 0;
+    return json({ ok: true, atualizadas, trocadas });
   });
 }
