@@ -78,6 +78,7 @@ async function main() {
   await valinhosParaLoteamentoAberto();
   await todasAsBenfeitoriasEmTodos();
   await campoSocietyNasBenfeitorias();
+  await naoBloqueadasNaVersaoAtual();
   await listarBloqueadas();
 }
 
@@ -270,6 +271,32 @@ async function campoSocietyNasBenfeitorias() {
         if (ids.length) n++;
       }
       if (n) console.log(`Campo society: ${n} proposta(s) não bloqueada(s) do tipo ${c.label}`);
+    }
+  }
+}
+
+/**
+ * Pedido do Fernando (15/11/2026): o texto da primeira etapa mudou no template, mas o salvamento foi aplicado só nos
+ * rascunhos (a lista vinha marcada só com eles). Faz o mesmo que salvar com todas marcadas: as propostas não
+ * bloqueadas passam para a versão atual do seu tipo (o que foi mudado dentro de cada proposta continua valendo).
+ * Uma vez só: o tipo salvo de novo depois do pedido não é mexido.
+ */
+async function naoBloqueadasNaVersaoAtual() {
+  const PEDIDO = new Date("2026-11-15T03:30:00Z");
+  const templates = await db.template.findMany({ where: { key: "jbl-padrao" } });
+  for (const t of templates) {
+    for (const f of FORMATOS) {
+      const v = await db.formatoVersion.findFirst({ where: { templateId: t.id, formato: f }, orderBy: { createdAt: "desc" } });
+      if (!v || v.createdAt >= PEDIDO) continue;
+      const ps = await db.proposal.findMany({
+        where: { templateId: t.id, formato: f, lockedAt: null, deletedAt: null, NOT: { formatoVersionId: v.id } },
+        select: { id: true, name: true, overrides: true },
+      });
+      for (const p of ps) {
+        await db.$executeRaw`UPDATE "Proposal" SET "formatoVersionId" = ${v.id}, "pdfKey" = NULL WHERE "id" = ${p.id}`;
+        const proprio = "txt.e1t2" in ((p.overrides ?? {}) as Record<string, unknown>);
+        console.log(`Versão atual do template: ${p.name} (${f})${proprio ? " · texto da primeira etapa editado na própria proposta (continua o dela)" : ""}`);
+      }
     }
   }
 }
