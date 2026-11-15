@@ -3,8 +3,8 @@ import type { Overrides } from "./proposals";
 
 /**
  * Textos personalizados nas propostas x mudanças do template (pedido do Fernando, 15/11/2026): o texto mudado dentro
- * da proposta vale mais que o do template; ao salvar o template dá para escolher, proposta por proposta, trocar
- * a personalização pelo texto novo do template. As listas (lista.*) não entram: são diferenças, não cópias.
+ * da proposta vale mais que o do template, mas a proposta marcada ao salvar o template recebe o que mudou nele, mesmo
+ * onde tinha personalizado. As listas (lista.*) não entram: são diferenças, não cópias.
  */
 
 const DE_LISTA = /^lista\./;

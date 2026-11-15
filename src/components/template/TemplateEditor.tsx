@@ -25,8 +25,7 @@ import {
 import Modal from "@/components/ui/Modal";
 import JblPadrao from "./JblPadrao";
 import ModoToggle from "./ModoToggle";
-import TrocarPersonalizadas from "./TrocarPersonalizadas";
-import { chavesMudadas } from "@/lib/personalizadas";
+import { afetadas, chavesMudadas } from "@/lib/personalizadas";
 import DestinatarioPicker from "@/components/proposals/DestinatarioPicker";
 import type { Destinatario } from "@/lib/proposals";
 import { regiaoDaUf } from "@/lib/orcamento2026";
@@ -104,8 +103,6 @@ export default function TemplateEditor({
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const rascunhos = useMemo(() => propostas.filter((p) => p.status === "rascunho").map((p) => p.id), [propostas]);
   const naoBloqueadas = useMemo(() => propostas.filter((p) => !p.bloqueada).map((p) => p.id), [propostas]);
-  // textos personalizados nas propostas que podem ser trocados pelo do template ao salvar (nada vem marcado)
-  const [trocas, setTrocas] = useState<Record<string, string[]>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -185,7 +182,8 @@ export default function TemplateEditor({
         tipos: draft.tipos,
         aplicar: "selecionadas",
         propostas: [...marcadas],
-        trocas: Object.fromEntries(Object.entries(trocas).filter(([id]) => marcadas.has(id))),
+        // proposta marcada recebe o que mudou no template mesmo onde tinha personalizado aquele texto (15/11/2026)
+        trocas: Object.fromEntries(afetadas(propostas.filter((p) => marcadas.has(p.id)), mudadasPorFormato).map((a) => [a.id, a.chaves])),
       }),
     });
     const d = await r.json().catch(() => ({}));
@@ -252,7 +250,7 @@ export default function TemplateEditor({
             {msg && <span className="text-[12.5px] font-semibold text-emerald-700">{msg}</span>}
             {dirty && <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Alterações não salvas</span>}
             {dirty && <button className="btn-ghost" onClick={() => setDraft(clone(salvo.draft))}>Descartar</button>}
-            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(naoBloqueadas)); setTrocas({}); setSaveOpen(true); }}>Salvar</button>
+            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(naoBloqueadas)); setSaveOpen(true); }}>Salvar</button>
           </div>
         </div>
       </div>
@@ -407,22 +405,10 @@ export default function TemplateEditor({
               </div>
             </div>
           )}
-          <TrocarPersonalizadas
-            propostas={propostas}
-            mudadasPorFormato={mudadasPorFormato}
-            marcadas={marcadas}
-            trocas={trocas}
-            onChange={setTrocas}
-            previa={(f, k) => {
-              const v = juntar(draft.comum, draft.tipos[f as FormatoKey]).overrides?.[k];
-              return v === undefined ? "(volta ao texto padrão)" : previa(v);
-            }}
-            nomeTipo={(f) => nomeTipo(f as FormatoKey)}
-          />
           {propostas.some((p) => p.status !== "rascunho" && marcadas.has(p.id)) && (
             <p className="rounded border-l-[3px] border-amber-500 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">⚠ Há proposta já enviada marcada: o cliente vai ver as mudanças no link.</p>
           )}
-          <p className="text-[12.5px] text-muted">As desmarcadas ficam exatamente como estão. Dá para atualizar uma delas depois, dentro da própria proposta (aviso “versão anterior do template”). O que foi mudado dentro de cada proposta e os números da planilha dela continuam valendo.</p>
+          <p className="text-[12.5px] text-muted">As desmarcadas ficam exatamente como estão. Dá para atualizar uma delas depois, dentro da própria proposta (aviso “versão anterior do template”). Nas marcadas, o que você mudou agora no template entra mesmo onde a proposta tinha mudado aquele texto; o resto do que foi mudado nela e os números da planilha continuam valendo.</p>
           {msg && <p className="text-sm font-semibold text-rose-700">{msg}</p>}
         </div>
       </Modal>
