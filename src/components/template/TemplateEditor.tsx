@@ -93,9 +93,11 @@ export default function TemplateEditor({
 
   const [leaving, setLeaving] = useState<null | (() => void)>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  // propostas que também mudam ao salvar: rascunhos marcados; as já enviadas ficam protegidas (desmarcadas)
+  // propostas que também mudam ao salvar: todas as não bloqueadas vêm marcadas (pedido do Fernando, 15/11/2026);
+  // as bloqueadas nunca mudam
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const rascunhos = useMemo(() => propostas.filter((p) => p.status === "rascunho").map((p) => p.id), [propostas]);
+  const naoBloqueadas = useMemo(() => propostas.filter((p) => !p.bloqueada).map((p) => p.id), [propostas]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -235,7 +237,7 @@ export default function TemplateEditor({
             {msg && <span className="text-[12.5px] font-semibold text-emerald-700">{msg}</span>}
             {dirty && <span className="rounded-sm bg-[#fff6d6] px-2 py-1 text-[12px] font-semibold text-amber-800 ring-1 ring-[#e0a800]">● Alterações não salvas</span>}
             {dirty && <button className="btn-ghost" onClick={() => setDraft(clone(salvo.draft))}>Descartar</button>}
-            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(rascunhos)); setSaveOpen(true); }}>Salvar</button>
+            <button className="btn-gold px-6" disabled={!dirty && !conflitos.length} onClick={() => { setMsg(""); setMarcadas(new Set(naoBloqueadas)); setSaveOpen(true); }}>Salvar</button>
           </div>
         </div>
       </div>
@@ -363,7 +365,7 @@ export default function TemplateEditor({
                 <span className="ml-auto flex gap-2 text-[12px]">
                   <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(rascunhos))}>só rascunhos</button>
                   <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set())}>nenhuma</button>
-                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(propostas.filter((p) => !p.bloqueada).map((p) => p.id)))}>todas</button>
+                  <button className="font-semibold text-navy underline" onClick={() => setMarcadas(new Set(naoBloqueadas))}>todas</button>
                 </span>
               </div>
               <div className="max-h-[38vh] overflow-y-auto">
