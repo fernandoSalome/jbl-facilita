@@ -5,7 +5,7 @@ import { enviarTexto } from "./whatsapp";
 
 /**
  * Avisos do calendário no grupo de WhatsApp de monitoramento (cadastrado na tela "Assistente WhatsApp",
- * com "monitoring" no nome). Saem mesmo sem e-mail e SMS configurados:
+ * com "Avisos" no nome; o antigo "monitoring" também vale). Saem mesmo sem e-mail e SMS configurados:
  *  - reunião marcada e reunião cancelada, na hora;
  *  - lembrete 1 dia antes e 1 hora antes ("falta X para a reunião com Y"), pela rotina /api/cron/whatsapp-agenda.
  * Cada aviso sai uma vez só (a data de envio fica no compromisso).
@@ -16,10 +16,10 @@ type ComDono = Compromisso & { user: { name: string } };
 
 export const whatsappConfigurado = () => !!(process.env.EVOLUTION_URL && process.env.EVOLUTION_KEY && process.env.EVOLUTION_INSTANCE);
 
-/** Grupo de monitoramento: o cadastrado com "monitoring" (ou "monitoramento") no nome */
+/** Grupo de avisos: o cadastrado com "Avisos" no nome (pedido 19/11/2026: "JBL - Avisos"); "monitoring"/"monitoramento" continuam valendo */
 export async function grupoMonitoring() {
   const gs = await db.waGroup.findMany({ where: { papel: { not: "inativo" } }, select: { jid: true, name: true } });
-  return gs.find((g) => /monitor(ing|amento)/i.test(g.name)) ?? null;
+  return gs.find((g) => /avisos|monitor(ing|amento)/i.test(g.name)) ?? null;
 }
 
 /** "1 dia", "2 horas", "1 hora e 5 minutos", "45 minutos" */
@@ -58,7 +58,7 @@ export function textoLembrete(c: ComDono, agora: number) {
 async function enviar(texto: string): Promise<string | null> {
   if (!whatsappConfigurado()) return "WhatsApp não configurado (Evolution)";
   const g = await grupoMonitoring();
-  if (!g) return "Grupo de monitoramento não cadastrado (Assistente WhatsApp, com \"monitoring\" no nome)";
+  if (!g) return "Grupo de avisos não cadastrado (Assistente WhatsApp, com \"Avisos\" no nome)";
   try {
     await enviarTexto(g.jid, texto);
     return null;
