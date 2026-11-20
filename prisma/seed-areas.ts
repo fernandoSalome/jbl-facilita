@@ -271,3 +271,36 @@ export async function sorocabaNoPadrao(db: PrismaClient) {
   });
   console.log(`Captação: raio-x de Sorocaba no padrão (${r.secoes} seções, ${r.imagens} imagens)`);
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): Estudo 2 (mercadológico) de Sorocaba, feito na conversa pela assinatura.
+ * Preenche o formulário do mercadológico e guarda o estudo completo. Uma vez só (enquanto não houver mercado).
+ */
+export async function mercadoSorocaba(db: PrismaClient) {
+  const a = await db.area.findFirst({ where: { relatorio: "https://claude.ai/artifact/5Bt842BwwnapKvfYQ3zsRc", deletedAt: null }, select: { id: true, relatorioMercado: true, estudo1: true } });
+  if (!a || a.relatorioMercado) return;
+  const estudo2 = {
+    concorrentes: [
+      { nome: "Villagio Itália (Alto da Boa Vista)", distancia: "1,8 km", tipo: "condomínio", lote: "250–320 m²", lancamento: "≈ R$ 1.000/m²", hoje: "R$ 1.115–1.400/m²", estagio: "ruas prontas, poucas casas", vendido: "a confirmar" },
+      { nome: "Cond. Vista Verde (Brigadeiro Tobias)", distancia: "3,8 km", tipo: "condomínio", lote: "250–546 m²", lancamento: "≈ R$ 630/m²", hoje: "R$ 690–700/m²", estagio: "lazer pronto, lotes vazios", vendido: "a confirmar" },
+      { nome: "Villa d'España (Jd. das Estrelas)", distancia: "4,0 km", tipo: "aberto", lote: "250 m²+", lancamento: "R$ 800/m²", hoje: "R$ 1.000/m² (1 anúncio)", estagio: "lançamento", vendido: "a confirmar" },
+      { nome: "Condomínios do Alto da Boa Vista", distancia: "2,6 km", tipo: "condomínio", lote: "250–470 m²", lancamento: "—", hoje: "R$ 1.075–1.351/m²", estagio: "≈ 90% com casas", vendido: "—" },
+    ],
+    revenda: [
+      { nome: "Villagio Itália", lotes: "vários", variacao: "+12% a +40%", tempo: "—", ocupacao: "poucas casas" },
+      { nome: "Vista Verde", lotes: "vários (do loteador)", variacao: "+10%", tempo: "—", ocupacao: "lotes vazios" },
+      { nome: "Villa d'España", lotes: "1 anúncio", variacao: "+25%", tempo: "—", ocupacao: "lançamento" },
+    ],
+    lacunas: "Loteamento aberto de 300 m² do lado do Alto da Boa Vista, com frente asfaltada; preço intermediário (R$ 750–900/m²) entre o popular e o condomínio; parcelamento direto num produto melhor que o popular; parque na APP.",
+    produto: "Loteamento aberto de lotes de 300 m², R$ 750–900/m² (R$ 225–270 mil), parcelamento direto, parque linear na APP",
+    financeiro: { vgv: "R$ 38–45 mi (aberto) · R$ 50–58 mi (condomínio)", infraPorLote: "no estudo de 30 dias", margem: "no estudo de 30 dias", parteDono: "no estudo de 30 dias", velocidade: "a confirmar com corretores" },
+    veredito: "ajuste",
+    risco: "Villa d'España (aberto, R$ 800/m², 96x) e o loteamento vizinho em aprovação podem chegar antes, com produto parecido e mais barato.",
+  };
+  const e1 = (a.estudo1 ?? {}) as Record<string, unknown>;
+  await db.area.update({ where: { id: a.id }, data: { estudo2, estudo1: { ...e1, status: "sim" } } });
+  const { readFileSync } = await import("node:fs");
+  const { guardarRelatorio } = await import("../src/lib/relatorio-db");
+  const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba-mercado.html", "utf8"), [], "relatorioMercado");
+  console.log(`Captação: Estudo 2 de Sorocaba (${r.secoes} seções, ${r.imagens} imagens)`);
+}

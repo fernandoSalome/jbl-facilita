@@ -8,7 +8,7 @@ import { chamar } from "./chamar";
 import ListaEditavel from "./ListaEditavel";
 import LinkEstudo from "./LinkEstudo";
 
-type A = { id: string; cidade: string; dono: string | null; corretor: string | null; nome: string; hectares: number | null; relatorio: string | null; estudoToken: string | null; relatorioCompleto: unknown };
+type A = { id: string; cidade: string; dono: string | null; corretor: string | null; nome: string; hectares: number | null; relatorio: string | null; estudoToken: string | null; relatorioCompleto: unknown; relatorioMercado: unknown };
 
 const Fase = ({ n, t, sub, on, off }: { n: number; t: string; sub: string; on: boolean; off: boolean }) => (
   <div className={`flex-1 rounded-md border-2 px-4 py-3 ${on ? "border-gold bg-gold-soft" : off ? "border-line bg-alt opacity-60" : "border-navy-50 bg-white"}`}>
@@ -133,6 +133,8 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
           <h3 className="font-display text-xl text-navy">📊 2. Mercadológico preliminar</h3>
           {!mercadoLiberado && !temMercado && <span className="text-[13px] text-muted">Só depois do “sim” no Central (ou no botão acima).</span>}
           {m.veredito && <span className="rounded-sm bg-gold-soft px-2 py-0.5 text-[12px] font-bold text-gold-ink">{VEREDITOS[m.veredito]}</span>}
+          <span className="flex-1" />
+          {!!a.relatorioMercado && <a className="btn-navy px-5 py-2.5 text-[15px]" href="?aba=estudo#estudo-2">📄 Abrir o estudo de mercado</a>}
         </div>
         {(mercadoLiberado || temMercado) && (
           <div className="mt-4 grid gap-4">
@@ -172,7 +174,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
         </div>
         <p className="mt-2 text-[13px] text-muted">9 slides no modelo da JBL, montados com o que está nos dois estudos: capa, quem somos, parceria, a área, o que dá para fazer, mercado, produto, quanto pode render e próximos passos.</p>
       </section>
-      <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} />
+      <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} temMercado={!!a.relatorioMercado} />
       {msg && <p className="text-sm font-semibold text-navy">{msg}</p>}
     </div>
   );

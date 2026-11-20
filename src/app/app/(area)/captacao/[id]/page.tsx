@@ -135,20 +135,29 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         )}
         {aba === "estudo" && (() => {
           // o estudo completo dentro do projeto (pedido 20/11/2026), no lugar do link para o artifact
-          const rel = relatorioGravado(a.relatorioCompleto);
-          if (!rel) return <section className="card p-5 text-sm">Esta área ainda não tem o estudo completo. Suba o raio-x em 🌐 Página do estudo.</section>;
+          const rels = [relatorioGravado(a.relatorioCompleto), relatorioGravado(a.relatorioMercado)].filter((r): r is NonNullable<typeof r> => !!r);
+          if (!rels.length) return <section className="card p-5 text-sm">Esta área ainda não tem o estudo completo. Suba o raio-x em 🌐 Página do estudo.</section>;
           return (
-            <section className="card px-8 py-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 className="h-display flex-1 text-[26px]">{rel.titulo}</h2>
-                <Link className="btn-ghost" href="?aba=etapa&ver=previabilidade">◀ Voltar ao estudo</Link>
-              </div>
-              {rel.veredito && <p className="mt-2 font-semibold text-gold-ink">{rel.veredito}</p>}
-              <RelatorioCompleto r={rel} />
-            </section>
+            <>
+              {rels.length > 1 && (
+                <nav className="flex flex-wrap gap-2">
+                  {rels.map((r, i) => <a key={i} href={`#estudo-${i + 1}`} className="btn-ghost">{i === 0 ? "🔬 Estudo 1 · Terreno" : "📊 Estudo 2 · Mercado"}</a>)}
+                </nav>
+              )}
+              {rels.map((rel, i) => (
+                <section key={i} id={`estudo-${i + 1}`} className="card px-8 py-6">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="h-display flex-1 text-[26px]">{rel.titulo}</h2>
+                    <Link className="btn-ghost" href="?aba=etapa&ver=previabilidade">◀ Voltar ao estudo</Link>
+                  </div>
+                  {rel.veredito && <p className="mt-2 font-semibold text-gold-ink">{rel.veredito}</p>}
+                  <RelatorioCompleto r={rel} />
+                </section>
+              ))}
+            </>
           );
         })()}
-        {aba === "pagina" && <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} />}
+        {aba === "pagina" && <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} temMercado={!!a.relatorioMercado} />}
         {aba === "config" && (
           <>
             <AreaForm inicial={{ id: a.id, nome: a.nome, cidade: a.cidade, uf: a.uf, dono: a.dono ?? "", corretor: a.corretor ?? "", hectares: a.hectares ? String(a.hectares).replace(".", ",") : "", etapa, relatorio: a.relatorio ?? "" }} />

@@ -75,6 +75,15 @@ export default async function EstudoPublico({ params }: { params: { token: strin
             </section>
           )}
           <RelatorioCompleto r={rel} />
+          {(() => {
+            const merc = relatorioGravado(a.relatorioMercado);
+            return merc ? (
+              <>
+                <h2 className="h-display mt-6 border-t-4 border-gold pt-8 text-[30px]">{merc.titulo}</h2>
+                <RelatorioCompleto r={merc} inicio={rel.secoes.length + 1} />
+              </>
+            ) : null;
+          })()}
           <section className="border-t border-line py-8 text-[12.5px] leading-relaxed text-muted">
             Estudo preliminar, feito com base em legislação publicada, mapas oficiais, imagens de satélite e dados públicos na data acima.
             Não substitui certidões, levantamento topográfico nem laudos. Documento confidencial, para uso do destinatário.

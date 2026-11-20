@@ -5,7 +5,7 @@ import { useState } from "react";
 import { chamar } from "./chamar";
 
 /** Botão do estudo de viabilidade: gera o link para mandar a um parceiro, copia, abre ou desativa */
-export default function LinkEstudo({ id, token, temRelatorio }: { id: string; token: string | null; temRelatorio: boolean }) {
+export default function LinkEstudo({ id, token, temRelatorio, temMercado = false }: { id: string; token: string | null; temRelatorio: boolean; temMercado?: boolean }) {
   const router = useRouter();
   const [t, setT] = useState(token);
   const [msg, setMsg] = useState("");
@@ -51,6 +51,22 @@ export default function LinkEstudo({ id, token, temRelatorio }: { id: string; to
           }} />
         </label>
         {temRelatorio && <button className="text-[12.5px] font-semibold text-rose-700 hover:underline" onClick={async () => { await chamar(`/api/areas/${id}/relatorio`, "DELETE"); router.refresh(); }}>Tirar do link</button>}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
+        <b className="text-navy">Estudo de mercado no link:</b>
+        <span className={temMercado ? "font-semibold text-emerald-700" : "text-muted"}>{temMercado ? "✅ incluído" : "não incluído"}</span>
+        <label className="btn-ghost cursor-pointer py-1 text-[12.5px]">{temMercado ? "Trocar o mercado" : "Subir o mercado (.html)"}
+          <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setMsg("Lendo o estudo de mercado…");
+            const fd = new FormData();
+            fd.append("arquivo", f);
+            fd.append("tipo", "mercado");
+            try { const r = await chamar<{ secoes: number; imagens: number }>(`/api/areas/${id}/relatorio`, "POST", fd); setMsg(`✅ Mercado incluído: ${r.secoes} seções e ${r.imagens} imagens.`); router.refresh(); } catch (err) { setMsg((err as Error).message); }
+          }} />
+        </label>
+        {temMercado && <button className="text-[12.5px] font-semibold text-rose-700 hover:underline" onClick={async () => { await chamar(`/api/areas/${id}/relatorio?tipo=mercado`, "DELETE"); router.refresh(); }}>Tirar do link</button>}
       </div>
       {msg && <p className="mt-2 text-[13px] font-semibold text-navy">{msg}</p>}
     </section>

@@ -360,6 +360,8 @@ model Area {
   estudoLinkEm DateTime?
   /// raio-x completo (blocos de texto, tabelas e imagens) mostrado no link do parceiro; ver src/lib/relatorio.ts
   relatorioCompleto Json?
+  /// Estudo 2 completo (mercadológico de concorrentes), no mesmo formato; mostrado depois do raio-x
+  relatorioMercado  Json?
   projectId  String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

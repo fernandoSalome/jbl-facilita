@@ -13,7 +13,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!(arq instanceof File) || arq.size > MAX || !/\.html?$/i.test(arq.name)) return json({ error: "Envie o .html do raio-x (até 4 MB)" }, 400);
     if (!(await db.area.findFirst({ where: { id: params.id, deletedAt: null }, select: { id: true } }))) return json({ error: "Área não encontrada" }, 404);
     try {
-      return json({ ok: true, ...(await guardarRelatorio(db, params.id, await arq.text())) });
+      const campo = form?.get("tipo") === "mercado" ? "relatorioMercado" : "relatorioCompleto";
+      return json({ ok: true, ...(await guardarRelatorio(db, params.id, await arq.text(), [], campo)) });
     } catch (e) {
       return json({ error: (e as Error).message }, 400);
     }
@@ -21,9 +22,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 }
 
 /** Tira o raio-x completo do link (o link volta a mostrar só o resumo do estudo) */
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {
-    await db.area.updateMany({ where: { id: params.id }, data: { relatorioCompleto: Prisma.DbNull } });
+    const campo = new URL(req.url).searchParams.get("tipo") === "mercado" ? "relatorioMercado" : "relatorioCompleto";
+    await db.area.updateMany({ where: { id: params.id }, data: { [campo]: Prisma.DbNull } });
     return json({ ok: true });
   });
 }

@@ -8,7 +8,7 @@ const MAX_IMG = 4 * 1024 * 1024;
  * mas servidas em /api/assets/<id>, com id que não dá para adivinhar) e os blocos vão para relatorioCompleto.
  * Recebe o cliente do banco para servir também ao seed.
  */
-export async function guardarRelatorio(db: PrismaClient, areaId: string, html: string, ocultar: string[] = []) {
+export async function guardarRelatorio(db: PrismaClient, areaId: string, html: string, ocultar: string[] = [], campo: "relatorioCompleto" | "relatorioMercado" = "relatorioCompleto") {
   const lido = lerRelatorio(html);
   if (!lido) throw new Error("Não reconheci o raio-x nesse arquivo (precisa ter título e seções)");
   const urls: string[] = [];
@@ -24,6 +24,6 @@ export async function guardarRelatorio(db: PrismaClient, areaId: string, html: s
   // nomes do proprietário e do corretor não vão para o link do parceiro
   const area = await db.area.findUnique({ where: { id: areaId }, select: { dono: true, corretor: true } });
   const relatorio = semNomes(comImagens(lido.relatorio, urls), [...ocultar, area?.dono ?? "", area?.corretor ?? ""]);
-  await db.area.update({ where: { id: areaId }, data: { relatorioCompleto: relatorio as unknown as Prisma.InputJsonValue } });
+  await db.area.update({ where: { id: areaId }, data: { [campo]: relatorio as unknown as Prisma.InputJsonValue } });
   return { secoes: relatorio.secoes.length, imagens: urls.filter(Boolean).length };
 }
