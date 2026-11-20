@@ -88,7 +88,10 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="font-display text-xl text-navy">🔬 1. Terreno</h3>
           <span className="rounded-sm bg-navy-50 px-2 py-0.5 text-[12px] font-bold text-navy">{STATUS_E1[terreno]}</span>
-          {a.relatorio && <a className="text-[13px] font-semibold text-gold-deep underline" href={a.relatorio} target="_blank" rel="noreferrer">abrir o raio-x completo</a>}
+          <span className="flex-1" />
+          {(a.relatorioCompleto || a.relatorio) && (
+            <a className="btn-navy px-5 py-2.5 text-[15px]" href={a.relatorioCompleto ? "?aba=estudo" : a.relatorio!} {...(a.relatorioCompleto ? {} : { target: "_blank", rel: "noreferrer" })}>📄 Abrir o estudo completo</a>
+          )}
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-4">
           <label><span className="label">Semáforo</span><select className="input" value={f.semaforo ?? ""} onChange={(e) => setF({ ...f, semaforo: (e.target.value || null) as Estudo1["semaforo"] })}><option value="">—</option>{Object.entries(SEMAFOROS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -114,8 +117,9 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button className="btn-ghost" onClick={() => salvar1()}>Salvar</button>
-          <button className="btn-gold" onClick={central}>📲 Mandar resumo ao JBL - Central</button>
-          <button className="btn-ghost" onClick={() => salvar1("sim")}>Sim, fazer mercadológico</button>
+          <button className="btn-ghost" onClick={central}>📲 Mandar resumo ao JBL - Central</button>
+          {/* o botão que leva à próxima etapa fica sempre em destaque (pedido 20/11/2026) */}
+          <button className={terreno === "sim" ? "btn-ghost" : "btn-gold"} onClick={() => salvar1("sim")}>Sim, fazer mercadológico</button>
           <button className="btn-ghost" onClick={() => salvar1("nao")}>Não, parar no terreno</button>
         </div>
         <details className="mt-3">

@@ -23,6 +23,8 @@ export default async function AreaLayout({ params, children }: { params: { id: s
     { cabecalho: tituloArea(a), sub: [a.nome, nomeEtapa(a.etapa)].filter(Boolean).join(" · ") },
     { href: `${b}?aba=checklist`, label: "Checklist do estudo", simbolo: "✅", badge: `${pct}%` },
     { href: `${b}?aba=documentos`, label: "Documentos", simbolo: "📁", badge: `${docsOk}/15` },
+    // o estudo completo abre dentro do projeto (pedido 20/11/2026)
+    ...(a.relatorioCompleto ? ([{ href: `${b}?aba=estudo`, label: "Estudo completo", simbolo: "📄" }] as NavItem[]) : []),
     { grupo: "Etapas" },
     ...ETAPAS.map(([k, n], j): NavItem => ({ href: `${b}?aba=etapa&ver=${k}`, label: `${j + 1} ${n}`, simbolo: j < i ? "✔" : j === i ? "●" : "○", ativoSemAba: j === i })),
     { grupo: "Do projeto" },

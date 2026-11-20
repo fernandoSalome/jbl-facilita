@@ -16,6 +16,8 @@ import ReuniaoArea from "@/components/captacao/ReuniaoArea";
 import LinkEstudo from "@/components/captacao/LinkEstudo";
 import { acaoDoPasso, lerCustos, lerEstudo1, lerEstudo2, lerPessoas, respostasDosPassos } from "@/lib/captacao-estudos";
 import ProximoPasso from "@/components/captacao/ProximoPasso";
+import RelatorioCompleto from "@/components/captacao/RelatorioCompleto";
+import { relatorioGravado } from "@/lib/relatorio";
 import { modoSimples } from "@/lib/modo";
 import { db } from "@/lib/db";
 import { ETAPAS, lerChecklist, nomeEtapa, PAPEIS, professor, tituloArea, validarDocumentos, validarHipoteses, type Etapa } from "@/lib/captacao";
@@ -25,7 +27,7 @@ import { lerPoligono } from "@/lib/kml";
 export const dynamic = "force-dynamic";
 
 /** Abas da área (o menu fica na lateral, em layout.tsx) */
-const ABAS = ["etapa", "checklist", "documentos", "custos", "pessoas", "pagina", "config"] as const;
+const ABAS = ["etapa", "checklist", "documentos", "custos", "pessoas", "pagina", "config", "estudo"] as const;
 
 /** Página da área: etapas no topo, ações à direita, e as abas (etapa, checklist vivo, documentos, configurações) */
 export default async function AreaPagina({ params, searchParams }: { params: { id: string }; searchParams: { aba?: string; ver?: string } }) {
@@ -55,7 +57,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
       <PageHeader
         eyebrow={`Captação · ${nomeEtapa(etapa)}${a.situacao !== "ativa" ? ` · ${a.situacao}` : ""}`}
         title={tituloArea(a)}
-        subtitle={<><Link href="?aba=config" className="mr-2 inline-block rounded-full border border-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-navy hover:border-gold">✏️ Editar área</Link>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{a.relatorio && <> · <a className="font-semibold text-gold-deep underline" href={a.relatorio} target="_blank" rel="noreferrer">raio-x</a></>}</>}
+        subtitle={<><Link href="?aba=config" className="mr-2 inline-block rounded-full border border-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-navy hover:border-gold">✏️ Editar área</Link>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{(a.relatorioCompleto || a.relatorio) && <> · <a className="font-semibold text-gold-deep underline" href={a.relatorioCompleto ? "?aba=estudo" : a.relatorio!} {...(a.relatorioCompleto ? {} : { target: "_blank", rel: "noreferrer" })}>estudo completo</a></>}</>}
         actions={<Gate id={a.id} etapa={etapa} situacao={a.situacao} />}
       />
       <div className="grid gap-5 p-8">
@@ -131,6 +133,21 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             <p className="text-[13px] text-muted">Conversas de WhatsApp ligadas: {a.conversas.map((c) => `${c.nome} (${PAPEIS[c.papel] ?? c.papel})`).join(", ") || "nenhuma"}. Para ligar, use Configurações.</p>
           </>
         )}
+        {aba === "estudo" && (() => {
+          // o estudo completo dentro do projeto (pedido 20/11/2026), no lugar do link para o artifact
+          const rel = relatorioGravado(a.relatorioCompleto);
+          if (!rel) return <section className="card p-5 text-sm">Esta área ainda não tem o estudo completo. Suba o raio-x em 🌐 Página do estudo.</section>;
+          return (
+            <section className="card px-8 py-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="h-display flex-1 text-[26px]">{rel.titulo}</h2>
+                <Link className="btn-ghost" href="?aba=etapa&ver=previabilidade">◀ Voltar ao estudo</Link>
+              </div>
+              {rel.veredito && <p className="mt-2 font-semibold text-gold-ink">{rel.veredito}</p>}
+              <RelatorioCompleto r={rel} />
+            </section>
+          );
+        })()}
         {aba === "pagina" && <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} />}
         {aba === "config" && (
           <>

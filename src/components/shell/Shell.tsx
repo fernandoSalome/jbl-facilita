@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import ProjectSwitcher from "./ProjectSwitcher";
-import BotaoModo from "./BotaoModo";
 import { modoSimples } from "@/lib/modo";
 import { tituloArea } from "@/lib/captacao";
 import SideNav, { type NavItem } from "./SideNav";
@@ -90,7 +89,6 @@ export default async function Shell({ projectId, nav, children }: { projectId?: 
         </div>
         <Suspense><SideNav items={nav ?? (current ? projectNav(current.id) : simples ? simplesNav : empresaNav)} /></Suspense>
         <div className="mt-auto border-t border-white/10 px-5 py-4">
-          <BotaoModo simples={simples} />
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full border border-gold/50 bg-gold/15 font-display text-sm text-gold">
               {session.name.slice(0, 1)}
