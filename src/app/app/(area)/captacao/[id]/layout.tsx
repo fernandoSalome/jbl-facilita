@@ -19,7 +19,7 @@ export default async function AreaLayout({ params, children }: { params: { id: s
   const pct = progresso([...respostasDosPassos({ ...a, reuniao }), ...lerChecklist(a.checklist)]).pct;
   const docsOk = Object.values(validarDocumentos(a.documentos)).filter((s) => s === "ok").length;
   const nav: NavItem[] = [
-    { href: "/app/captacao", label: "Todos os projetos", simbolo: "◀", exact: true },
+    { href: "/app/captacao", label: "Todas as áreas", simbolo: "◀", exact: true },
     { cabecalho: tituloArea(a), sub: [a.nome, nomeEtapa(a.etapa)].filter(Boolean).join(" · ") },
     { href: `${b}?aba=checklist`, label: "Checklist do estudo", simbolo: "✅", badge: `${pct}%` },
     { href: `${b}?aba=documentos`, label: "Documentos", simbolo: "📁", badge: `${docsOk}/15` },

@@ -13,7 +13,7 @@ const empresaNav: NavItem[] = [
   { href: "/app/calendario", label: "Agenda", icon: "calendar" },
   { href: "/app/conversas", label: "Conversas", icon: "chat" },
   { grupo: "Negócios" },
-  { href: "/app/captacao", label: "Projetos", icon: "target" },
+  { href: "/app/captacao", label: "Áreas", icon: "target" },
   { href: "/app/estudos", label: "Estudos", icon: "chart" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
   { href: "/app/cartas", label: "Cartas recebidas", icon: "inbox" },
@@ -31,7 +31,7 @@ const empresaNav: NavItem[] = [
 /** Modo simples: só o do dia a dia (pedido 20/11/2026) */
 const simplesNav: NavItem[] = [
   { href: "/app/dia-a-dia", label: "Hoje", icon: "check" },
-  { href: "/app/captacao", label: "Projetos", icon: "target" },
+  { href: "/app/captacao", label: "Áreas", icon: "target" },
   { href: "/app/calendario", label: "Agenda", icon: "calendar" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
   { href: "/app/conversas", label: "Conversas", icon: "chat" },
