@@ -48,7 +48,7 @@ describe("custos e pendências", () => {
       { ...base, id: "c", etapa: "reuniao", updatedAt: new Date("2026-11-19") },
       { ...base, id: "d", etapa: "reuniao", situacao: "geladeira" },
     ], new Date("2026-11-19"));
-    expect(p.map((x) => [x.areaId, x.oQue.slice(0, 12)])).toEqual([["b", "Estudo do te"], ["c", "Marcar a reu"], ["a", "Falta o KMZ"], ["a", "Parada há 18"]]);
+    expect(p.map((x) => [x.areaId, x.oQue.slice(0, 12)])).toEqual([["b", "Viabilidade "], ["c", "Marcar a reu"], ["a", "Falta o KMZ"], ["a", "Parada há 18"]]);
   });
 });
 

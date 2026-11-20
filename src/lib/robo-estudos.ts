@@ -50,7 +50,7 @@ export async function tratarCentral(m: Recebida, responder: (t: string) => Promi
     return false;
   }
   await db.area.update({ where: { id: alvo.id }, data: { estudo1: { ...lerEstudo1(alvo.estudo1), status: r } } });
-  await responder(r === "sim" ? `📊 Combinado: *${tituloArea(alvo)}* segue para o mercadológico de concorrentes.` : `⏹ *${tituloArea(alvo)}* fica parada no terreno.`);
+  await responder(r === "sim" ? `📊 Combinado: *${tituloArea(alvo)}* segue para a Viabilidade Mercadológica.` : `⏹ *${tituloArea(alvo)}* fica parada na Viabilidade Legal.`);
   return true;
 }
 

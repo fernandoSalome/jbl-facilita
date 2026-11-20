@@ -141,7 +141,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             <>
               {rels.length > 1 && (
                 <nav className="flex flex-wrap gap-2">
-                  {rels.map((r, i) => <a key={i} href={`#estudo-${i + 1}`} className="btn-ghost">{i === 0 ? "🔬 Estudo 1 · Terreno" : "📊 Estudo 2 · Mercado"}</a>)}
+                  {rels.map((r, i) => <a key={i} href={`#estudo-${i + 1}`} className="btn-ghost">{i === 0 ? "🔬 Viabilidade Legal" : "📊 Viabilidade Mercadológica"}</a>)}
                 </nav>
               )}
               {rels.map((rel, i) => (

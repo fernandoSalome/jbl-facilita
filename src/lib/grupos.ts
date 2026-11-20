@@ -11,7 +11,7 @@ export const FUNCOES = {
   central: {
     nome: "JBL - Central",
     resumo: "Comandos e decisões: o robô pergunta se a área avança de etapa e manda o resumo da manhã.",
-    regras: ["Pedidos de documento e proposta (como hoje)", "Resumo da manhã a partir das 07:30 (reuniões, pendências e lembretes)", "“Qual a situação de Sorocaba?” responde o resumo da área", "“Me lembra amanhã às 9h de…” e o robô lembra na hora", "Depois do resumo do terreno, “1” ou “2” decide o mercadológico"],
+    regras: ["Pedidos de documento e proposta (como hoje)", "Resumo da manhã a partir das 07:30 (reuniões, pendências e lembretes)", "“Qual a situação de Sorocaba?” responde o resumo da área", "“Me lembra amanhã às 9h de…” e o robô lembra na hora", "Depois do resumo da Viabilidade Legal, “1” ou “2” decide a Viabilidade Mercadológica"],
   },
   estudos: {
     nome: "JBL - Estudos",

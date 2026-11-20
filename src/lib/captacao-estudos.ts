@@ -20,7 +20,7 @@ const lista = <T>(v: unknown, max: number, f: (x: Record<string, unknown>) => T 
 export const SEMAFOROS = { verde: "🟢 viável", amarelo: "🟡 viável com condição", vermelho: "🔴 não segue" } as const;
 export type Semaforo = keyof typeof SEMAFOROS;
 /** aguardando → pronto → (central perguntou) → sim | nao */
-export const STATUS_E1 = { aguardando: "Aguardando o raio-x", pronto: "Pronto", perguntado: "Perguntado no Central", sim: "Seguir para o mercadológico", nao: "Parado no terreno" } as const;
+export const STATUS_E1 = { aguardando: "Aguardando o raio-x", pronto: "Pronto", perguntado: "Perguntado no Central", sim: "Seguir para a Viabilidade Mercadológica", nao: "Parado na Viabilidade Legal" } as const;
 
 export type Estudo1 = {
   status: keyof typeof STATUS_E1;
@@ -60,14 +60,14 @@ const mil = (n: number | null) => (n == null ? "?" : n.toLocaleString("pt-BR"));
 /** Resumo para o grupo JBL - Central (formato do padrão) */
 export function resumoCentral(a: { cidade: string; dono: string | null; corretor: string | null; nome: string; hectares: number | null }, e: Estudo1) {
   const linhas = [
-    `🔬 *Terreno: ${tituloArea(a)}*`,
+    `🔬 *Viabilidade Legal: ${tituloArea(a)}*`,
     `${e.semaforo ? SEMAFOROS[e.semaforo] : "sem semáforo"} · ${e.zona || "zona ?"}${e.loteMinimo ? ` · lote ${e.loteMinimo}` : ""}`,
     `${a.hectares ? `${a.hectares.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha · ` : ""}${e.aproveitavelPct != null ? `${e.aproveitavelPct}% aproveitável · ` : ""}${mil(e.lotes.medio)} lotes no médio (${mil(e.lotes.pior)} a ${mil(e.lotes.bom)})`,
   ];
   if (e.produto) linhas.push(`Produto: ${e.produto}`);
   if (e.regiao.m2Min) linhas.push(`m² na região: R$ ${mil(e.regiao.m2Min)}${e.regiao.m2Max ? `–${mil(e.regiao.m2Max)}` : ""}${e.regiao.expansao ? ` · expansão: ${e.regiao.expansao}` : ""}`);
   if (e.alertas[0]) linhas.push(`Principal alerta: ${e.alertas[0].texto}`);
-  linhas.push("", "Sigo para o mercadológico?", "1 Sim · 2 Não");
+  linhas.push("", "Sigo para a Viabilidade Mercadológica?", "1 Sim · 2 Não");
   return linhas.join("\n");
 }
 
@@ -153,8 +153,8 @@ export function pendencias(areas: { id: string; cidade: string; dono: string | n
     const dias = Math.floor((+agora - +a.updatedAt) / 864e5);
     if (a.etapa === "captacao" && !a.poligono) out.push({ areaId: a.id, titulo: t, oQue: "Falta o KMZ", aba: "config", peso: 2 });
     else if (a.etapa === "captacao") out.push({ areaId: a.id, titulo: t, oQue: "KMZ recebido: estudar?", aba: "etapa", peso: 3 });
-    if (a.etapa === "previabilidade" && e1.status === "pronto") out.push({ areaId: a.id, titulo: t, oQue: "Estudo do terreno pronto: mandar resumo ao Central", aba: "etapa", peso: 3 });
-    if (a.etapa === "previabilidade" && e1.status === "sim") out.push({ areaId: a.id, titulo: t, oQue: "Fazer o mercadológico", aba: "etapa", peso: 2 });
+    if (a.etapa === "previabilidade" && e1.status === "pronto") out.push({ areaId: a.id, titulo: t, oQue: "Viabilidade Legal pronta: mandar resumo ao Central", aba: "etapa", peso: 3 });
+    if (a.etapa === "previabilidade" && e1.status === "sim") out.push({ areaId: a.id, titulo: t, oQue: "Fazer a Viabilidade Mercadológica", aba: "etapa", peso: 2 });
     if (a.etapa === "reuniao" && !a.reuniaoId) out.push({ areaId: a.id, titulo: t, oQue: "Marcar a reunião", aba: "etapa", peso: 3 });
     if (dias >= 7) out.push({ areaId: a.id, titulo: t, oQue: `Parada há ${dias} dias em ${nomeEtapa(a.etapa)}`, aba: "etapa", peso: 1 });
   }
@@ -176,11 +176,11 @@ export function cartao(a: { etapa: string; situacao: string; poligono: unknown; 
     case "previabilidade":
       return (
         {
-          aguardando: { situacao: "Estudo do terreno em andamento", tom: "run" as Tom, passo: "raio-x rodando" },
+          aguardando: { situacao: "Viabilidade Legal em andamento", tom: "run" as Tom, passo: "raio-x rodando" },
           pronto: { situacao: "Raio-x pronto", tom: "bad" as Tom, passo: "mandar resumo ao Central" },
           perguntado: { situacao: "Perguntado no Central", tom: "warn" as Tom, passo: "esperando 1 Sim · 2 Não" },
-          sim: { situacao: "Mercadológico liberado", tom: "run" as Tom, passo: "fazer o mercadológico" },
-          nao: { situacao: "Parado no terreno", tom: "bad" as Tom, passo: "geladeira ou descartar?" },
+          sim: { situacao: "Viabilidade Mercadológica liberada", tom: "run" as Tom, passo: "fazer a Viabilidade Mercadológica" },
+          nao: { situacao: "Parada na Viabilidade Legal", tom: "bad" as Tom, passo: "geladeira ou descartar?" },
         } as const
       )[e1.status];
     case "reuniao":
@@ -251,11 +251,11 @@ export function acaoDoPasso(a: Parameters<typeof cartao>[0]): { titulo: string; 
         ? { titulo: "Decidir se vale estudar", explica: "O KMZ chegou. Olhe o mapa e, se fizer sentido, clique em “Sim, estudar”.", botao: "Ver o mapa", aba: "etapa&ver=captacao" }
         : { titulo: "Pedir o KMZ da área", explica: "Sem o desenho da área não dá para estudar. Peça ao proprietário ou ao corretor e suba em Configurações.", botao: "Subir o KMZ", aba: "config" };
     case "previabilidade":
-      if (e1.status === "aguardando") return { titulo: "Preencher o estudo do terreno", explica: "Coloque os números do raio-x (zona, lotes, alertas).", botao: "Abrir o estudo", aba: "etapa&ver=previabilidade" };
-      if (e1.status === "pronto") return { titulo: "Mandar o resumo para o grupo", explica: "O estudo do terreno está pronto. Mande o resumo ao JBL - Central para decidir se segue.", botao: "Mandar o resumo", aba: "etapa&ver=previabilidade" };
-      if (e1.status === "perguntado") return { titulo: "Responder no grupo: 1 Sim ou 2 Não", explica: "O resumo foi para o JBL - Central. A resposta lá decide se faz o estudo de mercado.", botao: "Ver o estudo", aba: "etapa&ver=previabilidade" };
-      if (e1.status === "sim") return { titulo: "Fazer o estudo de mercado", explica: "Concorrentes, revenda e produto. Depois disso, a apresentação fica pronta.", botao: "Abrir o mercado", aba: "etapa&ver=previabilidade" };
-      return { titulo: "Decidir: geladeira ou descartar", explica: "O terreno não passou. Use os botões do topo.", botao: "Ver o estudo", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "aguardando") return { titulo: "Preencher a Viabilidade Legal", explica: "Coloque os números do raio-x (zona, lotes, alertas).", botao: "Abrir a Viabilidade Legal", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "pronto") return { titulo: "Mandar o resumo para o grupo", explica: "A Viabilidade Legal está pronta. Mande o resumo ao JBL - Central para decidir se segue.", botao: "Mandar o resumo", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "perguntado") return { titulo: "Responder no grupo: 1 Sim ou 2 Não", explica: "O resumo foi para o JBL - Central. A resposta lá decide se faz a Viabilidade Mercadológica.", botao: "Ver a Viabilidade Legal", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "sim") return { titulo: "Fazer a Viabilidade Mercadológica", explica: "Concorrentes, revenda e produto. Depois disso, a apresentação fica pronta.", botao: "Abrir a Viabilidade Mercadológica", aba: "etapa&ver=previabilidade" };
+      return { titulo: "Decidir: geladeira ou descartar", explica: "A Viabilidade Legal não passou. Use os botões do topo.", botao: "Ver a Viabilidade Legal", aba: "etapa&ver=previabilidade" };
     case "reuniao":
       return a.reuniaoId
         ? { titulo: "Fazer a reunião", explica: "A reunião está marcada. Leve a apresentação.", botao: "Ver a reunião", aba: "etapa&ver=reuniao" }

@@ -48,7 +48,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
     try {
       await chamar(`/api/areas/${a.id}`, "PATCH", { estudo1: estudo1(status) });
       if (status) setF({ ...f, status });
-      setMsg("✅ Estudo do terreno salvo.");
+      setMsg("✅ Viabilidade Legal salva.");
       router.refresh();
     } catch (e) {
       setMsg((e as Error).message);
@@ -58,7 +58,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
     try {
       await chamar(`/api/areas/${a.id}`, "PATCH", { estudo1: estudo1("pronto") });
       await chamar(`/api/areas/${a.id}/central`, "POST");
-      setMsg("📲 Resumo enviado no JBL - Central. A resposta “1” ou “2” no grupo decide o mercadológico.");
+      setMsg("📲 Resumo enviado no JBL - Central. A resposta “1” ou “2” no grupo decide a Viabilidade Mercadológica.");
       router.refresh();
     } catch (e) {
       setMsg((e as Error).message);
@@ -67,7 +67,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
   async function salvar2() {
     try {
       await chamar(`/api/areas/${a.id}`, "PATCH", { estudo2: m });
-      setMsg("✅ Mercadológico salvo.");
+      setMsg("✅ Viabilidade Mercadológica salva.");
       router.refresh();
     } catch (e) {
       setMsg((e as Error).message);
@@ -79,18 +79,18 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
   return (
     <div className="grid gap-5">
       <div className="flex flex-col gap-2 md:flex-row">
-        <Fase n={1} t="Triagem do terreno" sub="Dá para lotear? Quanto sobra?" on={!mercadoLiberado} off={false} />
-        <Fase n={2} t="Mercadológico preliminar" sub="Concorrentes, revenda, encaixe" on={mercadoLiberado && !temMercado} off={!mercadoLiberado} />
+        <Fase n={1} t="Viabilidade Legal" sub="Dá para lotear? Quanto sobra?" on={!mercadoLiberado} off={false} />
+        <Fase n={2} t="Viabilidade Mercadológica" sub="Concorrentes, revenda, encaixe" on={mercadoLiberado && !temMercado} off={!mercadoLiberado} />
         <Fase n={3} t="Apresentação" sub="Slides para a reunião" on={temMercado} off={!temMercado} />
       </div>
 
       <section className="card p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <h3 className="font-display text-xl text-navy">🔬 1. Terreno</h3>
+          <h3 className="font-display text-xl text-navy">🔬 1. Viabilidade Legal</h3>
           <span className="rounded-sm bg-navy-50 px-2 py-0.5 text-[12px] font-bold text-navy">{STATUS_E1[terreno]}</span>
           <span className="flex-1" />
           {(a.relatorioCompleto || a.relatorio) && (
-            <a className="btn-navy px-5 py-2.5 text-[15px]" href={a.relatorioCompleto ? "?aba=estudo" : a.relatorio!} {...(a.relatorioCompleto ? {} : { target: "_blank", rel: "noreferrer" })}>📄 Abrir o estudo completo</a>
+            <a className="btn-navy px-5 py-2.5 text-[15px]" href={a.relatorioCompleto ? "?aba=estudo" : a.relatorio!} {...(a.relatorioCompleto ? {} : { target: "_blank", rel: "noreferrer" })}>📄 Abrir a Viabilidade Legal completa</a>
           )}
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-4">
@@ -119,7 +119,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
           <button className="btn-ghost" onClick={() => salvar1()}>Salvar</button>
           <button className="btn-ghost" onClick={central}>📲 Mandar resumo ao JBL - Central</button>
           {/* o botão que leva à próxima etapa fica sempre em destaque (pedido 20/11/2026) */}
-          <button className={terreno === "sim" ? "btn-ghost" : "btn-gold"} onClick={() => salvar1("sim")}>Sim, fazer mercadológico</button>
+          <button className={terreno === "sim" ? "btn-ghost" : "btn-gold"} onClick={() => salvar1("sim")}>Sim, fazer a Viabilidade Mercadológica</button>
           <button className="btn-ghost" onClick={() => salvar1("nao")}>Não, parar no terreno</button>
         </div>
         <details className="mt-3">
@@ -130,11 +130,11 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
 
       <section className={`card p-5 ${mercadoLiberado || temMercado ? "" : "opacity-60"}`}>
         <div className="flex flex-wrap items-center gap-3">
-          <h3 className="font-display text-xl text-navy">📊 2. Mercadológico preliminar</h3>
+          <h3 className="font-display text-xl text-navy">📊 2. Viabilidade Mercadológica</h3>
           {!mercadoLiberado && !temMercado && <span className="text-[13px] text-muted">Só depois do “sim” no Central (ou no botão acima).</span>}
           {m.veredito && <span className="rounded-sm bg-gold-soft px-2 py-0.5 text-[12px] font-bold text-gold-ink">{VEREDITOS[m.veredito]}</span>}
           <span className="flex-1" />
-          {!!a.relatorioMercado && <a className="btn-navy px-5 py-2.5 text-[15px]" href="?aba=estudo#estudo-2">📄 Abrir o estudo de mercado</a>}
+          {!!a.relatorioMercado && <a className="btn-navy px-5 py-2.5 text-[15px]" href="?aba=estudo#estudo-2">📄 Abrir a Viabilidade Mercadológica</a>}
         </div>
         {(mercadoLiberado || temMercado) && (
           <div className="mt-4 grid gap-4">
@@ -161,7 +161,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
               <label><span className="label">Veredito</span><select className="input" value={m.veredito ?? ""} onChange={(e) => setM({ ...m, veredito: (e.target.value || null) as Estudo2["veredito"] })}><option value="">—</option>{Object.entries(VEREDITOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
               <label><span className="label">Principal risco de mercado</span><input className="input" value={m.risco} onChange={(e) => setM({ ...m, risco: e.target.value })} /></label>
             </div>
-            <div><button className="btn-gold" onClick={salvar2}>Salvar mercadológico</button></div>
+            <div><button className="btn-gold" onClick={salvar2}>Salvar a Viabilidade Mercadológica</button></div>
           </div>
         )}
       </section>
