@@ -245,3 +245,29 @@ export async function loteamentosNoFunil(db: PrismaClient) {
     console.log(`Projetos: loteamento ${p.name} no funil`);
   }
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): o raio-x de Sorocaba refeito no padrão de 17 seções (com Região e as 10
+ * imagens) substitui o anterior no link. Roda enquanto o título gravado não for o do estudo novo.
+ */
+const TITULO_SOROCABA = "Estudo 1 · Viabilidade da área: Sorocaba/SP, 21,4 ha na Rod. Celso Charuri";
+
+export async function sorocabaNoPadrao(db: PrismaClient) {
+  const a = await db.area.findFirst({ where: { relatorio: "https://claude.ai/artifact/5Bt842BwwnapKvfYQ3zsRc", deletedAt: null }, select: { id: true, relatorioCompleto: true, estudo1: true } });
+  if (!a || (a.relatorioCompleto as { titulo?: string } | null)?.titulo === TITULO_SOROCABA) return;
+  const { readFileSync } = await import("node:fs");
+  const { guardarRelatorio } = await import("../src/lib/relatorio-db");
+  const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba.html", "utf8"));
+  const e1 = (a.estudo1 ?? {}) as Record<string, unknown>;
+  await db.area.update({
+    where: { id: a.id },
+    data: {
+      estudo1: {
+        ...e1,
+        aproveitavelPct: 48,
+        regiao: { m2Min: 1075, m2Max: 1351, tipologia: "Condomínios de lotes de 250 a 345 m² e loteamento aberto em tramitação ao lado", expansao: "neutra (perímetro urbano; vetores principais são ZR3/ZR3-exp)", cidades: "Sorocaba 8 km (762 mil) · Votorantim 9 km · Mairinque 20 km · Itu 25 km · Salto 33 km" },
+      },
+    },
+  });
+  console.log(`Captação: raio-x de Sorocaba no padrão (${r.secoes} seções, ${r.imagens} imagens)`);
+}
