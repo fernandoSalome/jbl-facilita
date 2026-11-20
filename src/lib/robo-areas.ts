@@ -8,17 +8,28 @@ import { areaPorTexto, tituloArea, validarDocumentos } from "./captacao";
 
 const CONTEXTO_MIN = 30;
 
-export type AreaLeve = { id: string; nome: string; cidade: string; uf: string; dono: string | null; corretor: string | null };
+export type AreaLeve = { id: string; nome: string; cidade: string; uf: string; dono: string | null; corretor: string | null; projectId?: string | null };
 
-/** Áreas ativas que ainda não viraram loteamento (as que viraram aparecem como loteamento) */
+/**
+ * Áreas ativas da Captação (pedido 20/11/2026): todas, inclusive as que já têm loteamento por trás, até a SPE ser
+ * assinada. Com SPE, a área vira Projeto de Loteamento e aparece como loteamento.
+ */
 export const areasDaCaptacao = (): Promise<AreaLeve[]> =>
-  db.area.findMany({ where: { deletedAt: null, situacao: { not: "descartada" }, projectId: null }, select: { id: true, nome: true, cidade: true, uf: true, dono: true, corretor: true }, orderBy: { updatedAt: "desc" } });
+  db.area.findMany({
+    where: { deletedAt: null, situacao: { not: "descartada" } },
+    select: { id: true, nome: true, cidade: true, uf: true, dono: true, corretor: true, projectId: true },
+    orderBy: { updatedAt: "desc" },
+  }).then(async (as) => {
+    // tira as que já viraram Projeto de Loteamento (SPE assinada)
+    const comSpe = new Set((await db.project.findMany({ where: { speAssinadaEm: { not: null } }, select: { id: true } })).map((p) => p.id));
+    return as.filter((a) => !a.projectId || !comSpe.has(a.projectId));
+  });
 
-/** Lista para "De qual loteamento?": loteamentos e, embaixo, as áreas em captação */
-export function listaComAreas(projetos: { name: string }[], areas: AreaLeve[]) {
-  const l = projetos.map((p) => `• ${p.name}`);
-  if (areas.length) l.push("", "*Áreas em captação:*", ...areas.map((a) => `• ${tituloArea(a)}`));
-  return l.join("\n");
+/** Lista para "De qual?": as áreas em captação e, se houver, os Projetos de Loteamento (com SPE assinada) */
+export function listaComAreas(projetosComSpe: { name: string }[], areas: AreaLeve[]) {
+  const l = areas.map((a) => `• ${tituloArea(a)}`);
+  if (projetosComSpe.length) l.push("", "*Projetos de loteamento:*", ...projetosComSpe.map((p) => `• ${p.name}`));
+  return l.join("\n") || "Nenhuma área cadastrada ainda.";
 }
 
 /** A área citada na mensagem (só se for uma) */

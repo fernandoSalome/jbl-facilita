@@ -76,7 +76,7 @@ export async function tratarLembrete(m: Recebida, responder: (t: string) => Prom
 /** "Qual a situação de Sorocaba?" / "como está o Sítio do Pedro": o resumo da área (pedido 20/11/2026) */
 export async function tratarSituacaoArea(m: Recebida, responder: (t: string) => Promise<unknown>): Promise<boolean> {
   const n = m.texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  if (!/situac|como esta|status|andamento|resumo|novidade/.test(n)) return false;
+  if (!/situac|como esta|como ficou|como anda|como vai|status|andamento|resumo|novidade|viabilidade|estudo|pre-?pesquisa|raio-?x/.test(n)) return false;
   const areas = await db.area.findMany({ where: { deletedAt: null, situacao: { not: "descartada" } } });
   const achadas = areaPorTexto(m.texto, areas);
   if (!achadas.length) return false;
