@@ -38,6 +38,8 @@ model Project {
   aerialImage String?
   /// prospeccao | proposta | parceria | aprovacao | obras | vendas | carteira | arquivado
   fase        String     @default("prospeccao")
+  /// contrato da SPE assinado: só então o loteamento vira Projeto e aparece no seletor (pedido 20/11/2026)
+  speAssinadaEm DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?

@@ -66,7 +66,7 @@ export default function ProjectSwitcher({ projects, areas = [], currentId }: { p
                 </span>
               </Link>
             ))}
-            {list.length === 0 && <div className="px-3 py-3 text-sm text-muted">Nenhum loteamento encontrado.</div>}
+            {list.length === 0 && <div className="px-3 py-3 text-sm text-muted">{projects.length ? "Nenhum loteamento encontrado." : "Nenhum loteamento com SPE assinada ainda."}</div>}
             {listaAreas.length > 0 && <div className="px-3 pb-1 pt-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Áreas em captação</div>}
             {listaAreas.map((a) => (
               <Link key={a.id} href={`/app/captacao/${a.id}`} onClick={() => setOpen(false)} className="flex items-center gap-3 px-3 py-2 hover:bg-alt">
@@ -78,9 +78,7 @@ export default function ProjectSwitcher({ projects, areas = [], currentId }: { p
               </Link>
             ))}
           </div>
-          <Link href="/app/projetos/novo" onClick={() => setOpen(false)} className="flex items-center gap-2 border-t border-line px-3 py-2.5 text-sm font-semibold text-gold-deep hover:bg-gold-soft">
-            <span className="text-lg leading-none">+</span> Novo loteamento
-          </Link>
+          {/* loteamento novo nasce do contrato da SPE, na etapa Contrato da área (pedido 20/11/2026) */}
         </div>
       )}
     </div>

@@ -206,3 +206,15 @@ export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "merca
   const pergunta = tipo === "estudo" ? "\n\nSigo para a Viabilidade Mercadológica?\n1 Sim · 2 Não" : "";
   return `\n\n✅ Entrou na plataforma${linhas ? ` (${linhas})` : ""}: abra a área em Projetos.${pergunta}`;
 }
+
+/**
+ * Contrato da SPE assinado (pedido 20/11/2026): a área vira Projeto de Loteamento (cria ou usa o loteamento já
+ * ligado), marca a data da SPE e passa a aparecer no seletor. A negociação fica em "Viabilidade e Contrato".
+ */
+export async function abrirProjetoDaArea(areaId: string) {
+  const projectId = await loteamentoDaArea(areaId);
+  if (!projectId) throw new Error("Área não encontrada");
+  await db.project.updateMany({ where: { id: projectId, speAssinadaEm: null }, data: { speAssinadaEm: new Date(), fase: "parceria" } });
+  await db.area.update({ where: { id: areaId }, data: { etapa: "contrato" } });
+  return projectId;
+}

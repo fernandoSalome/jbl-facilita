@@ -4,7 +4,6 @@ import { requireSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import ProjectSwitcher from "./ProjectSwitcher";
 import { modoSimples } from "@/lib/modo";
-import { tituloArea } from "@/lib/captacao";
 import SideNav, { type NavItem } from "./SideNav";
 
 const empresaNav: NavItem[] = [
@@ -16,7 +15,6 @@ const empresaNav: NavItem[] = [
   { grupo: "Negócios" },
   { href: "/app/captacao", label: "Projetos", icon: "target" },
   { href: "/app/estudos", label: "Estudos", icon: "chart" },
-  { href: "/app/projetos", label: "Loteamentos", icon: "map" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
   { href: "/app/cartas", label: "Cartas recebidas", icon: "inbox" },
   { grupo: "Ferramentas" },
@@ -39,16 +37,22 @@ const simplesNav: NavItem[] = [
   { href: "/app/conversas", label: "Conversas", icon: "chat" },
 ];
 
-function projectNav(id: string): NavItem[] {
+/**
+ * Menu do Projeto de Loteamento (pedido 20/11/2026): só existe depois do contrato da SPE. A negociação inteira
+ * (viabilidades, reunião, proposta, estudo de 30 dias e contrato) fica em "Viabilidade e Contrato"; fora fica a jornada.
+ */
+function projectNav(id: string, areaId: string | null): NavItem[] {
   const base = `/app/projetos/${id}`;
   return [
-    { label: "Visão geral", icon: "grid", soon: true },
+    ...(areaId ? ([{ href: `/app/captacao/${areaId}`, label: "Viabilidade e Contrato", icon: "folder" }] as NavItem[]) : []),
     { href: `${base}/propostas`, label: "Propostas", icon: "doc" },
-    { label: "Análises", icon: "chart", soon: true },
     { href: `${base}/documentos`, label: "Documentação", icon: "folder" },
-    { label: "Licenças", icon: "flag", soon: true },
-    { label: "Tarefas", icon: "check", soon: true },
-    { label: "CRM", icon: "users", soon: true },
+    { grupo: "Jornada" },
+    { label: "Aprovação", icon: "flag", soon: true },
+    { label: "Obras", icon: "layers", soon: true },
+    { label: "Vendas", icon: "chart", soon: true },
+    { label: "Carteira", icon: "users", soon: true },
+    { grupo: "Do projeto" },
     { label: "WhatsApp", icon: "chat", soon: true },
     { href: `${base}/configuracoes`, label: "Configurações", icon: "cog" },
   ];
@@ -58,17 +62,16 @@ function projectNav(id: string): NavItem[] {
 export default async function Shell({ projectId, nav, children }: { projectId?: string; nav?: NavItem[]; children: React.ReactNode }) {
   const session = await requireSession();
   const simples = modoSimples();
+  // só os loteamentos com contrato da SPE assinado aparecem no seletor (pedido 20/11/2026)
   const projects = await db.project.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, speAssinadaEm: { not: null } },
     orderBy: { updatedAt: "desc" },
     select: { id: true, name: true, municipio: true, uf: true },
   });
-  const current = projectId ? projects.find((p) => p.id === projectId) : undefined;
-  const areas = await db.area.findMany({
-    where: { deletedAt: null, situacao: { not: "descartada" }, projectId: null },
-    orderBy: { updatedAt: "desc" },
-    select: { id: true, cidade: true, uf: true, dono: true, corretor: true, nome: true },
-  });
+  // o projeto aberto pelo endereço aparece mesmo sem SPE (ex.: para ver as propostas de antes)
+  const current = projectId ? (projects.find((p) => p.id === projectId) ?? (await db.project.findFirst({ where: { id: projectId, deletedAt: null }, select: { id: true, name: true, municipio: true, uf: true } })) ?? undefined) : undefined;
+  const areaDoProjeto = current ? await db.area.findFirst({ where: { projectId: current.id, deletedAt: null }, select: { id: true } }) : null;
+
 
   return (
     <div className="flex min-h-screen bg-alt">
@@ -85,9 +88,9 @@ export default async function Shell({ projectId, nav, children }: { projectId?: 
               <div className="text-[9.5px] uppercase tracking-[0.22em] text-white/50">Portal da empresa</div>
             </div>
           </div>
-          <ProjectSwitcher projects={projects} areas={areas.map((a) => ({ id: a.id, titulo: tituloArea(a), cidade: a.cidade, uf: a.uf }))} currentId={current?.id} />
+          <ProjectSwitcher projects={projects} currentId={current?.id} />
         </div>
-        <Suspense><SideNav items={nav ?? (current ? projectNav(current.id) : simples ? simplesNav : empresaNav)} /></Suspense>
+        <Suspense><SideNav items={nav ?? (current ? projectNav(current.id, areaDoProjeto?.id ?? null) : simples ? simplesNav : empresaNav)} /></Suspense>
         <div className="mt-auto border-t border-white/10 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full border border-gold/50 bg-gold/15 font-display text-sm text-gold">

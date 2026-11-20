@@ -14,6 +14,7 @@ import ListaEditavel from "@/components/captacao/ListaEditavel";
 import PreViabilidade from "@/components/captacao/PreViabilidade";
 import ReuniaoArea from "@/components/captacao/ReuniaoArea";
 import LinkEstudo from "@/components/captacao/LinkEstudo";
+import BotaoSpe from "@/components/captacao/BotaoSpe";
 import { acaoDoPasso, lerCustos, lerEstudo1, lerEstudo2, lerPessoas, respostasDosPassos } from "@/lib/captacao-estudos";
 import ProximoPasso from "@/components/captacao/ProximoPasso";
 import RelatorioCompleto from "@/components/captacao/RelatorioCompleto";
@@ -50,6 +51,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
     where: { deletedAt: null, OR: [{ areaId: a.id }, ...(a.projectId ? [{ projectId: a.projectId }] : [])] },
     orderBy: { createdAt: "desc" }, take: 100, select: { id: true, titulo: true, fileName: true, createdAt: true, enviadoPor: true },
   });
+  const speAberta = a.projectId ? !!(await db.project.findFirst({ where: { id: a.projectId, speAssinadaEm: { not: null } }, select: { id: true } })) : false;
   const propostas = a.projectId ? await db.proposal.findMany({ where: { projectId: a.projectId, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, status: true } }) : [];
   // o checklist também sabe o que os passos já dizem (pedido 20/11/2026)
   const derivadas = respostasDosPassos({ ...a, reuniao: reuniao && reuniao.status === "marcado" ? reuniao : null });
@@ -126,7 +128,8 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             {ver === "contrato" && (
               <section className="card p-5 text-sm">
                 <h3 className="eyebrow mb-2">Contrato</h3>
-                <p>Contrato de parceria em andamento. {a.projectId && <Link className="font-semibold text-gold-deep underline" href={`/app/projetos/${a.projectId}/documentos`}>Documentos do loteamento</Link>}</p>
+                <p>Quando o contrato da SPE for assinado, a área vira <b>Projeto de Loteamento</b>: aparece no seletor do topo e começa a jornada (aprovação, obras, vendas). Tudo desta fase fica guardado em “Viabilidade e Contrato”, dentro do projeto.</p>
+                <div className="mt-3"><BotaoSpe id={a.id} projetoAberto={speAberta ? a.projectId : null} /></div>
               </section>
             )}
             <section className="card p-5">
