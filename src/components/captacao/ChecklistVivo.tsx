@@ -155,7 +155,11 @@ export default function ChecklistVivo({ id, checklist, derivadas, conclusao, sim
                   <input className="input py-1 text-[13px]" placeholder="Preencher (fica como Manual)" onKeyDown={(e) => { const v = (e.target as HTMLInputElement).value; if (e.key === "Enter" && v.trim()) distribuir(v, { secao: i, pergunta: p }); }} />
                 </div>
               ))}
-              {!rs.length && !ds.length && !faltam.length && <span className="text-[13px] text-muted">Nada ainda.</span>}
+              {/* toda seção aceita texto livre (pedido 20/11/2026) */}
+              <div className="grid items-center gap-2 md:grid-cols-[220px_1fr]">
+                <span className="text-muted">{!rs.length && !ds.length && !faltam.length ? "Nada ainda" : "Mais alguma coisa"}</span>
+                <input className="input py-1 text-[13px]" placeholder="Escrever nesta seção… (Enter salva)" onKeyDown={(e) => { const el = e.target as HTMLInputElement; if (e.key === "Enter" && el.value.trim()) { distribuir(el.value, { secao: i, pergunta: "Anotação" }); el.value = ""; } }} />
+              </div>
             </div>
           </details>
         );

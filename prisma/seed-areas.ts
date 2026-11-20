@@ -317,3 +317,50 @@ export async function centralNoJblTeste(db: PrismaClient) {
   await db.waGroup.upsert({ where: { jid }, create: { jid, name: "JBL Teste", papel: "controle", funcao: "central" }, update: { papel: "controle", funcao: "central" } });
   console.log("WhatsApp: JBL Teste agora é o JBL - Central");
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): a Viabilidade Mercadológica de Sorocaba refeita com os raios de 5 e 20 km.
+ * Troca o estudo de mercado e o formulário enquanto o título gravado não for o da versão nova.
+ */
+const TITULO_MERCADO_20KM = "Estudo 2 · Mercadológico de concorrentes: Sorocaba/SP, 21,4 ha na Rod. Celso Charuri (raios de 5 e 20 km)";
+
+export async function mercadoSorocaba20km(db: PrismaClient) {
+  const a = await db.area.findFirst({ where: { relatorio: "https://claude.ai/artifact/5Bt842BwwnapKvfYQ3zsRc", deletedAt: null }, select: { id: true, relatorioMercado: true, estudo2: true } });
+  if (!a || (a.relatorioMercado as { titulo?: string } | null)?.titulo === TITULO_MERCADO_20KM) return;
+  const antes = (a.estudo2 ?? {}) as { originais?: unknown };
+  const estudo2 = {
+    concorrentes: [
+      { nome: "Villagio Itália (Alto da Boa Vista)", distancia: "1,8 km", tipo: "condomínio", lote: "250–320 m²", lancamento: "≈ R$ 1.000/m²", hoje: "R$ 1.115–1.400/m²", estagio: "ruas prontas, poucas casas", vendido: "a confirmar" },
+      { nome: "Condomínios do Alto da Boa Vista", distancia: "2,6 km", tipo: "condomínio", lote: "250–470 m²", lancamento: "—", hoje: "R$ 1.075–1.351/m²", estagio: "≈ 90% com casas", vendido: "—" },
+      { nome: "Cond. Vista Verde (Brigadeiro Tobias)", distancia: "3,8 km", tipo: "condomínio", lote: "250–546 m²", lancamento: "≈ R$ 630/m²", hoje: "R$ 690–700/m²", estagio: "lazer pronto, lotes vazios", vendido: "a confirmar" },
+      { nome: "Villa d'España (Jd. das Estrelas)", distancia: "4,0 km", tipo: "aberto", lote: "250–300 m²", lancamento: "R$ 800/m²", hoje: "R$ 815–835/m²", estagio: "lançamento", vendido: "a confirmar" },
+      { nome: "Loteamento fechado Jd. das Estrelas (117 lotes)", distancia: "4,0 km", tipo: "condomínio", lote: "300 m²+", lancamento: "—", hoje: "≈ R$ 1.130/m²", estagio: "obras desde 03/2025", vendido: "a confirmar" },
+      { nome: "Parque Esplanada (Votorantim)", distancia: "12 km", tipo: "condomínio", lote: "300 m²", lancamento: "—", hoje: "≈ R$ 1.400/m²", estagio: "consolidado", vendido: "—" },
+      { nome: "Aldeia da Mata (Votorantim)", distancia: "13 km", tipo: "condomínio", lote: "300 m²", lancamento: "—", hoje: "≈ R$ 1.433/m²", estagio: "consolidado", vendido: "—" },
+      { nome: "Residencial Boulevard (Alumínio)", distancia: "13 km", tipo: "chácaras", lote: "1.000 m²", lancamento: "—", hoje: "≈ R$ 90/m²", estagio: "vendendo", vendido: "—" },
+      { nome: "Villa Toscana (Votorantim)", distancia: "14 km", tipo: "chácaras", lote: "1.000–1.395 m²", lancamento: "—", hoje: "≈ R$ 385/m²", estagio: "vendendo", vendido: "—" },
+      { nome: "Parque Santa Cristina (Sorocaba)", distancia: "15 km", tipo: "aberto", lote: "200 m²", lancamento: "—", hoje: "parcelas desde R$ 875", estagio: "vendendo", vendido: "—" },
+      { nome: "Alphaville Nova Esplanada (Votorantim)", distancia: "16 km", tipo: "condomínio", lote: "300–537 m²", lancamento: "—", hoje: "R$ 1.483–1.490/m²", estagio: "consolidado", vendido: "—" },
+      { nome: "Smart Urba Reserva (Capoavinha, Votorantim)", distancia: "≈ 16 km", tipo: "aberto", lote: "140 m²+", lancamento: "R$ 110–118 mil", hoje: "≈ R$ 790–840/m²", estagio: "1.567 lotes, entrega 06/2028", vendido: "a confirmar" },
+      { nome: "Up Residencial (Rod. João Leme dos Santos)", distancia: "17 km", tipo: "condomínio", lote: "1.000 m²+", lancamento: "—", hoje: "sem preço", estagio: "180 lotes", vendido: "—" },
+      { nome: "Portal dos Pássaros (Mairinque)", distancia: "20 km", tipo: "aberto", lote: "154 m²+", lancamento: "—", hoje: "sem preço", estagio: "venda após registro", vendido: "—" },
+    ],
+    revenda: [
+      { nome: "Villagio Itália", lotes: "vários", variacao: "+12% a +40%", tempo: "—", ocupacao: "poucas casas" },
+      { nome: "Vista Verde", lotes: "vários (do loteador)", variacao: "+10%", tempo: "—", ocupacao: "lotes vazios" },
+      { nome: "Villa d'España", lotes: "poucos", variacao: "+2% a +25%", tempo: "—", ocupacao: "lançamento" },
+      { nome: "Condomínios de Votorantim", lotes: "vários", variacao: "estável em R$ 1.400–1.500/m²", tempo: "—", ocupacao: "consolidados" },
+    ],
+    lacunas: "Loteamento aberto de 300 m² do lado do Alto da Boa Vista, com frente asfaltada (os abertos da região são de 140 a 250 m²); preço intermediário (R$ 800–950/m²) entre o aberto de lote pequeno (≈ R$ 800) e o condomínio (R$ 1.100–1.500); parcelamento direto num produto melhor que o popular; parque na APP.",
+    produto: "Loteamento aberto de lotes de 300 m², R$ 800–950/m² (R$ 240–285 mil), parcelamento direto, parque linear na APP",
+    financeiro: { vgv: "R$ 40–48 mi (aberto) · R$ 55–63 mi (condomínio)", infraPorLote: "no estudo de 30 dias", margem: "no estudo de 30 dias", parteDono: "no estudo de 30 dias", velocidade: "a confirmar com corretores" },
+    veredito: "ajuste",
+    risco: "O comprador de lote aberto financiado direto é disputado pelo Villa d'España (4 km, R$ 815–835/m², 96x) e pelo volume do Smart Urba Reserva (1.567 lotes, 180x).",
+    originais: antes.originais ?? {},
+  };
+  await db.area.update({ where: { id: a.id }, data: { estudo2 } });
+  const { readFileSync } = await import("node:fs");
+  const { guardarRelatorio } = await import("../src/lib/relatorio-db");
+  const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba-mercado.html", "utf8"), [], "relatorioMercado");
+  console.log(`Captação: mercado de Sorocaba em 5 e 20 km (${r.secoes} seções)`);
+}
