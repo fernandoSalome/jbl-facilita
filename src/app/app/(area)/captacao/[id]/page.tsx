@@ -54,15 +54,6 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         subtitle={<><Link href="?aba=config" className="mr-2 inline-block rounded-full border border-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-navy hover:border-gold">✏️ Editar área</Link>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{a.relatorio && <> · <a className="font-semibold text-gold-deep underline" href={a.relatorio} target="_blank" rel="noreferrer">raio-x</a></>}</>}
         actions={<Gate id={a.id} etapa={etapa} situacao={a.situacao} />}
       />
-      <div className="border-b border-line bg-white px-8 py-3">
-        <ol className="flex flex-wrap gap-2">
-          {ETAPAS.map(([k, n], i) => (
-            <li key={k}>
-              <Link href={`?aba=etapa&ver=${k}`} className={`block rounded-full px-3 py-1 text-[12.5px] font-semibold ${i < iEtapa ? "bg-navy-50 text-navy" : i === iEtapa ? "bg-navy text-white" : "border border-line text-muted"} ${aba === "etapa" && ver === k ? "ring-2 ring-gold ring-offset-1" : ""}`}>{i < iEtapa ? "✔" : i + 1}. {n}</Link>
-            </li>
-          ))}
-        </ol>
-      </div>
       <div className="grid gap-5 p-8">
         {aba === "etapa" && (
           <>
