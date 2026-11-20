@@ -249,6 +249,8 @@ export async function sincronizarAssinaturas(c: Carta, avisar = false): Promise<
     const atual = (await carregarCarta(c.id))!;
     if (r.count) {
       await db.proposalEvent.create({ data: { proposalId: c.proposalId, type: "letter_signed", meta: { protocolo: c.protocolo, assinante: atual.assinante } } });
+      // área da Captação: assinada por todos, segue para o estudo de 30 dias (pedido 20/11/2026)
+      await (await import("./captacao-assinatura")).cartaAssinadaNaArea(c.proposalId).catch((e) => console.error("área assinada", e));
       const arquivo = { base64: pdf.toString("base64"), mime: "application/pdf", fileName: nomeArquivo(c, true) };
       const numero = numeroWhatsapp(dadosDe(c).proprietario?.telefone ?? "");
       // falha no WhatsApp não desfaz a assinatura

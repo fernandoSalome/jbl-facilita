@@ -5,8 +5,12 @@ import { newProtocolo } from "@/lib/token";
 import { avisarGrupos, dadosDaCarta, linkPortal, quemRecebeu } from "@/lib/avisos";
 import { linkMinutaPortal } from "@/lib/minuta-acoes";
 import { faltandoNaCarta, semConjuge } from "@/lib/carta";
+import { waitUntil } from "@vercel/functions";
+import { areaEmProposta, cartaRecebidaNaArea } from "@/lib/captacao-assinatura";
 
 const MAX_FILE = 6 * 1024 * 1024;
+/** O envio automático para o assinador (PDF + Autentique) continua depois da resposta */
+export const maxDuration = 60;
 
 export async function POST(req: Request, { params }: { params: { token: string } }) {
   const p = await db.proposal.findFirst({ where: { publicToken: params.token, deletedAt: null }, include: { project: { select: { name: true } } } });
@@ -40,6 +44,20 @@ export async function POST(req: Request, { params }: { params: { token: string }
   const nome = String(b.proprietario?.nome ?? "").trim() || quemRecebeu(p);
   const carta = await db.intentLetter.findUnique({ where: { protocolo }, select: { id: true } });
   const tel = String(b.proprietario?.telefone ?? "").trim(), email = String(b.proprietario?.email ?? "").trim();
+  // proposta de uma área da Captação: a área vai para Assinatura e o link já sai sozinho (pedido 20/11/2026)
+  // (o PDF e a Autentique levam alguns segundos: roda depois de responder, para a pessoa não esperar)
+  const daArea = carta ? await areaEmProposta(p.id) : false;
+  if (carta && daArea) {
+    waitUntil(
+      (async () => {
+        const enviado = await cartaRecebidaNaArea(p.id, carta.id).catch((e) => `⚠️ Não consegui mandar o link sozinho: ${(e as Error).message}`);
+        await avisarGrupos(
+          `📩 *${nome}* enviou os dados da carta de intenção (proposta *${p.name}*, ${p.project.name}).\nProtocolo: ${protocolo}\n\n${dadosDaCarta(b)}\n\n${enviado ?? ""}\nA área passou para a etapa *Assinatura da carta*. Para ver ou reabrir a minuta: ${linkMinutaPortal(carta.id)}`,
+        ).catch(() => {});
+      })(),
+    );
+    return json({ protocolo });
+  }
   await avisarGrupos(
     `📩 *${nome}* enviou os dados da carta de intenção (proposta *${p.name}*, ${p.project.name}).\nProtocolo: ${protocolo}\n\n${dadosDaCarta(b)}\n\n` +
       `A minuta já está montada. O que deseja fazer? Responda aqui:\n• *ver minuta* → mando o PDF da minuta\n• *enviar link* → mando para ela o link de assinatura no WhatsApp${tel ? ` (${tel})` : " (ela não informou telefone)"}\n• *enviar email* → mando o link para o e-mail${email ? ` (${email})` : " (ela não informou e-mail)"}\n• *não* → nada é enviado\n\nPara revisar e editar antes: ${carta ? linkMinutaPortal(carta.id) : linkPortal(new URL(req.url).origin, p.id)}`,

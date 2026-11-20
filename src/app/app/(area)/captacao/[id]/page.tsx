@@ -8,6 +8,8 @@ import ConversasArea from "@/components/captacao/ConversasArea";
 import DocumentosArea from "@/components/captacao/DocumentosArea";
 import Gate from "@/components/captacao/Gate";
 import MotivoSituacao from "@/components/captacao/MotivoSituacao";
+import AssinaturaCarta from "@/components/captacao/AssinaturaCarta";
+import { cartaDaArea } from "@/lib/captacao-assinatura";
 import HipotesesArea from "@/components/captacao/HipotesesArea";
 import MapaInterativo from "@/components/captacao/MapaInterativo";
 import ChatArea from "@/components/captacao/ChatArea";
@@ -119,6 +121,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
                 <div className="mt-3"><BotaoProposta id={a.id} temProposta={propostas.length > 0} /></div>
               </section>
             )}
+            {ver === "assinatura" && <AssinaturaCarta carta={await cartaDaArea(a.projectId)} />}
             {ver === "estudo30" && (
               <>
                 <h3 className="h-display text-xl">Estudo de 30 dias · o que precisamos provar</h3>

@@ -228,6 +228,8 @@ export function cartao(a: { etapa: string; situacao: string; poligono: unknown; 
       return a.reuniaoId ? { situacao: "Reunião marcada", tom: "ok", passo: "reunião marcada" } : { situacao: "Pronto para reunião", tom: "bad", passo: "marcar a reunião" };
     case "proposta":
       return a.projectId ? { situacao: "Proposta em andamento", tom: "run", passo: "acompanhar a proposta" } : { situacao: "Fazer proposta", tom: "warn", passo: "criar a proposta" };
+    case "assinatura":
+      return { situacao: "Carta no assinador", tom: "warn", passo: "esperando assinar" };
     case "estudo30":
       return { situacao: "Estudo de 30 dias", tom: "run", passo: "provar as hipóteses" };
     default:
@@ -304,6 +306,8 @@ export function acaoDoPasso(a: Parameters<typeof cartao>[0]): { titulo: string; 
         : { titulo: "Marcar a reunião com o proprietário", explica: "Escolha dia e hora; o convite e os avisos saem sozinhos.", botao: "Marcar a reunião", aba: "etapa&ver=reuniao" };
     case "proposta":
       return { titulo: a.projectId ? "Acompanhar a proposta" : "Fazer a proposta", explica: "A proposta é feita no loteamento, do jeito de sempre.", botao: a.projectId ? "Abrir as propostas" : "Fazer a proposta", aba: "etapa&ver=proposta" };
+    case "assinatura":
+      return { titulo: "Acompanhar a assinatura da carta", explica: "O link do assinador foi para o proprietário. Quando todos assinarem, a área segue sozinha para o estudo de 30 dias.", botao: "Ver a assinatura", aba: "etapa&ver=assinatura" };
     case "estudo30":
       return { titulo: "Provar o que o estudo diz", explica: "Marque cada afirmação como provada ou falsa, com a prova.", botao: "Abrir o estudo de 30 dias", aba: "etapa&ver=estudo30" };
     default:
