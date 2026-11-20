@@ -58,6 +58,8 @@ function Bloco({ b }: { b: Bloco }) {
           {b.itens.map(([k, v]) => [<dt key={`k${k}`} className="font-semibold text-navy">{k}</dt>, <dd key={`v${k}`}><H html={v} /></dd>])}
         </dl>
       );
+    case "sub":
+      return <h3 className="font-display text-xl text-navy">{b.texto}</h3>;
     case "lista": {
       const L = b.ordenada ? "ol" : "ul";
       return (

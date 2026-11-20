@@ -145,3 +145,78 @@ export async function raioXCompletoSorocaba(db: PrismaClient) {
   const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba.html", "utf8"));
   console.log(`Captação: raio-x completo de Sorocaba no link (${r.secoes} seções, ${r.imagens} imagens)`);
 }
+
+/**
+ * Pedido do Fernando (19/11/2026): os estudos de Alagoas na plataforma, com o KMZ e o raio-x completo no link:
+ * Ipioca (Ponta do Prego, 70,8 ha, Maceió) e Barreiras do Boqueirão (6,1 ha, Japaratinga).
+ * Uma vez só: se já existe área com o mesmo nome na cidade (mesmo apagada), não faz nada.
+ */
+const ALAGOAS = [
+  {
+    chave: "ipioca70" as const,
+    arquivo: "prisma/dados/relatorios/ipioca-70ha.html",
+    nome: "Gleba Ponta do Prego (Ipioca)",
+    cidade: "Maceió",
+    dono: null,
+    relatorio: "https://claude.ai/artifact/2pm8v615BfNiVyMXaUFLEo",
+    estudo1: {
+      status: "pronto", semaforo: "amarelo", zona: "ZIT-1 · Macrozona de Restrição à Ocupação", loteMinimo: "1.200 m² / 20 m", aproveitavelPct: 75,
+      lotes: { pior: 150, medio: 257, bom: 277 }, produto: "Loteamento de alto padrão pé na areia, lotes de 1.200 a 1.500 m², com a mata a oeste como parque",
+      alertas: [
+        { texto: "Terreno de marinha e acrescidos (SPU) na ponta e no lado leste", comoResolver: "certidão de situação e LPM homologada na SPU/AL" },
+        { texto: "Mata Atlântica (restinga) de 11 a 26 ha e APP do canal", comoResolver: "laudo de vegetação e consulta ao IMA/AL e à SEMURB" },
+        { texto: "Lei 5.778 (ZIT-1) sem texto no acervo", comoResolver: "certidão de uso e ocupação do solo na Prefeitura" },
+        { texto: "Macroárea de Restrição e erosão costeira", comoResolver: "diretrizes urbanísticas, saneamento próprio e estudo de recuo do mar" },
+        { texto: "Novo Plano Diretor em tramitação (PL 113/2026)", comoResolver: "protocolar diretrizes antes da sanção" },
+      ],
+      estrategia: ["Uma das últimas pontas de praia livres de Maceió", "Plana, sem risco geológico e sem mineração", "Acesso à praia não pode ser bloqueado (condomínio)"],
+    },
+  },
+  {
+    chave: "japaratinga" as const,
+    arquivo: "prisma/dados/relatorios/japaratinga-6ha.html",
+    nome: "Barreiras do Boqueirão",
+    cidade: "Japaratinga",
+    dono: "Flávio",
+    relatorio: null,
+    estudo1: {
+      status: "pronto", semaforo: "amarelo", zona: "ZM (94%) · ponta em ZL", loteMinimo: "150 m² / 7 m", aproveitavelPct: 83,
+      lotes: { pior: 81, medio: 97, bom: 113 }, produto: "Lotes de 250 m² (10 × 25 m); fase 1 por desmembramento nas ruas existentes (~44 lotes)",
+      alertas: [
+        { texto: "6 casas dentro do polígono e vizinhos sobre a divisa norte", comoResolver: "matrícula, cadeia dominial e levantamento cadastral" },
+        { texto: "A AL-101 e duas ruas de terra cortam a área", comoResolver: "conferir na matrícula e na Prefeitura se as ruas são oficiais; DER-AL" },
+        { texto: "Zona lida em cópia de 10/2022 do mapa", comoResolver: "certidão de uso do solo e caderno de mapas oficial da LC 680/2022" },
+        { texto: "Ponta do mar em ZL, provável terreno de marinha, praia na APA Costa dos Corais", comoResolver: "certidão da SPU e consulta ao ICMBio" },
+        { texto: "Pesquisa de areia (ANM 844039/2024) colada na divisa oeste", comoResolver: "acompanhar o processo na ANM" },
+      ],
+      estrategia: ["Cerca de 636 m de frente para ruas que já existem", "Fase 1 rápida por desmembramento, sem doar área"],
+    },
+  },
+];
+
+const CIDADES_AL = [
+  { nome: "Maceió", uf: "AL", leis: "Plano Diretor Lei 5.486/2005 · Código de Urbanismo Lei 5.593/2007 · Lei 5.631/2007 (Quadro 1 da ZIT-1) · Lei 5.778/2009", mapa: "Mapa 01 do Código de Urbanismo (PDF com grade UTM deslocada ~1,2 km)", alerta: "Novo Plano Diretor (PL 113/2026) na Câmara", notas: "Ipioca: Macrozona de Restrição à Ocupação; litoral norte em ZIT-1 (lote 1.200 m², testada 20 m). APA Costa dos Corais ampliada pelo Decreto 12.490/2025.", conferidoEm: new Date("2026-11-19T12:00:00Z") },
+  { nome: "Japaratinga", uf: "AL", leis: "Plano Diretor LC 680/2022 (zoneamento e parcelamento no Anexo II)", mapa: "Anexo 1 do PD (cópia pública de 10/2022; caderno oficial fora do ar)", alerta: "Mapa oficial indisponível no site da Prefeitura", notas: "ZC 150 m² · ZM 150 m²/7 m (15% + 5%) · ZL 300 m²/15 m (40% + 5%) · ZEIS 125 m² · ZI 500 m². ZL é a faixa entre o mar e a AL-101.", conferidoEm: new Date("2026-11-19T12:00:00Z") },
+];
+
+export async function estudosDeAlagoas(db: PrismaClient) {
+  const { readFileSync } = await import("node:fs");
+  const { guardarRelatorio } = await import("../src/lib/relatorio-db");
+  for (const e of ALAGOAS) {
+    if (await db.area.findFirst({ where: { nome: e.nome, cidade: e.cidade }, select: { id: true } })) continue;
+    const poligono = poligonos[e.chave] as Poligono;
+    const a = await db.area.create({
+      data: {
+        nome: e.nome, cidade: e.cidade, uf: "AL", dono: e.dono, hectares: hectares(poligono), etapa: "previabilidade", poligono, relatorio: e.relatorio,
+        estudo1: e.estudo1, documentos: { "KMZ da área": "ok", "Raio-x do terreno (Estudo 1)": "ok" },
+      },
+    });
+    const r = await guardarRelatorio(db, a.id, readFileSync(e.arquivo, "utf8"), e.dono ? ["Flavio Parceiro", "Flavio", e.dono] : []);
+    console.log(`Captação: ${e.cidade} · ${e.nome} criada com o raio-x completo (${r.secoes} seções, ${r.imagens} imagens)`);
+  }
+  for (const c of CIDADES_AL) {
+    if (await db.cidade.findUnique({ where: { nome_uf: { nome: c.nome, uf: c.uf } } })) continue;
+    await db.cidade.create({ data: c });
+    console.log(`Biblioteca: ${c.nome}-${c.uf}`);
+  }
+}

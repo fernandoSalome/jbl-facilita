@@ -28,3 +28,11 @@ describe("raio-x completo", () => {
     expect(imgs.map((b) => b.t === "img" && b.img)).toEqual(["/a0", "/a1", "/a2", "/a3", "/a4", "/a5"]);
   });
 });
+
+describe("sem nomes", async () => {
+  const { semNomes } = await import("./relatorio");
+  it("troca o nome de quem não deve aparecer", () => {
+    const r = semNomes({ titulo: "Área", lede: "", veredito: "", destaque: "", secoes: [{ titulo: "2", blocos: [{ t: "p", html: "Arquivo Japatinga - Flavio Parceiro.kmz; dono Flávio" }] }] }, ["Flavio Parceiro", "Flávio", "Flavio"]);
+    expect(JSON.stringify(r)).not.toMatch(/Fl[aá]vio/);
+  });
+});

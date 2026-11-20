@@ -13,7 +13,8 @@ export type Bloco =
   | { t: "tabela"; cab: string[]; linhas: string[][] }
   | { t: "img"; img: string; legenda: string }
   | { t: "kv"; itens: [string, string][] }
-  | { t: "lista"; ordenada: boolean; itens: string[] };
+  | { t: "lista"; ordenada: boolean; itens: string[] }
+  | { t: "sub"; texto: string };
 
 export type Relatorio = { titulo: string; lede: string; veredito: string; destaque: string; secoes: { titulo: string; blocos: Bloco[] }[] };
 export type ImagemRelatorio = { mime: string; base64: string };
@@ -64,14 +65,21 @@ function blocosDa(sec: string, imagens: ImagemRelatorio[]): Bloco[] {
     cols: todos(/<div class="box"><h3>([\s\S]*?)<\/h3>([\s\S]*?)<\/div>/g, m[1]).map((b) => ({ titulo: texto(b[1]), itens: todos(/<li>([\s\S]*?)<\/li>/g, b[2]).map((l) => inline(l[1])) })),
   }));
   add(/<table>([\s\S]*?)<\/table>/g, (m) => tabela(m[1]));
-  add(/<figure>\s*<img src="data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)"[^>]*>\s*(?:<figcaption>([\s\S]*?)<\/figcaption>)?\s*<\/figure>/g, (m) => {
-    imagens.push({ mime: m[1], base64: m[2] });
-    return { t: "img", img: String(imagens.length - 1), legenda: texto(m[3] ?? "") };
+  // imagem em <figure> (com legenda) ou solta (formato dos relatórios em Markdown); a ordem dos atributos varia
+  add(/<figure>\s*(<img[^>]*>)\s*(?:<figcaption>([\s\S]*?)<\/figcaption>)?\s*<\/figure>|<img[^>]*>/g, (m) => {
+    const tag = m[1] ?? m[0];
+    const src = tag.match(/src="data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)"/);
+    if (!src) return null;
+    imagens.push({ mime: src[1], base64: src[2] });
+    return { t: "img", img: String(imagens.length - 1), legenda: texto(m[2] ?? tag.match(/alt="([^"]*)"/)?.[1] ?? "") };
   });
   add(/<dl[^>]*>([\s\S]*?)<\/dl>/g, (m) => ({ t: "kv", itens: todos(/<dt>([\s\S]*?)<\/dt>\s*<dd>([\s\S]*?)<\/dd>/g, m[1]).map((x) => [texto(x[1]), inline(x[2])] as [string, string]) }));
   add(/<(ol|ul)(?: class="[^"]*")?>([\s\S]*?)<\/\1>/g, (m) => ({ t: "lista", ordenada: m[1] === "ol", itens: todos(/<li>([\s\S]*?)<\/li>/g, m[2]).map((l) => inline(l[1])) }));
   add(/<div class="callout">([\s\S]*?)<\/div>/g, (m) => ({ t: "p", html: inline(m[1]), estilo: "destaque" }));
-  add(/<p(?: class="([^"]*)")?>([\s\S]*?)<\/p>/g, (m) => ({ t: "p", html: inline(m[2]), estilo: m[1] === "note" ? "nota" : undefined }));
+  add(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/g, (m) => (texto(m[1]) ? { t: "p", html: inline(m[1].replace(/<\/p>\s*<p>/g, "<br>")), estilo: "destaque" } : null));
+  add(/<h3[^>]*>([\s\S]*?)<\/h3>/g, (m) => (texto(m[1]) ? { t: "sub", texto: texto(m[1]) } : null));
+  // parágrafo só com imagem não vira bloco (a imagem é pega sozinha)
+  add(/<p(?: class="([^"]*)")?>([\s\S]*?)<\/p>/g, (m) => (texto(m[2]) ? { t: "p", html: inline(m[2]), estilo: m[1] === "note" ? "nota" : undefined } : null));
   achados.sort((a, b) => a.i - b.i || b.fim - a.fim);
   const out: Bloco[] = [];
   let ate = -1;
@@ -89,9 +97,12 @@ export function lerRelatorio(html: string): { relatorio: Relatorio; imagens: Ima
   const titulo = texto(s.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "");
   if (!titulo) return null;
   const imagens: ImagemRelatorio[] = [];
-  const secoes = todos(/<section[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)<\/section>/g, s)
-    .map((m) => ({ titulo: texto(m[1]), blocos: blocosDa(m[2], imagens) }))
-    .filter((x) => x.titulo && x.blocos.length);
+  // cada <h2> abre uma seção, que vai até o próximo <h2> (com ou sem <section> em volta)
+  const h2s = todos(/<h2[^>]*>([\s\S]*?)<\/h2>/g, s);
+  const secoes = h2s
+    .map((m, i) => ({ titulo: texto(m[1]), blocos: blocosDa(s.slice(m.index! + m[0].length, h2s[i + 1]?.index ?? s.length).replace(/<\/?(section|main|body|html)[^>]*>/g, ""), imagens) }))
+    // o resumo para o grupo de WhatsApp é interno (cita o proprietário): não vai para o link do parceiro
+    .filter((x) => x.titulo && x.blocos.length && !/resumo para o grupo/i.test(x.titulo));
   if (!secoes.length) return null;
   return {
     relatorio: {
@@ -116,3 +127,11 @@ export const comImagens = (r: Relatorio, urls: string[]): Relatorio => ({
   ...r,
   secoes: r.secoes.map((s) => ({ ...s, blocos: s.blocos.map((b) => (b.t === "img" ? { ...b, img: urls[Number(b.img)] ?? "" } : b)) })),
 });
+
+/** Tira nomes de pessoas (proprietário, corretor) do texto que vai para o link do parceiro */
+export function semNomes(r: Relatorio, nomes: string[]): Relatorio {
+  const ns = nomes.map((n) => n.trim()).filter((n) => n.length > 2).sort((a, b) => b.length - a.length);
+  if (!ns.length) return r;
+  const re = new RegExp(ns.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi");
+  return JSON.parse(JSON.stringify(r), (_, v) => (typeof v === "string" ? v.replace(re, "(reservado)") : v)) as Relatorio;
+}
