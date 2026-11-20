@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { guardarParticular, marcarTerra } from "./contatos-terra-db";
 import { ETAPA, FASES, faseDoDocumento, faseEmUso } from "./fases";
 import { entenderTexto, lerDocumento, norm, projetoPorTexto, TIPOS } from "./ia";
 import { pdfDaProposta } from "./pdf";
@@ -53,9 +54,18 @@ const listaProjetos = (ps: { name: string }[]) => ps.map((p) => `• ${p.name}`)
 export async function tratarMensagem(m: Recebida) {
   if (!m.grupo.endsWith("@g.us")) {
     // KMZ no particular: só guarda quem mandou, sem responder (pedido 20/11/2026)
-    if (m.arquivo && Date.now() - m.quando.getTime() < 10 * 60 * 1000 && (await salvarKmzParticular(m).catch((e) => (console.error("kmz particular", e), true)))) return;
+    if (m.arquivo && Date.now() - m.quando.getTime() < 10 * 60 * 1000 && (await salvarKmzParticular(m).catch((e) => (console.error("kmz particular", e), true)))) {
+      // quem manda KMZ é contato de terra (aparece em Conversas)
+      await marcarTerra(m.grupo, m.autor).catch(() => {});
+      return;
+    }
     // conversa individual: só entra no checklist se estiver ligada a uma área com "nutrir" (pedido 19/11/2026)
-    if (!m.deMim && m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando, m.id);
+    if (m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) {
+      // ida e volta: o que o Fernando escreve pelo celular também fica no chat da área (pedido 20/11/2026)
+      await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando, m.id, m.deMim);
+      // contatos de terra: o Claude da VPS lê a conversa e diz se é de terra (pedido 20/11/2026)
+      await guardarParticular(m).catch((e) => console.error("contato terra", e));
+    }
     return;
   }
   if (enviadasPeloRobo.has(m.id)) return;

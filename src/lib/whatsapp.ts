@@ -117,3 +117,16 @@ export function lerMensagem(data: Record<string, unknown>): Recebida | null {
     participante: ([key.participantPn, key.participantAlt, key.participant].find((x) => x && /@s\.whatsapp\.net$/.test(x)) ?? "").split("@")[0].replace(/\D/g, ""),
   };
 }
+
+/** Conversas do WhatsApp conectado (para ler as antigas uma vez, sem mandar nada) */
+export async function listarConversas() {
+  const r = await call<unknown>(`/chat/findChats/${INST()}`, {});
+  const lista = (Array.isArray(r) ? r : []) as { remoteJid?: string; pushName?: string | null; updatedAt?: string | null }[];
+  return lista.filter((c) => typeof c.remoteJid === "string").map((c) => ({ jid: c.remoteJid!, nome: c.pushName ?? null, em: c.updatedAt ? new Date(c.updatedAt) : null }));
+}
+
+/** Últimas mensagens de uma conversa, no mesmo formato do webhook */
+export async function mensagensDaConversa(jid: string, quantas = 40) {
+  const r = await call<{ messages?: { records?: unknown[] } }>(`/chat/findMessages/${INST()}`, { where: { key: { remoteJid: jid } }, page: 1, offset: quantas });
+  return (r?.messages?.records ?? []).map((x) => lerMensagem(x as Record<string, unknown>)).filter((m): m is Recebida => !!m);
+}

@@ -72,6 +72,12 @@ async function ciclo() {
     await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ...(await estudo(c)) }) });
     return true;
   }
+  // leitura das conversas particulares (pedido 20/11/2026): o texto já vem pronto; sem ferramentas, rápido
+  if (c.tipo === "classificar") {
+    const res = await rodarClaude(c.texto, { ferramentas: "Read", limite: 8 * 60_000, turnos: "3" });
+    await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ok: res.ok, resposta: res.texto }) });
+    return true;
+  }
   const res = await rodarClaude(instrucoes(c.autor, c.texto));
   await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ok: res.ok, resposta: res.texto }) });
   return true;

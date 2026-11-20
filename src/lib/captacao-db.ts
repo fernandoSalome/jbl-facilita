@@ -26,15 +26,18 @@ export async function acrescentar(areaId: string, novas: Resposta[]) {
 export const adicionarTexto = (areaId: string, texto: string, fonte: Fonte, ref: string) => acrescentar(areaId, distribuir(texto, fonte, ref));
 
 /** Conversa ligada (com "nutrir") pelo telefone de quem mandou: a mensagem entra no checklist da área */
-export async function nutrirPorTelefone(jid: string, autor: string, texto: string, quando: Date, messageId?: string) {
+export async function nutrirPorTelefone(jid: string, autor: string, texto: string, quando: Date, messageId?: string, deMim = false) {
   const tel = telefoneWa(jid.split("@")[0]);
   if (!tel || !texto) return 0;
   const conversas = await db.areaConversa.findMany({ where: { telefone: tel, area: { deletedAt: null } }, select: { areaId: true, nome: true, nutrir: true } });
   let n = 0;
   const dia = quando.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   for (const c of conversas) {
-    // o chat da área guarda tudo da conversa ligada; o checklist só recebe com "nutrir"
-    await db.areaMensagem.create({ data: { areaId: c.areaId, telefone: tel, nome: c.nome || autor, texto: texto.slice(0, 4000), quando, messageId: messageId ?? null } });
+    // mensagem mandada pela tela volta pelo webhook: já está no chat
+    if (deMim && (await db.areaMensagem.findFirst({ where: { areaId: c.areaId, telefone: tel, deMim: true, texto: texto.slice(0, 4000), quando: { gt: new Date(quando.getTime() - 5 * 60e3) } }, select: { id: true } }))) continue;
+    // o chat da área guarda tudo da conversa ligada; o checklist só recebe com "nutrir" (e só o que o contato diz)
+    await db.areaMensagem.create({ data: { areaId: c.areaId, telefone: tel, nome: c.nome || autor, deMim, texto: texto.slice(0, 4000), quando, messageId: messageId ?? null } });
+    if (deMim) continue;
     if (c.nutrir) n += await adicionarTexto(c.areaId, texto, "whatsapp", `${c.nome || autor} · ${dia}`);
   }
   return n;

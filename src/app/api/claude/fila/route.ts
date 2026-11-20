@@ -3,6 +3,7 @@ import { json } from "@/lib/api";
 import { cortarResposta, senhaValida } from "@/lib/claude-ponte";
 import { enviarTexto } from "@/lib/whatsapp";
 import { guardarEstudoDaVps } from "@/lib/captacao-db";
+import { guardarClassificacao, montarClassificacao, pedirClassificacao } from "@/lib/contatos-terra-db";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,19 @@ export async function GET(req: Request) {
   if (!senhaValida(req.headers.get("authorization"))) return json({ error: "Não autorizado" }, 401);
   // pedido que ficou "rodando" por mais de 40 minutos (VPS caiu): volta para a fila
   await db.comandoClaude.updateMany({ where: { status: "rodando", iniciadoEm: { lt: new Date(Date.now() - 40 * 60e3) } }, data: { status: "fila" } });
+  // a VPS pergunta a cada 30 s: aproveita para pôr na fila a leitura das conversas que pararam
+  await pedirClassificacao().catch(() => {});
   const c = await db.comandoClaude.findFirst({ where: { status: "fila" }, orderBy: { createdAt: "asc" } });
   if (!c) return json({ vazio: true });
   const pego = await db.comandoClaude.updateMany({ where: { id: c.id, status: "fila" }, data: { status: "rodando", iniciadoEm: new Date() } });
   if (!pego.count) return json({ vazio: true });
+  // leitura das conversas particulares: o texto é montado agora, com as conversas paradas (pedido 20/11/2026)
+  if (c.tipo === "classificar") {
+    const texto = await montarClassificacao(c.id);
+    if (texto) return json({ id: c.id, texto, autor: null, tipo: c.tipo, area: null });
+    await db.comandoClaude.update({ where: { id: c.id }, data: { status: "feito", resposta: "(nada para ler)", terminadoEm: new Date(), enviadoEm: new Date() } });
+    return json({ vazio: true });
+  }
   // estudo e mercado: vão junto os dados da área (KMZ e o que os estudos já definiram)
   const area = c.areaId
     ? await db.area.findFirst({ where: { id: c.areaId }, select: { id: true, nome: true, cidade: true, uf: true, hectares: true, poligono: true, estudo1: true, estudo2: true } })
@@ -32,6 +42,12 @@ export async function POST(req: Request) {
   const resposta = typeof b.resposta === "string" ? b.resposta.slice(0, 50_000) : "";
   const c = await db.comandoClaude.findFirst({ where: { id, status: "rodando" } });
   if (!c) return json({ error: "Pedido não encontrado" }, 404);
+  // leitura das conversas: não vai para grupo nenhum
+  if (c.tipo === "classificar") {
+    await db.comandoClaude.update({ where: { id }, data: { status: b.ok === false ? "erro" : "feito", resposta: resposta.slice(0, 20_000), terminadoEm: new Date(), enviadoEm: new Date() } });
+    if (b.ok !== false) await guardarClassificacao(c.texto, resposta);
+    return json({ ok: true });
+  }
   // estudo pronto: a área recebe a viabilidade (campos do formulário e o estudo completo)
   let aviso = "";
   if (b.ok !== false && c.areaId && (c.tipo === "estudo" || c.tipo === "mercado")) {

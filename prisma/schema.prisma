@@ -13,13 +13,13 @@ enum Role {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
+  id           String        @id @default(cuid())
+  email        String        @unique
   name         String
   passwordHash String
-  role         Role       @default(USER)
-  createdAt    DateTime   @default(now())
-  proposals    Proposal[] @relation("createdBy")
+  role         Role          @default(USER)
+  createdAt    DateTime      @default(now())
+  proposals    Proposal[]    @relation("createdBy")
   agenda       AgendaConfig?
   compromissos Compromisso[]
 }
@@ -27,37 +27,37 @@ model User {
 /// Um projeto é um loteamento (a "subconta"). Tudo do loteamento pendura aqui:
 /// propostas hoje; documentos, licenças, tarefas e o grupo de WhatsApp depois.
 model Project {
-  id          String     @id @default(cuid())
-  name        String
-  tipo        String     @default("Loteamento aberto")
-  municipio   String
-  uf          String     @default("SP")
-  matricula   String?
-  areaTotal   Float
+  id            String            @id @default(cuid())
+  name          String
+  tipo          String            @default("Loteamento aberto")
+  municipio     String
+  uf            String            @default("SP")
+  matricula     String?
+  areaTotal     Float
   /// URL pública (/demo/...) ou data URL da foto aérea
-  aerialImage String?
+  aerialImage   String?
   /// prospeccao | proposta | parceria | aprovacao | obras | vendas | carteira | arquivado
-  fase        String     @default("prospeccao")
+  fase          String            @default("prospeccao")
   /// contrato da SPE assinado: só então o loteamento vira Projeto e aparece no seletor (pedido 20/11/2026)
   speAssinadaEm DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?
-  proposals   Proposal[]
-  documents   ProjectDocument[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+  proposals     Proposal[]
+  documents     ProjectDocument[]
 }
 
 model Template {
-  id             String     @id @default(cuid())
+  id             String           @id @default(cuid())
   /// Chave do componente que renderiza o template ("jbl-padrao")
   key            String?
   name           String
   description    String?
   /// ativo | em_preparacao
-  status         String     @default("ativo")
+  status         String           @default("ativo")
   sourceFileName String?
   sourceFile     Bytes?
-  createdAt      DateTime   @default(now())
+  createdAt      DateTime         @default(now())
   deletedAt      DateTime?
   proposals      Proposal[]
   versions       FormatoVersion[]
@@ -80,51 +80,51 @@ model FormatoVersion {
 }
 
 model Proposal {
-  id            String          @id @default(cuid())
-  projectId     String
-  project       Project         @relation(fields: [projectId], references: [id])
-  templateId    String
-  template      Template        @relation(fields: [templateId], references: [id])
+  id               String          @id @default(cuid())
+  projectId        String
+  project          Project         @relation(fields: [projectId], references: [id])
+  templateId       String
+  template         Template        @relation(fields: [templateId], references: [id])
   /// loteamento_aberto | condominio_urbano | chacreamento_aberto | chacreamento_condominio
-  formato       String          @default("loteamento_aberto")
+  formato          String          @default("loteamento_aberto")
   /// Versão do formato que a proposta usa (texto, listas). Ajustes da proposta ficam em overrides.
   formatoVersionId String?
   formatoVersion   FormatoVersion? @relation(fields: [formatoVersionId], references: [id])
-  name          String
-  ownerName     String
-  ownerPhone    String?
+  name             String
+  ownerName        String
+  ownerPhone       String?
   /// Entradas do estudo (StudyInputs). Os resultados são recalculados a partir delas.
-  inputs        Json
+  inputs           Json
   /// cartaIntencao, validadeDias, corretor...
-  options       Json            @default("{}")
+  options          Json            @default("{}")
   /// Valores e textos alterados à mão na proposta: { chave: texto }
-  overrides     Json            @default("{}")
+  overrides        Json            @default("{}")
   /// rascunho | enviada | aberta | carta_recebida | negociacao | aceita | recusada
-  status        String          @default("rascunho")
-  publicToken   String          @unique
-  publishedAt   DateTime?
-  expiresAt     DateTime?
+  status           String          @default("rascunho")
+  publicToken      String          @unique
+  publishedAt      DateTime?
+  expiresAt        DateTime?
   /// PDF gerado da proposta: arquivo, número de páginas e a "assinatura" do conteúdo que o gerou
-  pdfData       Bytes?
-  pdfPages      Int?
-  pdfKey        String?
+  pdfData          Bytes?
+  pdfPages         Int?
+  pdfKey           String?
   /// Bloqueada para edição: só visualização (nada dela muda até liberar). Quem bloqueou
-  lockedAt      DateTime?
-  lockedBy      String?
+  lockedAt         DateTime?
+  lockedBy         String?
   /// Fixada no topo da lista de propostas (vazio = não fixada)
-  pinnedAt      DateTime?
-  viewCount     Int             @default(0)
-  firstViewedAt DateTime?
-  lastViewedAt  DateTime?
-  createdById   String?
-  createdBy     User?           @relation("createdBy", fields: [createdById], references: [id])
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  pinnedAt         DateTime?
+  viewCount        Int             @default(0)
+  firstViewedAt    DateTime?
+  lastViewedAt     DateTime?
+  createdById      String?
+  createdBy        User?           @relation("createdBy", fields: [createdById], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   /// Exclusão lógica: nunca apaga, só esconde. Admin pode reativar.
-  deletedAt     DateTime?
-  deletedById   String?
-  events        ProposalEvent[]
-  letters       IntentLetter[]
+  deletedAt        DateTime?
+  deletedById      String?
+  events           ProposalEvent[]
+  letters          IntentLetter[]
 
   @@index([projectId])
 }
@@ -142,39 +142,39 @@ model ProposalEvent {
 }
 
 model IntentLetter {
-  id         String   @id @default(cuid())
-  proposalId String
-  proposal   Proposal @relation(fields: [proposalId], references: [id])
-  protocolo  String   @unique
-  data       Json
-  createdAt  DateTime @default(now())
+  id                 String    @id @default(cuid())
+  proposalId         String
+  proposal           Proposal  @relation(fields: [proposalId], references: [id])
+  protocolo          String    @unique
+  data               Json
+  createdAt          DateTime  @default(now())
   /// Minuta da carta (HTML) que a equipe revisa e edita antes de mandar para assinatura
-  minutaHtml     String?
+  minutaHtml         String?
   /// revisao | enviada | assinada
-  minutaStatus   String    @default("revisao")
+  minutaStatus       String    @default("revisao")
   /// Texto travado quando o link de assinatura foi gerado (é o que a pessoa assina)
-  minutaFinal    String?
+  minutaFinal        String?
   /// Link de assinatura (/assinar/<token>)
-  assinaturaToken String?  @unique
-  linkGeradoEm   DateTime?
-  linkEnviadoEm  DateTime?
+  assinaturaToken    String?   @unique
+  linkGeradoEm       DateTime?
+  linkEnviadoEm      DateTime?
   /// Confirmação do celular: código de 6 dígitos (guardado com hash) e a sessão aberta depois de confirmar
-  codigoHash     String?
-  codigoExpira   DateTime?
-  codigoEnvios   Int       @default(0)
-  codigoTentativas Int     @default(0)
+  codigoHash         String?
+  codigoExpira       DateTime?
+  codigoEnvios       Int       @default(0)
+  codigoTentativas   Int       @default(0)
   telefoneConfirmado String?
-  sessaoHash     String?
-  sessaoExpira   DateTime?
+  sessaoHash         String?
+  sessaoExpira       DateTime?
   /// Documento na Autentique (assinatura eletrônica) e a situação de cada pessoa que assina:
   /// [{ papel, nome, publicId, link, vistoEm, assinadoEm, recusadoEm, motivo }]
-  autentiqueId   String?   @unique
-  assinaturas    Json?
+  autentiqueId       String?   @unique
+  assinaturas        Json?
   /// Carta assinada por todos (PDF da Autentique, com a página de verificação)
-  assinadaEm     DateTime?
-  pdfAssinado    Bytes?
-  pdfAssinadoNome String?
-  assinante      String?
+  assinadaEm         DateTime?
+  pdfAssinado        Bytes?
+  pdfAssinadoNome    String?
+  assinante          String?
 
   @@index([proposalId])
 }
@@ -223,21 +223,21 @@ model ProjectDocument {
 
 /// Grupo de WhatsApp que o robô acompanha
 model WaGroup {
-  id          String   @id @default(cuid())
-  jid         String   @unique
-  name        String
+  id                String    @id @default(cuid())
+  jid               String    @unique
+  name              String
   /// controle = o robô age neste grupo; inativo = ignorado (só os grupos cadastrados aqui são atendidos)
-  papel       String   @default("controle")
-  projectId   String?
+  papel             String    @default("controle")
+  projectId         String?
   /// último loteamento citado na conversa (para saber de quem é o próximo documento)
   contextoProjectId String?
-  contextoAt  DateTime?
+  contextoAt        DateTime?
   /// última área da Captação citada no grupo (pedido 20/11/2026: "manda documento dele" depois de falar de Sorocaba)
-  contextoAreaId String?
-  contextoAreaAt DateTime?
+  contextoAreaId    String?
+  contextoAreaAt    DateTime?
   /// Para que serve o grupo (pedido 19/11/2026): avisos | central | estudos | projeto (vazio = só documentos, como antes)
-  funcao      String?
-  createdAt   DateTime @default(now())
+  funcao            String?
+  createdAt         DateTime  @default(now())
 }
 
 /// Calendário da pessoa (parecido com o Calendly): horários livres, duração da reunião,
@@ -265,35 +265,35 @@ model AgendaConfig {
 
 /// Compromisso da agenda: pessoal (só a pessoa) ou reunião com um convidado (avisado por e-mail e SMS)
 model Compromisso {
-  id            String    @id @default(cuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
   /// pessoal | reuniao
-  tipo          String    @default("reuniao")
-  titulo        String
-  descricao     String?
-  local         String?
-  inicio        DateTime
-  fim           DateTime
+  tipo           String    @default("reuniao")
+  titulo         String
+  descricao      String?
+  local          String?
+  inicio         DateTime
+  fim            DateTime
   convidadoNome  String?
   convidadoEmail String?
   convidadoTel   String?
   /// interno (criado na tela) | link (agendado pelo convidado no link público)
-  origem        String    @default("interno")
+  origem         String    @default("interno")
   /// marcado | cancelado
-  status        String    @default("marcado")
+  status         String    @default("marcado")
   /// token do link de cancelamento enviado ao convidado
-  cancelToken   String    @unique
+  cancelToken    String    @unique
   /// SMS de lembrete (1 hora antes) agendado no Twilio
-  smsId         String?
-  smsErro       String?
-  emailErro     String?
+  smsId          String?
+  smsErro        String?
+  emailErro      String?
   /// Avisos no grupo de WhatsApp de monitoramento: marcada, 1 dia antes e 1 hora antes (vazio = ainda não saiu)
-  waMarcadoEm   DateTime?
-  waDiaEm       DateTime?
-  waHoraEm      DateTime?
-  waErro        String?
-  createdAt     DateTime  @default(now())
+  waMarcadoEm    DateTime?
+  waDiaEm        DateTime?
+  waHoraEm       DateTime?
+  waErro         String?
+  createdAt      DateTime  @default(now())
 
   @@index([userId, inicio])
 }
@@ -329,52 +329,52 @@ model LoginTentativa {
 /// Área em captação (pedido 19/11/2026): o card do funil "Cidade · dono", do KMZ ao contrato. Quando vira
 /// loteamento, ganha um Project (projectId) e as propostas seguem o fluxo de sempre.
 model Area {
-  id         String    @id @default(cuid())
-  nome       String    @default("")
-  cidade     String
-  uf         String    @default("SP")
-  dono       String?
-  corretor   String?
+  id                String         @id @default(cuid())
+  nome              String         @default("")
+  cidade            String
+  uf                String         @default("SP")
+  dono              String?
+  corretor          String?
   /// hectares (do KMZ ou digitado)
-  hectares   Float?
+  hectares          Float?
   /// captacao | previabilidade | reuniao | proposta | estudo30 | contrato
-  etapa      String    @default("captacao")
+  etapa             String         @default("captacao")
   /// ativa | geladeira | descartada
-  situacao   String    @default("ativa")
+  situacao          String         @default("ativa")
   /// [[lon, lat], ...] lido do KML/KMZ
-  poligono   Json?
+  poligono          Json?
   /// respostas do checklist: [{ secao, pergunta, resposta, fonte, ref, em }]
-  checklist  Json      @default("[]")
+  checklist         Json           @default("[]")
   /// { "<nome do documento>": "ok" | "pedido" | "falta" }
-  documentos Json      @default("{}")
+  documentos        Json           @default("{}")
   /// hipóteses do estudo de 30 dias: [{ texto, origem, prova, status }]
-  hipoteses  Json      @default("[]")
-  conclusao  String?
+  hipoteses         Json           @default("[]")
+  conclusao         String?
   /// link do relatório do raio-x (Estudo 1)
-  relatorio  String?
+  relatorio         String?
   /// Estudo 1 (terreno): semáforo, % aproveitável, lotes, zona, alertas, estratégia, região (pedido 19/11/2026)
-  estudo1    Json      @default("{}")
+  estudo1           Json           @default("{}")
   /// Estudo 2 (mercadológico de concorrentes): concorrentes, revenda, encaixe, produto, prévia financeira, veredito
-  estudo2    Json      @default("{}")
+  estudo2           Json           @default("{}")
   /// custos preliminares: [{ item, valor, base, status }]
-  custos     Json      @default("[]")
+  custos            Json           @default("[]")
   /// pessoas do projeto: [{ nome, papel, email, telefone }]
-  pessoas    Json      @default("[]")
+  pessoas           Json           @default("[]")
   /// reunião marcada pela área (compromisso do calendário)
-  reuniaoId  String?
+  reuniaoId         String?
   /// link público do estudo para parceiros (/estudo/<token>); vazio = sem link (pedido 19/11/2026)
-  estudoToken String?  @unique
-  estudoLinkEm DateTime?
+  estudoToken       String?        @unique
+  estudoLinkEm      DateTime?
   /// raio-x completo (blocos de texto, tabelas e imagens) mostrado no link do parceiro; ver src/lib/relatorio.ts
   relatorioCompleto Json?
   /// Estudo 2 completo (mercadológico de concorrentes), no mesmo formato; mostrado depois do raio-x
   relatorioMercado  Json?
-  projectId  String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
-  conversas  AreaConversa[]
-  mensagens  AreaMensagem[]
+  projectId         String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  deletedAt         DateTime?
+  conversas         AreaConversa[]
+  mensagens         AreaMensagem[]
 
   @@index([situacao, etapa])
 }
@@ -500,4 +500,35 @@ model KmzRecebido {
   createdAt DateTime @default(now())
 
   @@index([hash])
+}
+
+/// Contato de WhatsApp particular (pedido 20/11/2026): o Claude da VPS lê a conversa e diz se é sobre terra.
+/// Só os de terra aparecem em Conversas; os "fora" não guardam mensagem nenhuma.
+model ContatoTerra {
+  id             String    @id @default(cuid())
+  /// só dígitos, com DDI (5511...)
+  telefone       String    @unique
+  nome           String?
+  /// pendente (esperando o Claude) | terra | fora
+  situacao       String    @default("pendente")
+  /// proprietario | corretor | outro
+  papel          String?
+  resumo         String?
+  ultimaEm       DateTime  @default(now())
+  classificadoEm DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([situacao, ultimaEm])
+}
+
+/// Mensagens das conversas particulares de contatos pendentes ou de terra (ida e volta)
+model MensagemParticular {
+  id        String   @id @default(cuid())
+  telefone  String
+  deMim     Boolean  @default(false)
+  texto     String
+  quando    DateTime
+  messageId String   @unique
+
+  @@index([telefone, quando])
 }
