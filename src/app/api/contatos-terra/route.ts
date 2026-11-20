@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   return withSession(async () => {
     const b = await req.json().catch(() => ({}));
-    const pagina = Number.isInteger(b.pagina) && b.pagina >= 0 && b.pagina < 200 ? b.pagina : 0;
+    const pagina = Number.isInteger(b.pagina) && b.pagina >= 0 && b.pagina < 1000 ? b.pagina : 0;
     try {
       return json(await importarConversas(pagina));
     } catch (e) {

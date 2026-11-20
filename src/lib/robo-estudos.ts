@@ -161,6 +161,9 @@ export async function tratarKmzCentral(m: Recebida, responder: (t: string) => Pr
   if (rec) {
     await db.areaConversa.create({ data: { areaId: a.id, nome: contato!, telefone: rec.telefone, papel: "proprietario", nutrir: false } }).catch(() => null);
     await db.kmzRecebido.update({ where: { id: rec.id }, data: { areaId: a.id } });
+    // contato de terra: a área recebe o que já foi conversado com ele (pedido 20/11/2026)
+    const ct = await db.contatoTerra.findUnique({ where: { telefone: rec.telefone }, select: { id: true } });
+    if (ct) await (await import("./contatos-terra-db")).ligarContato(ct.id, a.id).catch((e) => console.error("ligar contato", e));
   }
   const onde = lugar ? `${lugar.cidade}/${lugar.uf}` : "cidade a confirmar";
   const quem = contato ? ` · mandado por *${contato}*` : "";

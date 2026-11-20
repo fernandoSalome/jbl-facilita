@@ -76,21 +76,41 @@ export async function guardarClassificacao(comandoTexto: string, resposta: strin
   await pedirClassificacao();
 }
 
-/** Lê as conversas antigas (últimos 45 dias, pedido 20/11/2026), de 15 em 15, sem mandar nada; a tela chama até acabar */
+/** Lê as conversas antigas (últimos 45 dias, pedido 20/11/2026), de 5 em 5, sem mandar nada; a tela chama até acabar.
+ *  Grava cada conversa de uma vez (gravar mensagem por mensagem passava do tempo da Vercel). */
 export async function importarConversas(pagina: number) {
   const { listarConversas, mensagensDaConversa } = await import("./whatsapp");
+  const POR_VEZ = 5;
   const desde = Date.now() - 45 * 864e5;
   // conversa particular pode vir com id interno (@lid): as mensagens trazem o número junto
   const todas = (await listarConversas()).filter((c) => (ehParticular(c.jid) || /@lid$/.test(c.jid)) && (!c.em || +c.em > desde)).sort((a, b) => +(b.em ?? 0) - +(a.em ?? 0));
-  const fatia = todas.slice(pagina * 15, pagina * 15 + 15);
+  const fatia = todas.slice(pagina * POR_VEZ, pagina * POR_VEZ + POR_VEZ);
+  const listas = await Promise.all(fatia.map((c) => mensagensDaConversa(c.jid, 60).catch(() => [] as Recebida[])));
   let semNumero = 0;
-  for (const c of fatia) {
-    const msgs = (await mensagensDaConversa(c.jid, 60).catch(() => [])).filter((x) => +x.quando > desde);
-    if (msgs.length && !msgs.some((m) => ehParticular(m.grupo))) semNumero++;
-    for (const m of msgs) await guardarParticular(m, { pedir: false });
+  for (const lista of listas) {
+    const msgs = lista.filter((m) => +m.quando > desde && (m.texto || m.audio));
+    const comNumero = msgs.filter((m) => ehParticular(m.grupo));
+    if (msgs.length && !comNumero.length) semNumero++;
+    if (!comNumero.length) continue;
+    const telefone = comNumero[0].grupo.split("@")[0];
+    const c = await db.contatoTerra.findUnique({ where: { telefone } });
+    if (c?.situacao === "fora") continue;
+    const ultima = new Date(Math.max(...comNumero.map((m) => +m.quando)));
+    const nome = comNumero.find((m) => !m.deMim && m.autor)?.autor?.slice(0, 80) ?? null;
+    if (!c) {
+      const ligado = await db.areaConversa.findFirst({ where: { telefone }, select: { id: true } });
+      await db.contatoTerra.create({ data: { telefone, nome, ultimaEm: ultima, ...(ligado ? { situacao: "terra", classificadoEm: new Date() } : {}) } });
+    } else if (ultima > c.ultimaEm || (nome && !c.nome)) {
+      await db.contatoTerra.update({ where: { id: c.id }, data: { ultimaEm: ultima > c.ultimaEm ? ultima : undefined, nome: c.nome ? undefined : nome } });
+    }
+    await db.mensagemParticular.createMany({
+      data: comNumero.map((m) => ({ telefone, deMim: m.deMim, texto: m.audio ? AUDIO_PENDENTE : m.texto.slice(0, 4000), quando: m.quando, messageId: m.id, audioPendente: !!m.audio })),
+      skipDuplicates: true,
+    });
   }
   await pedirClassificacao();
-  return { semNumero, feitas: Math.min(todas.length, pagina * 15 + fatia.length), total: todas.length, proxima: pagina * 15 + 15 < todas.length ? pagina + 1 : null };
+  const feitas = Math.min(todas.length, pagina * POR_VEZ + fatia.length);
+  return { semNumero, feitas, total: todas.length, proxima: feitas < todas.length ? pagina + 1 : null };
 }
 
 /** "Não é de terra" na tela: sai de Conversas e apaga o que foi guardado */
@@ -139,4 +159,30 @@ export async function guardarTranscricao(id: string, texto: string | null) {
     const { nutrirPorTelefone } = await import("./captacao-db");
     await nutrirPorTelefone(`${m.telefone}@s.whatsapp.net`, "", t, m.quando, m.messageId, m.deMim);
   }
+}
+
+/** Conversa completa de um telefone: mensagens particulares e as do chat da área (sem repetir) */
+export async function conversaDoTelefone(telefone: string) {
+  const [part, area] = await Promise.all([
+    db.mensagemParticular.findMany({ where: { telefone }, orderBy: { quando: "desc" }, take: 300 }),
+    db.areaMensagem.findMany({ where: { telefone }, orderBy: { quando: "desc" }, take: 300 }),
+  ]);
+  const ids = new Set(part.map((m) => m.messageId));
+  const textos = new Set(part.map((m) => `${m.deMim}|${m.texto}`));
+  const daArea = area.filter((m) => !(m.messageId && ids.has(m.messageId)) && !textos.has(`${m.deMim}|${m.texto}`));
+  return [...part.map((m) => ({ id: m.id, deMim: m.deMim, texto: m.texto, quando: m.quando })), ...daArea.map((m) => ({ id: m.id, deMim: m.deMim, texto: m.texto, quando: m.quando }))].sort((a, b) => +a.quando - +b.quando);
+}
+
+/** Mandar mensagem pela tela de Conversas: só para contato de terra ou ligado a uma área (pedido 20/11/2026) */
+export async function enviarAoContato(telefone: string, texto: string) {
+  const ok = (await db.contatoTerra.findFirst({ where: { telefone, situacao: "terra" }, select: { id: true } })) || (await db.areaConversa.findFirst({ where: { telefone }, select: { id: true } }));
+  if (!ok) throw new Error("Só dá para mandar mensagem a contatos de terra.");
+  const { enviarTexto } = await import("./whatsapp");
+  const id = await enviarTexto(`${telefone}@s.whatsapp.net`, texto, { manual: true });
+  const agora = new Date();
+  await db.mensagemParticular.createMany({ data: [{ telefone, deMim: true, texto, quando: agora, messageId: id ?? `tela-${agora.getTime()}` }], skipDuplicates: true });
+  await db.contatoTerra.updateMany({ where: { telefone }, data: { ultimaEm: agora } });
+  // conversa ligada a uma área: também no chat da área
+  const conversas = await db.areaConversa.findMany({ where: { telefone }, select: { areaId: true, nome: true } });
+  for (const c of conversas) await db.areaMensagem.create({ data: { areaId: c.areaId, telefone, nome: c.nome, deMim: true, texto, quando: agora, messageId: id } });
 }

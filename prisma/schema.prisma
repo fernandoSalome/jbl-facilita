@@ -443,6 +443,8 @@ model WaEnvio {
   id  String   @id @default(cuid())
   jid String
   em  DateTime @default(now())
+  /// digitada pelo Fernando na tela de Conversas: limite próprio (pedido 20/11/2026)
+  manual Boolean @default(false)
 
   @@index([em])
 }
