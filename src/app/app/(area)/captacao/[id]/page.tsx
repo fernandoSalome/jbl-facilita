@@ -13,21 +13,23 @@ import ChatArea from "@/components/captacao/ChatArea";
 import ListaEditavel from "@/components/captacao/ListaEditavel";
 import PreViabilidade from "@/components/captacao/PreViabilidade";
 import ReuniaoArea from "@/components/captacao/ReuniaoArea";
+import LinkEstudo from "@/components/captacao/LinkEstudo";
 import { lerCustos, lerEstudo1, lerEstudo2, lerPessoas } from "@/lib/captacao-estudos";
 import { db } from "@/lib/db";
-import { ETAPAS, lerChecklist, nomeEtapa, PAPEIS, professor, progresso, tituloArea, validarDocumentos, validarHipoteses, type Etapa } from "@/lib/captacao";
+import { ETAPAS, lerChecklist, nomeEtapa, PAPEIS, professor, tituloArea, validarDocumentos, validarHipoteses, type Etapa } from "@/lib/captacao";
 import { buscarArea } from "@/lib/captacao-db";
 import { lerPoligono } from "@/lib/kml";
 
 export const dynamic = "force-dynamic";
 
-const ABAS = [["etapa", "Etapa"], ["checklist", "Checklist do estudo"], ["documentos", "Documentos"], ["custos", "Custos"], ["pessoas", "Pessoas"], ["config", "Configurações"]] as const;
+/** Abas da área (o menu fica na lateral, em layout.tsx) */
+const ABAS = ["etapa", "checklist", "documentos", "custos", "pessoas", "pagina", "config"] as const;
 
 /** Página da área: etapas no topo, ações à direita, e as abas (etapa, checklist vivo, documentos, configurações) */
 export default async function AreaPagina({ params, searchParams }: { params: { id: string }; searchParams: { aba?: string; ver?: string } }) {
   const a = await buscarArea(params.id);
   if (!a) notFound();
-  const aba = ABAS.some(([k]) => k === searchParams.aba) ? searchParams.aba! : "etapa";
+  const aba = (ABAS as readonly string[]).includes(searchParams.aba ?? "") ? searchParams.aba! : "etapa";
   const checklist = lerChecklist(a.checklist);
   const poligono = lerPoligono(a.poligono);
   const documentos = validarDocumentos(a.documentos);
@@ -49,7 +51,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
       <PageHeader
         eyebrow={`Captação · ${nomeEtapa(etapa)}${a.situacao !== "ativa" ? ` · ${a.situacao}` : ""}`}
         title={tituloArea(a)}
-        subtitle={<>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{a.relatorio && <> · <a className="font-semibold text-gold-deep underline" href={a.relatorio} target="_blank" rel="noreferrer">raio-x</a></>}</>}
+        subtitle={<><Link href="?aba=config" className="mr-2 inline-block rounded-full border border-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-navy hover:border-gold">✏️ Editar área</Link>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{a.relatorio && <> · <a className="font-semibold text-gold-deep underline" href={a.relatorio} target="_blank" rel="noreferrer">raio-x</a></>}</>}
         actions={<Gate id={a.id} etapa={etapa} situacao={a.situacao} />}
       />
       <div className="border-b border-line bg-white px-8 py-3">
@@ -60,14 +62,6 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             </li>
           ))}
         </ol>
-        <nav className="mt-3 flex gap-5 text-sm">
-          {ABAS.map(([k, n]) => (
-            <Link key={k} href={`?aba=${k}`} className={`border-b-2 pb-1 font-semibold ${aba === k ? "border-gold text-navy" : "border-transparent text-muted hover:text-navy"}`}>
-              {n}{k === "checklist" && <span className="ml-1 text-[11px] text-gold-deep">{progresso(checklist).pct}%</span>}
-              {k === "documentos" && <span className="ml-1 text-[11px] text-gold-deep">{Object.values(documentos).filter((s) => s === "ok").length}/15</span>}
-            </Link>
-          ))}
-        </nav>
       </div>
       <div className="grid gap-5 p-8">
         {aba === "etapa" && (
@@ -135,6 +129,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             <p className="text-[13px] text-muted">Conversas de WhatsApp ligadas: {a.conversas.map((c) => `${c.nome} (${PAPEIS[c.papel] ?? c.papel})`).join(", ") || "nenhuma"}. Para ligar, use Configurações.</p>
           </>
         )}
+        {aba === "pagina" && <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} />}
         {aba === "config" && (
           <>
             <AreaForm inicial={{ id: a.id, nome: a.nome, cidade: a.cidade, uf: a.uf, dono: a.dono ?? "", corretor: a.corretor ?? "", hectares: a.hectares ? String(a.hectares).replace(".", ",") : "", etapa, relatorio: a.relatorio ?? "" }} />

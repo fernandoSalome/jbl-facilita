@@ -160,3 +160,36 @@ export function pendencias(areas: { id: string; cidade: string; dono: string | n
   }
   return out.sort((a, b) => b.peso - a.peso);
 }
+
+/* ------------------------------ Card do funil ------------------------------ */
+
+export type Tom = "ok" | "warn" | "bad" | "run";
+
+/** Situação e próximo passo do card (igual à maquete: linha de situação e etiqueta colorida) */
+export function cartao(a: { etapa: string; situacao: string; poligono: unknown; estudo1: unknown; reuniaoId: string | null; projectId: string | null }): { situacao: string; tom: Tom; passo: string } {
+  if (a.situacao === "geladeira") return { situacao: "Na geladeira", tom: "run", passo: "rever depois" };
+  if (a.situacao === "descartada") return { situacao: "Descartada", tom: "bad", passo: "fora do funil" };
+  const e1 = lerEstudo1(a.estudo1);
+  switch (a.etapa) {
+    case "captacao":
+      return a.poligono ? { situacao: "KMZ recebido", tom: "warn", passo: "dar play no estudo?" } : { situacao: "Aguardando KMZ", tom: "bad", passo: "pedir o KMZ" };
+    case "previabilidade":
+      return (
+        {
+          aguardando: { situacao: "Estudo do terreno em andamento", tom: "run" as Tom, passo: "raio-x rodando" },
+          pronto: { situacao: "Raio-x pronto", tom: "bad" as Tom, passo: "mandar resumo ao Central" },
+          perguntado: { situacao: "Perguntado no Central", tom: "warn" as Tom, passo: "esperando 1 Sim · 2 Não" },
+          sim: { situacao: "Mercadológico liberado", tom: "run" as Tom, passo: "fazer o mercadológico" },
+          nao: { situacao: "Parado no terreno", tom: "bad" as Tom, passo: "geladeira ou descartar?" },
+        } as const
+      )[e1.status];
+    case "reuniao":
+      return a.reuniaoId ? { situacao: "Reunião marcada", tom: "ok", passo: "reunião marcada" } : { situacao: "Pronto para reunião", tom: "bad", passo: "marcar a reunião" };
+    case "proposta":
+      return a.projectId ? { situacao: "Proposta em andamento", tom: "run", passo: "acompanhar a proposta" } : { situacao: "Fazer proposta", tom: "warn", passo: "criar a proposta" };
+    case "estudo30":
+      return { situacao: "Estudo de 30 dias", tom: "run", passo: "provar as hipóteses" };
+    default:
+      return { situacao: "Contrato", tom: "ok", passo: "assinar o contrato" };
+  }
+}

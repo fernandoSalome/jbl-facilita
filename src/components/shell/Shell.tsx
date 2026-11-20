@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
@@ -12,7 +13,7 @@ const empresaNav: NavItem[] = [
   { href: "/app/calendario", label: "Agenda", icon: "calendar" },
   { href: "/app/conversas", label: "Conversas", icon: "chat" },
   { grupo: "Negócios" },
-  { href: "/app/captacao", label: "Captação de áreas", icon: "target" },
+  { href: "/app/captacao", label: "Projetos", icon: "target" },
   { href: "/app/estudos", label: "Estudos", icon: "chart" },
   { href: "/app/projetos", label: "Loteamentos", icon: "map" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
@@ -43,7 +44,8 @@ function projectNav(id: string): NavItem[] {
   ];
 }
 
-export default async function Shell({ projectId, children }: { projectId?: string; children: React.ReactNode }) {
+/** nav: menu próprio da página (ex.: a área da Captação, com etapas e checklist) */
+export default async function Shell({ projectId, nav, children }: { projectId?: string; nav?: NavItem[]; children: React.ReactNode }) {
   const session = await requireSession();
   const projects = await db.project.findMany({
     where: { deletedAt: null },
@@ -74,7 +76,7 @@ export default async function Shell({ projectId, children }: { projectId?: strin
           </div>
           <ProjectSwitcher projects={projects} areas={areas.map((a) => ({ id: a.id, titulo: tituloArea(a), cidade: a.cidade, uf: a.uf }))} currentId={current?.id} />
         </div>
-        <SideNav items={current ? projectNav(current.id) : empresaNav} />
+        <Suspense><SideNav items={nav ?? (current ? projectNav(current.id) : empresaNav)} /></Suspense>
         <div className="mt-auto border-t border-white/10 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full border border-gold/50 bg-gold/15 font-display text-sm text-gold">

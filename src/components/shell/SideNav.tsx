@@ -1,11 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
-export type NavLink = { href?: string; label: string; icon: keyof typeof ICONS; soon?: boolean; exact?: boolean };
+export type NavLink = {
+  href?: string;
+  label: string;
+  icon?: keyof typeof ICONS;
+  soon?: boolean;
+  exact?: boolean;
+  /** emoji ou ✔ ● ○ no lugar do ícone (menu da área, igual à maquete de 19/11/2026) */
+  simbolo?: string;
+  /** número à direita (ex.: 22%, 2/15) */
+  badge?: string;
+  /** link com ?aba=...: também fica ativo quando a página abre sem aba */
+  ativoSemAba?: boolean;
+};
 /** Título de grupo no menu ("Dia a dia", "Negócios"...), pedido 19/11/2026 */
-export type NavItem = NavLink | { grupo: string };
+export type NavItem = NavLink | { grupo: string } | { cabecalho: string; sub: string };
 
 const ICONS = {
   grid: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
@@ -36,6 +48,16 @@ function Icon({ d }: { d: string }) {
 
 export default function SideNav({ items }: { items: NavItem[] }) {
   const path = usePathname();
+  const busca = useSearchParams();
+  // link com ?aba=x&ver=y: ativo quando o endereço tem os mesmos valores
+  const ativo = (it: NavLink) => {
+    if (!it.href) return false;
+    const [base, q] = it.href.split("?");
+    if (!q) return it.exact ? path === base : path.startsWith(base);
+    if (path !== base) return false;
+    if (it.ativoSemAba && !busca.get("aba")) return true;
+    return [...new URLSearchParams(q)].every(([k, v]) => busca.get(k) === v || (k === "ver" && !busca.get("ver") && it.ativoSemAba));
+  };
   return (
     <nav className="flex-1 overflow-auto px-3 py-4">
       <ul className="grid gap-0.5">
@@ -43,12 +65,20 @@ export default function SideNav({ items }: { items: NavItem[] }) {
           if ("grupo" in item) {
             return <li key={`g-${item.grupo}`} className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 first:pt-0">{item.grupo}</li>;
           }
+          if ("cabecalho" in item) {
+            return (
+              <li key={`c-${item.cabecalho}`} className="mb-1 border-b border-white/10 px-3 pb-3 pt-1">
+                <b className="block font-display text-[16px] leading-snug text-white">{item.cabecalho}</b>
+                <small className="text-[12px] text-gold">{item.sub}</small>
+              </li>
+            );
+          }
           const it = item;
-          const active = it.href && (it.exact ? path === it.href : path.startsWith(it.href));
+          const active = ativo(it);
           if (it.soon || !it.href) {
             return (
               <li key={it.label} className="flex cursor-default items-center gap-3 rounded px-3 py-2 text-[14px] text-white/35" title="Em breve">
-                <Icon d={ICONS[it.icon]} />
+                {it.simbolo ? <span className="w-[18px] text-center">{it.simbolo}</span> : it.icon && <Icon d={ICONS[it.icon]} />}
                 <span className="flex-1">{it.label}</span>
                 <span className="rounded-sm border border-white/15 px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wider text-white/40">em breve</span>
               </li>
@@ -63,10 +93,11 @@ export default function SideNav({ items }: { items: NavItem[] }) {
                 }`}
               >
                 {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-gold" />}
-                <span className={active ? "text-gold" : ""}>
-                  <Icon d={ICONS[it.icon]} />
+                <span className={`w-[18px] text-center ${active ? "text-gold" : ""}`}>
+                  {it.simbolo ?? (it.icon && <Icon d={ICONS[it.icon]} />)}
                 </span>
-                {it.label}
+                <span className="flex-1">{it.label}</span>
+                {it.badge && <span className="rounded-full bg-white/[0.12] px-2 py-px text-[11.5px] font-semibold text-white/85">{it.badge}</span>}
               </Link>
             </li>
           );

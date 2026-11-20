@@ -51,3 +51,15 @@ describe("custos e pendências", () => {
     expect(p.map((x) => [x.areaId, x.oQue.slice(0, 12)])).toEqual([["b", "Estudo do te"], ["c", "Marcar a reu"], ["a", "Falta o KMZ"], ["a", "Parada há 18"]]);
   });
 });
+
+describe("card do funil", async () => {
+  const { cartao } = await import("./captacao-estudos");
+  const base = { etapa: "captacao", situacao: "ativa", poligono: null, estudo1: {}, reuniaoId: null, projectId: null };
+  it("mostra a situação e o próximo passo de cada etapa", () => {
+    expect(cartao(base)).toEqual({ situacao: "Aguardando KMZ", tom: "bad", passo: "pedir o KMZ" });
+    expect(cartao({ ...base, poligono: [[0, 0]] }).passo).toBe("dar play no estudo?");
+    expect(cartao({ ...base, etapa: "previabilidade", estudo1: { status: "perguntado" } }).passo).toBe("esperando 1 Sim · 2 Não");
+    expect(cartao({ ...base, etapa: "reuniao", reuniaoId: "c1" }).tom).toBe("ok");
+    expect(cartao({ ...base, situacao: "geladeira" }).situacao).toBe("Na geladeira");
+  });
+});
