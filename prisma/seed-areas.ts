@@ -311,6 +311,8 @@ export async function mercadoSorocaba(db: PrismaClient) {
  */
 export async function centralNoJblTeste(db: PrismaClient) {
   const jid = "120363434373802289@g.us";
+  // depois veio o JBL - Central de verdade (centralDeVerdade): este passo não volta mais o JBL Teste
+  if (await db.waGroup.findFirst({ where: { jid: JID_CENTRAL, funcao: "central" } })) return;
   const g = await db.waGroup.findUnique({ where: { jid } });
   if (g?.funcao === "central" && g.papel !== "inativo") return;
   await db.waGroup.updateMany({ where: { funcao: "central", jid: { not: jid } }, data: { funcao: null } });
@@ -391,4 +393,18 @@ export async function viabilidadesDentroDaArea(db: PrismaClient) {
 export async function assinaturaDentroDaProposta(db: PrismaClient) {
   const r = await db.area.updateMany({ where: { etapa: "assinatura" }, data: { etapa: "proposta" } });
   if (r.count) console.log(`Captação: ${r.count} área(s) voltaram de "Assinatura da carta" para Proposta`);
+}
+
+/**
+ * Pedido do Fernando (20/11/2026): o grupo JBL - Central de verdade é o 120363434430037648 (não o JBL Teste).
+ * O KMZ que o Marcelo mandou lá não era visto porque o robô só olhava o JBL Teste como Central.
+ * Uma vez só: se esse grupo já é o Central, não faz nada.
+ */
+const JID_CENTRAL = "120363434430037648@g.us";
+export async function centralDeVerdade(db: PrismaClient) {
+  const g = await db.waGroup.findUnique({ where: { jid: JID_CENTRAL } });
+  if (g?.funcao === "central" && g.papel !== "inativo") return;
+  await db.waGroup.updateMany({ where: { funcao: "central", jid: { not: JID_CENTRAL } }, data: { funcao: null } });
+  await db.waGroup.upsert({ where: { jid: JID_CENTRAL }, create: { jid: JID_CENTRAL, name: "JBL - Central", papel: "controle", funcao: "central" }, update: { papel: "controle", funcao: "central" } });
+  console.log("WhatsApp: o JBL - Central (120363434430037648) agora é o grupo Central");
 }
