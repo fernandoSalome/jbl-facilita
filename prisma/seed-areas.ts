@@ -304,3 +304,16 @@ export async function mercadoSorocaba(db: PrismaClient) {
   const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba-mercado.html", "utf8"), [], "relatorioMercado");
   console.log(`Captação: Estudo 2 de Sorocaba (${r.secoes} seções, ${r.imagens} imagens)`);
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): o grupo "JBL Teste" (120363434373802289@g.us) passa a ser o JBL - Central.
+ * Os outros grupos marcados como Central perdem a marca (continuam cadastrados). Uma vez só: se já é o Central, nada.
+ */
+export async function centralNoJblTeste(db: PrismaClient) {
+  const jid = "120363434373802289@g.us";
+  const g = await db.waGroup.findUnique({ where: { jid } });
+  if (g?.funcao === "central" && g.papel !== "inativo") return;
+  await db.waGroup.updateMany({ where: { funcao: "central", jid: { not: jid } }, data: { funcao: null } });
+  await db.waGroup.upsert({ where: { jid }, create: { jid, name: "JBL Teste", papel: "controle", funcao: "central" }, update: { papel: "controle", funcao: "central" } });
+  console.log("WhatsApp: JBL Teste agora é o JBL - Central");
+}
