@@ -2,6 +2,7 @@ import { areaPorTexto, distribuir, SECOES, tituloArea } from "./captacao";
 import { acrescentar, areasAtivas } from "./captacao-db";
 import { lerEstudo1, respostaCentral } from "./captacao-estudos";
 import { db } from "./db";
+import { confirmacaoLembrete, lerPedidoLembrete, resumoArea } from "./lembretes";
 import type { Recebida } from "./whatsapp";
 
 /**
@@ -50,5 +51,29 @@ export async function tratarCentral(m: Recebida, responder: (t: string) => Promi
   }
   await db.area.update({ where: { id: alvo.id }, data: { estudo1: { ...lerEstudo1(alvo.estudo1), status: r } } });
   await responder(r === "sim" ? `📊 Combinado: *${tituloArea(alvo)}* segue para o mercadológico de concorrentes.` : `⏹ *${tituloArea(alvo)}* fica parada no terreno.`);
+  return true;
+}
+
+/** "me lembra amanhã às 9h de…": guarda e confirma; sai no mesmo grupo na hora (pedido 20/11/2026) */
+export async function tratarLembrete(m: Recebida, responder: (t: string) => Promise<unknown>): Promise<boolean> {
+  const p = lerPedidoLembrete(m.texto, m.quando);
+  if (!p) return false;
+  await db.lembrete.create({ data: { texto: p.texto.slice(0, 400), quando: p.quando, grupoJid: m.grupo, pedidoPor: m.autor || null } });
+  await responder(confirmacaoLembrete(p.quando, p.texto));
+  return true;
+}
+
+/** "Qual a situação de Sorocaba?" / "como está o Sítio do Pedro": o resumo da área (pedido 20/11/2026) */
+export async function tratarSituacaoArea(m: Recebida, responder: (t: string) => Promise<unknown>): Promise<boolean> {
+  const n = m.texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (!/situac|como esta|status|andamento|resumo|novidade/.test(n)) return false;
+  const areas = await db.area.findMany({ where: { deletedAt: null, situacao: { not: "descartada" } } });
+  const achadas = areaPorTexto(m.texto, areas);
+  if (!achadas.length) return false;
+  if (achadas.length > 1) {
+    await responder(`Qual delas?\n${achadas.slice(0, 8).map((a) => `• ${tituloArea(a)}`).join("\n")}`);
+    return true;
+  }
+  await responder(resumoArea(achadas[0]));
   return true;
 }

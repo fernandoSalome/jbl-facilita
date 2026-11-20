@@ -5,7 +5,7 @@ import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
 import { nutrirPorTelefone } from "./captacao-db";
-import { tratarCentral, tratarEstudos } from "./robo-estudos";
+import { tratarCentral, tratarEstudos, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -100,6 +100,11 @@ export async function tratarMensagem(m: Recebida) {
   if (g.funcao === "estudos" && (await tratarEstudos(m, responder))) return;
   /* ---------- grupo JBL - Central: "1 Sim · 2 Não" depois do resumo do terreno ---------- */
   if (g.funcao === "central" && (await tratarCentral(m, responder))) return;
+
+  /* ---------- lembretes ("me lembra amanhã às 9h de…") e situação das áreas da Captação ---------- */
+  if (await tratarLembrete(m, responder)) return;
+  // loteamento citado pelo nome segue o fluxo de sempre; senão, procura nas áreas da Captação
+  if (!citado && (await tratarSituacaoArea(m, responder))) return;
 
   /* ---------- texto ---------- */
   // documento que chegou sem loteamento: a resposta com o nome resolve
@@ -210,7 +215,7 @@ export async function tratarMensagem(m: Recebida) {
     }
     case "ajuda":
       return responder(
-        `Sou o assistente da JBL. Aqui você pode:\n• *Mandar um documento* (PDF ou foto) de qualquer etapa: eu guardo na pasta do loteamento. Diga a etapa se quiser: _segue a licença da aprovação do São Judas_\n• *Pedir um documento:* _manda a matrícula do São Judas_\n• *Pedir os de uma etapa:* _manda os documentos da aprovação do São Judas_\n• *Pedir a proposta em PDF:* _manda a proposta do São Judas_\n• *Perguntar das propostas:* _qual o valor do lote na proposta do São Judas?_\n• *Ver o andamento:* _como está o São Judas?_\n\nEtapas: ${FASES.map(([f]) => ETAPA[f]).join(" · ")}\n\nLoteamentos:\n${listaProjetos(projetos)}`,
+        `Sou o assistente da JBL. Aqui você pode:\n• *Mandar um documento* (PDF ou foto) de qualquer etapa: eu guardo na pasta do loteamento. Diga a etapa se quiser: _segue a licença da aprovação do São Judas_\n• *Pedir um documento:* _manda a matrícula do São Judas_\n• *Pedir os de uma etapa:* _manda os documentos da aprovação do São Judas_\n• *Pedir a proposta em PDF:* _manda a proposta do São Judas_\n• *Perguntar das propostas:* _qual o valor do lote na proposta do São Judas?_\n• *Ver o andamento:* _como está o São Judas?_\n• *Situação de uma área da Captação:* _qual a situação de Sorocaba?_\n• *Lembrete:* _me lembra amanhã às 9h de ligar pro Pedro_\n\nEtapas: ${FASES.map(([f]) => ETAPA[f]).join(" · ")}\n\nLoteamentos:\n${listaProjetos(projetos)}`,
       );
     default:
       return;

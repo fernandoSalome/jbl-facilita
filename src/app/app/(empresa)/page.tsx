@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { modoSimples } from "@/lib/modo";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { listProposals } from "@/lib/queries";
@@ -14,6 +16,8 @@ import { FASES } from "@/lib/fases";
 
 export default async function Painel() {
   const session = await requireSession();
+  // modo simples (pedido 20/11/2026): a entrada é a tela "Hoje"
+  if (modoSimples()) redirect("/app/dia-a-dia");
   const [projects, proposals] = await Promise.all([
     db.project.findMany({ where: { deletedAt: null }, orderBy: { updatedAt: "desc" } }),
     listProposals({}),

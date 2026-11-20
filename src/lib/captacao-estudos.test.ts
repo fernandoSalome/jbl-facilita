@@ -63,3 +63,27 @@ describe("card do funil", async () => {
     expect(cartao({ ...base, situacao: "geladeira" }).situacao).toBe("Na geladeira");
   });
 });
+
+describe("checklist puxa dos passos", async () => {
+  const { respostasDosPassos } = await import("./captacao-estudos");
+  it("monta zona, lotes, documentos e reunião sem gravar nada", () => {
+    const r = respostasDosPassos({ nome: "Terreno", dono: "Marcos", corretor: null, hectares: 21.44, estudo1: { zona: "ZRDS", loteMinimo: "300 m²", lotes: { pior: 27, medio: 167, bom: 283 } }, estudo2: {}, documentos: { "Matrícula atualizada": "ok" }, conversas: [], reuniao: { inicio: new Date("2026-11-25T17:00:00Z") }, updatedAt: new Date() });
+    const v = (p: string) => r.find((x) => x.pergunta === p)?.resposta;
+    expect(v("Zona")).toBe("ZRDS");
+    expect(v("Matrícula")).toBe("Recebido");
+    expect(r.find((x) => x.pergunta === "Matrícula")?.fonte).toBe("documento");
+    expect(v("Quantidade de lotes")).toContain("27 / 167 / 283");
+    expect(v("Reunião com o proprietário")).toBe("Marcada para 25/11, 14:00");
+    expect(v("Viabilidade de água e esgoto")).toBeUndefined();
+  });
+});
+
+describe("próximo passo", async () => {
+  const { acaoDoPasso } = await import("./captacao-estudos");
+  const base = { etapa: "captacao", situacao: "ativa", poligono: null, estudo1: {}, reuniaoId: null, projectId: null };
+  it("diz o que fazer e leva ao lugar certo", () => {
+    expect(acaoDoPasso(base)).toMatchObject({ titulo: "Pedir o KMZ da área", aba: "config" });
+    expect(acaoDoPasso({ ...base, etapa: "previabilidade", estudo1: { status: "pronto" } }).botao).toBe("Mandar o resumo");
+    expect(acaoDoPasso({ ...base, etapa: "reuniao" }).aba).toBe("etapa&ver=reuniao");
+  });
+});

@@ -5,7 +5,7 @@
  *  3. Apresentação da reunião (slides), gerada dos dois estudos
  * Funções puras: validação, resumo, slides, pendências do dia.
  */
-import { nomeEtapa, tituloArea } from "./captacao";
+import { nomeEtapa, tituloArea, validarDocumentos, type Resposta } from "./captacao";
 
 const txt = (v: unknown, max = 300) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const num = (v: unknown) => {
@@ -191,5 +191,80 @@ export function cartao(a: { etapa: string; situacao: string; poligono: unknown; 
       return { situacao: "Estudo de 30 dias", tom: "run", passo: "provar as hipóteses" };
     default:
       return { situacao: "Contrato", tom: "ok", passo: "assinar o contrato" };
+  }
+}
+
+/* ------------------------------ Checklist que puxa dos passos ------------------------------ */
+
+/**
+ * Respostas que o checklist já sabe pelos passos (pedido 20/11/2026): KMZ, cadastro, Estudo 1, Estudo 2,
+ * documentos e reunião. Não são gravadas: são montadas na hora, então mudam junto com o passo de origem.
+ */
+export function respostasDosPassos(a: {
+  nome: string; dono: string | null; corretor: string | null; hectares: number | null; estudo1: unknown; estudo2: unknown; documentos: unknown;
+  conversas: { nome: string; papel: string; telefone: string }[]; reuniao: { inicio: Date } | null; updatedAt: Date;
+}): (Resposta & { aba: string })[] {
+  const em = a.updatedAt.toISOString();
+  const out: (Resposta & { aba: string })[] = [];
+  const add = (secao: number, pergunta: string, resposta: string, fonte: Resposta["fonte"], ref: string, aba: string) => resposta && out.push({ secao, pergunta, resposta, fonte, ref, em, aba });
+  const e1 = lerEstudo1(a.estudo1);
+  const e2 = lerEstudo2(a.estudo2);
+  const docs = validarDocumentos(a.documentos);
+  if (a.nome) add(0, "Nome", a.nome, "manual", "Configurações", "config");
+  if (a.hectares) add(0, "Extensão (m²)", `${Math.round(a.hectares * 1e4).toLocaleString("pt-BR")} m² (${a.hectares.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha), medido no KMZ`, "raiox", "Captação · KMZ", "etapa&ver=captacao");
+  const prop = a.conversas.find((c) => c.papel === "proprietario");
+  if (a.dono || prop) add(1, "Nome / profissão / telefone", [a.dono, prop ? `+${prop.telefone}` : ""].filter(Boolean).join(" · "), "manual", "Configurações", "config");
+  if (a.corretor) add(1, "Corretor", a.corretor, "manual", "Configurações", "config");
+  const d = (nome: string) => (docs[nome] === "ok" ? "Recebido" : docs[nome] === "pedido" ? "Pedido, ainda não chegou" : "");
+  add(2, "Matrícula", d("Matrícula atualizada"), docs["Matrícula atualizada"] === "ok" ? "documento" : "manual", "Documentos", "documentos");
+  add(2, "IPTU / CCIR", d("IPTU / CCIR"), docs["IPTU / CCIR"] === "ok" ? "documento" : "manual", "Documentos", "documentos");
+  add(2, "Herdeiros de acordo?", d("Inventário / acordo dos herdeiros"), "manual", "Documentos", "documentos");
+  add(6, "Certidão de uso do solo", d("Certidão de uso do solo"), docs["Certidão de uso do solo"] === "ok" ? "documento" : "manual", "Documentos", "documentos");
+  add(6, "Diretrizes", d("Diretrizes de parcelamento"), docs["Diretrizes de parcelamento"] === "ok" ? "documento" : "manual", "Documentos", "documentos");
+  add(17, "Viabilidade de água e esgoto", d("Viabilidade de água e esgoto"), docs["Viabilidade de água e esgoto"] === "ok" ? "documento" : "manual", "Documentos", "documentos");
+  const pv = "Pré-viabilidade · Estudo 1";
+  add(4, "Zona", e1.zona, "raiox", pv, "etapa&ver=previabilidade");
+  add(4, "Lote mínimo", e1.loteMinimo, "raiox", pv, "etapa&ver=previabilidade");
+  add(12, "Produto sugerido", e2.produto || e1.produto, "raiox", e2.produto ? "Pré-viabilidade · Estudo 2" : pv, "etapa&ver=previabilidade");
+  if (e1.lotes.medio) add(12, "Quantidade de lotes", `${e1.lotes.pior ?? "?"} / ${e1.lotes.medio} / ${e1.lotes.bom ?? "?"} (pior / médio / bom)${e1.aproveitavelPct != null ? `, ${e1.aproveitavelPct}% aproveitável` : ""}`, "raiox", pv, "etapa&ver=previabilidade");
+  if (e1.regiao.m2Min) add(8, "Preço do lote na região", `R$ ${e1.regiao.m2Min.toLocaleString("pt-BR")}${e1.regiao.m2Max ? ` a ${e1.regiao.m2Max.toLocaleString("pt-BR")}` : ""} por m² (anúncios)`, "raiox", pv, "etapa&ver=previabilidade");
+  add(25, "Expansão urbana", e1.regiao.expansao, "raiox", pv, "etapa&ver=previabilidade");
+  e1.alertas.forEach((x) => add(28, "Alerta do estudo", x.comoResolver ? `${x.texto} → ${x.comoResolver}` : x.texto, "raiox", pv, "etapa&ver=previabilidade"));
+  if (e2.concorrentes.length) add(11, "Concorrentes no raio de 5 km", e2.concorrentes.map((c) => `${c.nome}${c.hoje ? ` (${c.hoje})` : ""}`).join("; "), "raiox", "Pré-viabilidade · Estudo 2", "etapa&ver=previabilidade");
+  if (e2.veredito) add(8, "Encaixe no mercado", `${VEREDITOS[e2.veredito]}${e2.risco ? `. Risco: ${e2.risco}` : ""}`, "raiox", "Pré-viabilidade · Estudo 2", "etapa&ver=previabilidade");
+  if (a.reuniao) add(1, "Reunião com o proprietário", `Marcada para ${a.reuniao.inicio.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`, "reuniao", "Reunião", "etapa&ver=reuniao");
+  return out;
+}
+
+/* ------------------------------ Próximo passo (modo simples) ------------------------------ */
+
+/**
+ * O que fazer agora nesta área, em uma frase, e para onde o botão leva (pedido 20/11/2026: "próximos passos
+ * claros, simples de executar"). aba = destino dentro da página da área.
+ */
+export function acaoDoPasso(a: Parameters<typeof cartao>[0]): { titulo: string; explica: string; botao: string; aba: string } {
+  if (a.situacao !== "ativa") return { titulo: a.situacao === "geladeira" ? "Área na geladeira" : "Área descartada", explica: "Nada a fazer agora. Se mudar de ideia, use “Reativar área” no topo.", botao: "Ver a área", aba: "etapa" };
+  const e1 = lerEstudo1(a.estudo1);
+  switch (a.etapa) {
+    case "captacao":
+      return a.poligono
+        ? { titulo: "Decidir se vale estudar", explica: "O KMZ chegou. Olhe o mapa e, se fizer sentido, clique em “Sim, estudar”.", botao: "Ver o mapa", aba: "etapa&ver=captacao" }
+        : { titulo: "Pedir o KMZ da área", explica: "Sem o desenho da área não dá para estudar. Peça ao proprietário ou ao corretor e suba em Configurações.", botao: "Subir o KMZ", aba: "config" };
+    case "previabilidade":
+      if (e1.status === "aguardando") return { titulo: "Preencher o estudo do terreno", explica: "Coloque os números do raio-x (zona, lotes, alertas).", botao: "Abrir o estudo", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "pronto") return { titulo: "Mandar o resumo para o grupo", explica: "O estudo do terreno está pronto. Mande o resumo ao JBL - Central para decidir se segue.", botao: "Mandar o resumo", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "perguntado") return { titulo: "Responder no grupo: 1 Sim ou 2 Não", explica: "O resumo foi para o JBL - Central. A resposta lá decide se faz o estudo de mercado.", botao: "Ver o estudo", aba: "etapa&ver=previabilidade" };
+      if (e1.status === "sim") return { titulo: "Fazer o estudo de mercado", explica: "Concorrentes, revenda e produto. Depois disso, a apresentação fica pronta.", botao: "Abrir o mercado", aba: "etapa&ver=previabilidade" };
+      return { titulo: "Decidir: geladeira ou descartar", explica: "O terreno não passou. Use os botões do topo.", botao: "Ver o estudo", aba: "etapa&ver=previabilidade" };
+    case "reuniao":
+      return a.reuniaoId
+        ? { titulo: "Fazer a reunião", explica: "A reunião está marcada. Leve a apresentação.", botao: "Ver a reunião", aba: "etapa&ver=reuniao" }
+        : { titulo: "Marcar a reunião com o proprietário", explica: "Escolha dia e hora; o convite e os avisos saem sozinhos.", botao: "Marcar a reunião", aba: "etapa&ver=reuniao" };
+    case "proposta":
+      return { titulo: a.projectId ? "Acompanhar a proposta" : "Fazer a proposta", explica: "A proposta é feita no loteamento, do jeito de sempre.", botao: a.projectId ? "Abrir as propostas" : "Fazer a proposta", aba: "etapa&ver=proposta" };
+    case "estudo30":
+      return { titulo: "Provar o que o estudo diz", explica: "Marque cada afirmação como provada ou falsa, com a prova.", botao: "Abrir o estudo de 30 dias", aba: "etapa&ver=estudo30" };
+    default:
+      return { titulo: "Assinar o contrato", explica: "Contrato de parceria em andamento.", botao: "Ver o contrato", aba: "etapa&ver=contrato" };
   }
 }

@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import ProjectSwitcher from "./ProjectSwitcher";
+import BotaoModo from "./BotaoModo";
+import { modoSimples } from "@/lib/modo";
 import { tituloArea } from "@/lib/captacao";
 import SideNav, { type NavItem } from "./SideNav";
 
@@ -29,6 +31,15 @@ const empresaNav: NavItem[] = [
   { href: "/app/usuarios", label: "Usuários", icon: "key" },
 ];
 
+/** Modo simples: só o do dia a dia (pedido 20/11/2026) */
+const simplesNav: NavItem[] = [
+  { href: "/app/dia-a-dia", label: "Hoje", icon: "check" },
+  { href: "/app/captacao", label: "Projetos", icon: "target" },
+  { href: "/app/calendario", label: "Agenda", icon: "calendar" },
+  { href: "/app/propostas", label: "Propostas", icon: "doc" },
+  { href: "/app/conversas", label: "Conversas", icon: "chat" },
+];
+
 function projectNav(id: string): NavItem[] {
   const base = `/app/projetos/${id}`;
   return [
@@ -47,6 +58,7 @@ function projectNav(id: string): NavItem[] {
 /** nav: menu próprio da página (ex.: a área da Captação, com etapas e checklist) */
 export default async function Shell({ projectId, nav, children }: { projectId?: string; nav?: NavItem[]; children: React.ReactNode }) {
   const session = await requireSession();
+  const simples = modoSimples();
   const projects = await db.project.findMany({
     where: { deletedAt: null },
     orderBy: { updatedAt: "desc" },
@@ -76,8 +88,9 @@ export default async function Shell({ projectId, nav, children }: { projectId?: 
           </div>
           <ProjectSwitcher projects={projects} areas={areas.map((a) => ({ id: a.id, titulo: tituloArea(a), cidade: a.cidade, uf: a.uf }))} currentId={current?.id} />
         </div>
-        <Suspense><SideNav items={nav ?? (current ? projectNav(current.id) : empresaNav)} /></Suspense>
+        <Suspense><SideNav items={nav ?? (current ? projectNav(current.id) : simples ? simplesNav : empresaNav)} /></Suspense>
         <div className="mt-auto border-t border-white/10 px-5 py-4">
+          <BotaoModo simples={simples} />
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full border border-gold/50 bg-gold/15 font-display text-sm text-gold">
               {session.name.slice(0, 1)}

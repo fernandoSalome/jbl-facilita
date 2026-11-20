@@ -429,3 +429,23 @@ model WaEnvio {
 
   @@index([em])
 }
+
+/// Lembrete pedido no WhatsApp ("me lembra amanhã às 9h de ligar pro Pedro"), pedido 20/11/2026. Sai no grupo
+/// em que foi pedido, pela rotina de 10 em 10 minutos; enviadoEm vazio = ainda não saiu.
+model Lembrete {
+  id        String    @id @default(cuid())
+  texto     String
+  quando    DateTime
+  grupoJid  String
+  pedidoPor String?
+  enviadoEm DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([enviadoEm, quando])
+}
+
+/// Rotinas que saem uma vez por dia (ex.: "resumo-2026-11-21"): a chave existe = já saiu
+model WaRotina {
+  chave String   @id
+  em    DateTime @default(now())
+}

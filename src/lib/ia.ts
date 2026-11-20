@@ -195,3 +195,21 @@ ${dados}`,
     return null;
   }
 }
+
+/**
+ * Checklist da Captação (pedido 20/11/2026): ao salvar um ponto escrito à mão, deixa o texto claro e curto, em
+ * português correto, sem inventar nada. Sem IA (ou se falhar), devolve null e o texto fica como foi escrito.
+ */
+export async function arrumarTexto(texto: string, pergunta: string): Promise<string | null> {
+  if (!temIA() || texto.trim().length < 4) return null;
+  try {
+    const t = await claude(
+      [{ type: "text", text: `Reescreva a resposta abaixo, do checklist de estudo de um terreno para loteamento, de forma clara, curta e em português correto. Mantenha todos os fatos, números e nomes; não acrescente nada; não comente. Devolva só o texto reescrito.\nItem: ${pergunta}\nResposta: ${texto.slice(0, 1500)}` }],
+      300,
+    );
+    const limpo = t.trim().replace(/^["“]|["”]$/g, "");
+    return limpo && limpo.length < texto.length * 3 + 40 ? limpo.slice(0, 600) : null;
+  } catch {
+    return null;
+  }
+}

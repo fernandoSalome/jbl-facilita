@@ -354,3 +354,11 @@ export function limparConversa(txt: string): { quem: string; quando: string; tex
   const vazio = /^(<m[ií]dia oculta>|<media omitted>|.*\(arquivo anexado\)|mensagem apagada|this message was deleted|figurinha omitida|ok+|blz|beleza|kk+|rs+|👍|obrigad[oa]|bom dia|boa tarde|boa noite)\.?!?$/i;
   return out.filter((f) => f.texto.trim().length > 12 && !vazio.test(f.texto.trim()));
 }
+
+/** Acabamento sem IA: espaços, primeira letra maiúscula e ponto final */
+export function arrumarSimples(t: string) {
+  const s = t.replace(/\s+/g, " ").trim();
+  if (!s) return s;
+  const c = s[0].toUpperCase() + s.slice(1);
+  return /[.!?…)]$/.test(c) ? c : `${c}.`;
+}

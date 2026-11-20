@@ -14,7 +14,9 @@ import ListaEditavel from "@/components/captacao/ListaEditavel";
 import PreViabilidade from "@/components/captacao/PreViabilidade";
 import ReuniaoArea from "@/components/captacao/ReuniaoArea";
 import LinkEstudo from "@/components/captacao/LinkEstudo";
-import { lerCustos, lerEstudo1, lerEstudo2, lerPessoas } from "@/lib/captacao-estudos";
+import { acaoDoPasso, lerCustos, lerEstudo1, lerEstudo2, lerPessoas, respostasDosPassos } from "@/lib/captacao-estudos";
+import ProximoPasso from "@/components/captacao/ProximoPasso";
+import { modoSimples } from "@/lib/modo";
 import { db } from "@/lib/db";
 import { ETAPAS, lerChecklist, nomeEtapa, PAPEIS, professor, tituloArea, validarDocumentos, validarHipoteses, type Etapa } from "@/lib/captacao";
 import { buscarArea } from "@/lib/captacao-db";
@@ -33,7 +35,6 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
   const checklist = lerChecklist(a.checklist);
   const poligono = lerPoligono(a.poligono);
   const documentos = validarDocumentos(a.documentos);
-  const prof = professor({ hectares: a.hectares, checklist, conversas: a.conversas });
   const etapa = a.etapa as Etapa;
   const iEtapa = ETAPAS.findIndex(([k]) => k === etapa);
   // clicar numa etapa mostra o conteúdo dela sem mudar a etapa da área
@@ -43,6 +44,9 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
     a.reuniaoId ? db.compromisso.findUnique({ where: { id: a.reuniaoId }, select: { inicio: true, fim: true, local: true, status: true, convidadoNome: true, descricao: true } }) : null,
   ]);
   const custos = lerCustos(a.custos);
+  // o checklist também sabe o que os passos já dizem (pedido 20/11/2026)
+  const derivadas = respostasDosPassos({ ...a, reuniao: reuniao && reuniao.status === "marcado" ? reuniao : null });
+  const prof = professor({ hectares: a.hectares, checklist: [...derivadas, ...checklist], conversas: a.conversas });
   const pessoas = lerPessoas(a.pessoas);
   const ha = a.hectares ? `${a.hectares.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha` : "tamanho a medir";
 
@@ -55,6 +59,12 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         actions={<Gate id={a.id} etapa={etapa} situacao={a.situacao} />}
       />
       <div className="grid gap-5 p-8">
+        {(() => {
+          // modo simples: o próximo passo sempre no topo, com um botão (pedido 20/11/2026)
+          if (!modoSimples()) return null;
+          const p = acaoDoPasso(a);
+          return <ProximoPasso titulo={p.titulo} explica={p.explica} botao={p.botao} href={`?aba=${p.aba}`} />;
+        })()}
         {aba === "etapa" && (
           <>
             {ver === "captacao" && (
@@ -106,12 +116,13 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
               </section>
             )}
             <section className="card p-5">
-              <h3 className="eyebrow mb-2">🎓 O professor diz</h3>
-              <p className="text-sm">{prof.leitura} <Link className="font-semibold text-gold-deep underline" href="?aba=checklist">Ver questionamentos ({prof.questoes.length})</Link></p>
+              <h3 className="eyebrow mb-2">O que falta confirmar</h3>
+              <p className="mb-2 text-sm text-muted">{prof.leitura}</p>
+              <ul className="grid gap-1 text-sm">{prof.questoes.slice(0, 5).map((q, i) => <li key={i}>• {q.texto}{q.pedirA ? <span className="text-gold-deep"> (perguntar a {q.pedirA})</span> : null}</li>)}</ul>
             </section>
           </>
         )}
-        {aba === "checklist" && <ChecklistVivo id={a.id} checklist={checklist} prof={prof} conclusao={a.conclusao ?? ""} />}
+        {aba === "checklist" && <ChecklistVivo id={a.id} checklist={checklist} derivadas={derivadas} conclusao={a.conclusao ?? ""} simples={modoSimples()} />}
         {aba === "documentos" && <DocumentosArea id={a.id} documentos={documentos} />}
         {aba === "custos" && <TabelaCustos id={a.id} custos={custos} />}
         {aba === "pessoas" && (
