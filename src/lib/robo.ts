@@ -60,9 +60,10 @@ export async function tratarMensagem(m: Recebida) {
       return;
     }
     // conversa individual: só entra no checklist se estiver ligada a uma área com "nutrir" (pedido 19/11/2026)
-    if (m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) {
+    if ((m.texto || m.audio) && Date.now() - m.quando.getTime() < 10 * 60 * 1000) {
       // ida e volta: o que o Fernando escreve pelo celular também fica no chat da área (pedido 20/11/2026)
-      await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando, m.id, m.deMim);
+      // (áudio entra no chat depois de transcrito na VPS)
+      if (m.texto) await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando, m.id, m.deMim);
       // contatos de terra: o Claude da VPS lê a conversa e diz se é de terra (pedido 20/11/2026)
       await guardarParticular(m).catch((e) => console.error("contato terra", e));
     }

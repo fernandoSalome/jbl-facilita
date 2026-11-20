@@ -77,6 +77,7 @@ type Msg = Record<string, unknown> & {
   documentMessage?: { fileName?: string; mimetype?: string; caption?: string; title?: string };
   documentWithCaptionMessage?: { message?: Msg };
   imageMessage?: { caption?: string; mimetype?: string };
+  audioMessage?: { seconds?: number; ptt?: boolean };
 };
 
 export type Recebida = {
@@ -89,11 +90,15 @@ export type Recebida = {
   arquivo: { fileName: string; mime: string } | null;
   /** em grupo: número de quem mandou (só dígitos); em conversa individual, vazio */
   participante: string;
+  /** áudio (mensagem de voz): segundos; 0 = não é áudio (pedido 20/11/2026) */
+  audio: number;
 };
 
 export function lerMensagem(data: Record<string, unknown>): Recebida | null {
-  const key = data.key as { remoteJid?: string; fromMe?: boolean; id?: string; participant?: string; participantAlt?: string; participantPn?: string } | undefined;
+  const key = data.key as { remoteJid?: string; remoteJidAlt?: string; senderPn?: string; fromMe?: boolean; id?: string; participant?: string; participantAlt?: string; participantPn?: string } | undefined;
   if (!key?.id || !key.remoteJid) return null;
+  // conversa particular pode vir com um id interno (@lid) no lugar do número: usa o número quando vier junto
+  const remoteJid = /@lid$/.test(key.remoteJid) ? ([key.remoteJidAlt, key.senderPn].find((x) => x && /@s\.whatsapp\.net$/.test(x)) ?? key.remoteJid) : key.remoteJid;
   let m = (data.message ?? {}) as Msg;
   if (m.documentWithCaptionMessage?.message) m = m.documentWithCaptionMessage.message;
   const doc = m.documentMessage;
@@ -107,13 +112,14 @@ export function lerMensagem(data: Record<string, unknown>): Recebida | null {
   const ts = Number(data.messageTimestamp ?? 0);
   return {
     id: key.id,
-    grupo: key.remoteJid,
+    grupo: remoteJid,
     deMim: !!key.fromMe,
     autor: String(data.pushName ?? ""),
     quando: ts ? new Date(ts * 1000) : new Date(),
     texto: texto.trim(),
     arquivo,
     // o WhatsApp pode mandar um id interno (@lid) no lugar do número: usa o número quando vier junto
+    audio: m.audioMessage ? Math.max(1, Math.round(Number(m.audioMessage.seconds ?? 1))) : 0,
     participante: ([key.participantPn, key.participantAlt, key.participant].find((x) => x && /@s\.whatsapp\.net$/.test(x)) ?? "").split("@")[0].replace(/\D/g, ""),
   };
 }

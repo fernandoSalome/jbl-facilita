@@ -27,9 +27,9 @@ export default async function Conversas() {
   return (
     <>
       <PageHeader eyebrow="Dia a dia" title="Conversas" subtitle="Proprietários, corretores e fontes de mercado ligados às áreas. Abra a área para conversar." />
-      <div className="grid gap-8 p-8">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 p-8">
         <ContatosTerra contatos={contatos} areas={areas} pendentes={pendentes} admin={session?.role === "ADMIN"} />
-        <section className="grid gap-2">
+        <section className="grid min-w-0 gap-2">
         <h2 className="font-display text-xl text-navy">Ligadas a uma área</h2>
         <div className="card divide-y divide-line">
           {lista.map(({ c, u }) => (

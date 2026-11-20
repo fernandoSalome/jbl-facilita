@@ -3,7 +3,7 @@
 // só com ferramentas de pesquisa e leitura (não altera arquivos nem roda comandos), e devolve a resposta.
 // Variáveis (arquivo ~/.ponte.env): CLAUDE_PONTE_SECRET (a mesma da Vercel) e FACILITA_URL.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 
 const URL_BASE = (process.env.FACILITA_URL || "https://jbl-facilita.com.br").replace(/\/+$/, "");
@@ -82,6 +82,39 @@ async function ciclo() {
   await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ok: res.ok, resposta: res.texto }) });
   return true;
 }
+
+/** Áudios das conversas particulares (pedido 20/11/2026): fila própria, para não esperar atrás dos estudos */
+const PYTHON = `${ESTUDOS}/.venv/bin/python`;
+const TRANSCREVER = new URL("./transcrever.py", import.meta.url).pathname;
+function transcrever(arquivo) {
+  return new Promise((resolve) => {
+    const p = spawn(PYTHON, [TRANSCREVER, arquivo]);
+    let out = "";
+    const t = setTimeout(() => p.kill("SIGTERM"), 10 * 60_000);
+    p.stdout.on("data", (d) => (out += d));
+    p.on("close", (code) => { clearTimeout(t); resolve(code === 0 ? out.trim() : null); });
+  });
+}
+async function cicloAudio() {
+  const r = await fetch(`${URL_BASE}/api/claude/audio`, { headers: cab });
+  if (!r.ok) throw new Error(`audio: ${r.status}`);
+  const a = await r.json();
+  if (a.pulado) return true;
+  if (!a.id) return false;
+  const arq = `${PASTA}/audio-${a.id}.ogg`;
+  writeFileSync(arq, Buffer.from(a.base64, "base64"));
+  const texto = await transcrever(arq);
+  rmSync(arq, { force: true });
+  await fetch(`${URL_BASE}/api/claude/audio`, { method: "POST", headers: cab, body: JSON.stringify({ id: a.id, texto }) });
+  return true;
+}
+(async () => {
+  for (;;) {
+    let teve = false;
+    try { teve = await cicloAudio(); } catch (e) { console.error(new Date().toISOString(), e.message); }
+    if (!teve) await new Promise((r) => setTimeout(r, ESPERA_MS));
+  }
+})();
 
 for (;;) {
   let teve = false;

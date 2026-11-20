@@ -19,9 +19,9 @@ function Linha({ c, areas }: { c: ContatoLinha; areas: { id: string; titulo: str
     setBusy(false);
   };
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+    <div className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-3">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold font-display text-navy">{c.nome[0]}</span>
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0 flex-1 basis-[420px]">
         <b className="text-navy">{c.nome}</b> <span className="text-[12px] text-muted">{PAPEL[c.papel ?? ""] ?? "Contato"} · +{c.telefone}</span>
         {c.resumo && <span className="block text-[13px] text-navy">{c.resumo}</span>}
         <span className="block truncate text-[13px] text-muted">{c.ultima ? `${c.ultimaDeMim ? "Você: " : ""}${c.ultima}` : "sem mensagens guardadas"}</span>
@@ -48,12 +48,14 @@ export default function ContatosTerra({ contatos, areas, pendentes, admin }: { c
     if (!confirm("Ler as conversas particulares dos últimos 45 dias? Nada é enviado; o Claude separa as que são de terra e o resto é descartado.")) return;
     setLendo(true);
     try {
+      let sem = 0;
       for (let p: number | null = 0; p !== null; ) {
-        const r: { feitas: number; total: number; proxima: number | null } = await chamar("/api/contatos-terra", "POST", { pagina: p });
+        const r: { feitas: number; total: number; proxima: number | null; semNumero: number } = await chamar("/api/contatos-terra", "POST", { pagina: p });
+        sem += r.semNumero;
         setMsg(`Lendo… ${r.feitas} de ${r.total} conversas`);
         p = r.proxima;
       }
-      setMsg("✅ Conversas lidas. O Claude está separando as de terra: elas aparecem aqui em alguns minutos.");
+      setMsg(`✅ Conversas lidas. Os áudios são transcritos e o Claude separa as de terra: elas aparecem aqui aos poucos.${sem ? ` (${sem} conversa(s) sem o número do contato ficaram de fora.)` : ""}`);
       router.refresh();
     } catch (e) {
       setMsg((e as Error).message);
@@ -62,7 +64,7 @@ export default function ContatosTerra({ contatos, areas, pendentes, admin }: { c
   }
 
   return (
-    <section className="grid gap-2">
+    <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="font-display text-xl text-navy">Contatos de terra sem área</h2>
         <span className="text-[13px] text-muted">Terrenistas e corretores que falaram de terra com você. O Claude lê a conversa e separa.{pendentes ? ` ${pendentes} conversa(s) esperando leitura.` : ""}</span>

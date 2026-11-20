@@ -531,12 +531,15 @@ model ContatoTerra {
 
 /// Mensagens das conversas particulares de contatos pendentes ou de terra (ida e volta)
 model MensagemParticular {
-  id        String   @id @default(cuid())
-  telefone  String
-  deMim     Boolean  @default(false)
-  texto     String
-  quando    DateTime
-  messageId String   @unique
+  id            String   @id @default(cuid())
+  telefone      String
+  deMim         Boolean  @default(false)
+  texto         String
+  quando        DateTime
+  messageId     String   @unique
+  /// áudio esperando a transcrição na VPS (pedido 20/11/2026)
+  audioPendente Boolean  @default(false)
 
   @@index([telefone, quando])
+  @@index([audioPendente])
 }
