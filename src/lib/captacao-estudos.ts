@@ -97,7 +97,8 @@ export function resumoCentral(a: { cidade: string; dono: string | null; corretor
 /** Resposta no Central: "1"/"sim" ou "2"/"não" (com ou sem o nome da área) */
 export function respostaCentral(t: string): "sim" | "nao" | null {
   const n = t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-  if (/^(1|sim|s|pode|segue|bora)\b/.test(n)) return "sim";
+  // "segue" fica de fora: no grupo é comum "segue o documento"
+  if (/^(1|sim|s|pode|bora)\b/.test(n)) return "sim";
   if (/^(2|nao|n|para|parar)\b/.test(n)) return "nao";
   return null;
 }

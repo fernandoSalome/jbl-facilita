@@ -193,7 +193,8 @@ export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "merca
   let linhas = "";
   if (tipo === "estudo") {
     const antes = le1(a.estudo1);
-    const e = le1({ ...(estudo && typeof estudo === "object" ? estudo : {}), status: "pronto", originais: antes.originais });
+    // já pergunta no grupo se segue para o mercado (o "1" no Central põe na fila)
+    const e = le1({ ...(estudo && typeof estudo === "object" ? estudo : {}), status: "perguntado", perguntadoEm: new Date().toISOString(), originais: antes.originais });
     await db.area.update({ where: { id: a.id }, data: { estudo1: e, ...(a.etapa === "captacao" ? { etapa: "previabilidade" } : {}) } });
     if (html) linhas = `${(await guardarRelatorio(db, a.id, html)).secoes} seções`;
   } else {
@@ -202,5 +203,6 @@ export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "merca
     await db.area.update({ where: { id: a.id }, data: { estudo2: e } });
     if (html) linhas = `${(await guardarRelatorio(db, a.id, html, [], "relatorioMercado")).secoes} seções`;
   }
-  return `\n\n✅ Entrou na plataforma${linhas ? ` (${linhas})` : ""}: abra a área em Projetos.`;
+  const pergunta = tipo === "estudo" ? "\n\nSigo para a Viabilidade Mercadológica?\n1 Sim · 2 Não" : "";
+  return `\n\n✅ Entrou na plataforma${linhas ? ` (${linhas})` : ""}: abra a área em Projetos.${pergunta}`;
 }

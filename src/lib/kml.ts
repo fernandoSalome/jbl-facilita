@@ -62,3 +62,24 @@ export function lerPoligono(v: unknown): Poligono | null {
   const ok = v.every((c) => Array.isArray(c) && c.length === 2 && c.every((n) => typeof n === "number" && Number.isFinite(n)) && Math.abs(c[0]) <= 180 && Math.abs(c[1]) <= 90);
   return ok ? (v as Poligono) : null;
 }
+
+const UFS: Record<string, string> = { "BR-AC": "AC", "BR-AL": "AL", "BR-AP": "AP", "BR-AM": "AM", "BR-BA": "BA", "BR-CE": "CE", "BR-DF": "DF", "BR-ES": "ES", "BR-GO": "GO", "BR-MA": "MA", "BR-MT": "MT", "BR-MS": "MS", "BR-MG": "MG", "BR-PA": "PA", "BR-PB": "PB", "BR-PR": "PR", "BR-PE": "PE", "BR-PI": "PI", "BR-RJ": "RJ", "BR-RN": "RN", "BR-RS": "RS", "BR-RO": "RO", "BR-RR": "RR", "BR-SC": "SC", "BR-SP": "SP", "BR-SE": "SE", "BR-TO": "TO" };
+
+/** Cidade e UF a partir da resposta do Nominatim (reverse) */
+export function cidadeDoEndereco(r: { address?: Record<string, string> } | null): { cidade: string; uf: string } | null {
+  const a = r?.address;
+  if (!a) return null;
+  const cidade = a.city || a.town || a.municipality || a.village || a.county;
+  const uf = UFS[a["ISO3166-2-lvl4"] ?? ""];
+  return cidade && uf ? { cidade, uf } : null;
+}
+
+/** Cidade do ponto (OpenStreetMap; User-Agent identificado, como o Nominatim exige). null se não achar. */
+export async function cidadeDoPonto(lon: number, lat: number) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=${lat}&lon=${lon}`, { headers: { "User-Agent": "jbl-facilita/1.0 (estudo de terreno)" }, signal: AbortSignal.timeout(8000) });
+    return r.ok ? cidadeDoEndereco(await r.json()) : null;
+  } catch {
+    return null;
+  }
+}

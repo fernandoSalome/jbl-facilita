@@ -35,6 +35,14 @@ export async function tratarEstudos(m: Recebida, responder: (t: string) => Promi
 export async function tratarCentral(m: Recebida, responder: (t: string) => Promise<unknown>): Promise<boolean> {
   const r = respostaCentral(m.texto);
   if (!r) return false;
+  // KMZ esperando confirmação neste grupo (o mais recente, até 48 h): "1" põe a pré-pesquisa na fila
+  const pend = await db.comandoClaude.findFirst({ where: { grupoJid: m.grupo, status: "confirmar", createdAt: { gt: new Date(Date.now() - 48 * 3600e3) } }, orderBy: { createdAt: "desc" } });
+  if (pend) {
+    await db.comandoClaude.update({ where: { id: pend.id }, data: { status: r === "sim" ? "fila" : "cancelado" } });
+    const naFila = await db.comandoClaude.count({ where: { status: { in: ["fila", "rodando"] }, id: { not: pend.id } } });
+    await responder(r === "sim" ? `🧠 Combinado. Começo a Viabilidade Legal (leva de 20 a 60 minutos)${naFila ? `; tem ${naFila} pedido(s) antes` : ""}. Respondo aqui.` : "Ok, não faço a pré-pesquisa. A área fica em Projetos.");
+    return true;
+  }
   const desde = Date.now() - 48 * 3600e3;
   const perguntadas = (await db.area.findMany({ where: { deletedAt: null, situacao: "ativa", etapa: "previabilidade" } })).filter((a) => {
     const e = lerEstudo1(a.estudo1);
@@ -50,7 +58,9 @@ export async function tratarCentral(m: Recebida, responder: (t: string) => Promi
     return false;
   }
   await db.area.update({ where: { id: alvo.id }, data: { estudo1: { ...lerEstudo1(alvo.estudo1), status: r } } });
-  await responder(r === "sim" ? `📊 Combinado: *${tituloArea(alvo)}* segue para a Viabilidade Mercadológica.` : `⏹ *${tituloArea(alvo)}* fica parada na Viabilidade Legal.`);
+  // "sim": o Claude da VPS já faz a Viabilidade Mercadológica
+  if (r === "sim") await db.comandoClaude.create({ data: { texto: `Viabilidade Mercadológica de ${tituloArea(alvo)}`, grupoJid: m.grupo, autor: m.autor || null, tipo: "mercado", areaId: alvo.id } });
+  await responder(r === "sim" ? `📊 Combinado: *${tituloArea(alvo)}* segue para a Viabilidade Mercadológica. Já comecei (leva de 20 a 40 minutos); respondo aqui.` : `⏹ *${tituloArea(alvo)}* fica parada na Viabilidade Legal.`);
   return true;
 }
 
@@ -103,4 +113,40 @@ export async function pedirAoClaude(m: Recebida, responder: (t: string) => Promi
   await db.comandoClaude.create({ data: { texto: m.texto.slice(0, 4000), grupoJid: m.grupo, autor: m.autor || null, tipo, areaId } });
   const oque = tipo === "estudo" ? "a Viabilidade Legal (leva de 20 a 60 minutos)" : tipo === "mercado" ? "a Viabilidade Mercadológica (leva de 20 a 40 minutos)" : "a pesquisa";
   await responder(`🧠 Recebi. Vou fazer ${oque}.${naFila ? ` Tem ${naFila} pedido(s) antes.` : ""} Respondo aqui quando terminar.`);
+}
+
+
+/**
+ * KMZ mandado no JBL - Central (pedido 20/11/2026): a área entra em Projetos (mapa, tamanho, cidade) e o robô
+ * pergunta se faz a pré-pesquisa. "1" põe a Viabilidade Legal na fila do Claude da VPS (assinatura).
+ */
+export async function tratarKmzCentral(m: Recebida, responder: (t: string) => Promise<unknown>): Promise<boolean> {
+  if (!m.arquivo || !/\.km[lz]$/i.test(m.arquivo.fileName)) return false;
+  const { autorizado } = await import("./claude-ponte");
+  if (!autorizado(m)) return true;
+  const { baixarMidia } = await import("./whatsapp");
+  const { centro, cidadeDoPonto, hectares, kmlDoKmz, lerKml } = await import("./kml");
+  const midia = await baixarMidia(m.id);
+  const buf = Buffer.from(midia.base64, "base64");
+  if (buf.length > 5 * 1024 * 1024) {
+    await responder("Esse KMZ passa de 5 MB. Pode mandar um menor?");
+    return true;
+  }
+  const xml = /\.kmz$/i.test(m.arquivo.fileName) ? kmlDoKmz(buf) : buf.toString("utf8");
+  const poligono = xml ? lerKml(xml) : null;
+  if (!poligono) {
+    await responder("Não achei um polígono nesse arquivo. Confere se é o KMZ da área?");
+    return true;
+  }
+  const [lon, lat] = centro(poligono);
+  const lugar = await cidadeDoPonto(lon, lat);
+  const nome = (m.texto || m.arquivo.fileName.replace(/\.km[lz]$/i, "")).slice(0, 120);
+  const ha = hectares(poligono);
+  const a = await db.area.create({
+    data: { nome, cidade: lugar?.cidade ?? "A definir", uf: lugar?.uf ?? "SP", hectares: ha, poligono, documentos: { "KMZ da área": "ok" } },
+  });
+  await db.comandoClaude.create({ data: { texto: `Pré-pesquisa (Viabilidade Legal) do KMZ ${nome}`, grupoJid: m.grupo, autor: m.autor || null, tipo: "estudo", areaId: a.id, status: "confirmar" } });
+  const onde = lugar ? `${lugar.cidade}/${lugar.uf}` : "cidade a confirmar";
+  await responder(`📍 Recebi o KMZ *${nome}* (${onde}, ${ha.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha). Já está em Projetos.\n\nFaço a pré-pesquisa (Viabilidade Legal)?\n1 Sim · 2 Não`);
+  return true;
 }

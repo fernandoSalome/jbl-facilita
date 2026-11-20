@@ -93,3 +93,12 @@ describe("limpar conversa", () => {
     expect(limparConversa(t)).toEqual([{ quando: "19/11/2026", quem: "Rita", texto: "o Vista Verde vendeu 70% em 14 meses com lote de 300 m²" }]);
   });
 });
+
+describe("cidade do KMZ", async () => {
+  const { cidadeDoEndereco } = await import("./kml");
+  it("lê cidade e UF do OpenStreetMap", () => {
+    expect(cidadeDoEndereco({ address: { city: "Sorocaba", "ISO3166-2-lvl4": "BR-SP" } })).toEqual({ cidade: "Sorocaba", uf: "SP" });
+    expect(cidadeDoEndereco({ address: { town: "Japaratinga", "ISO3166-2-lvl4": "BR-AL" } })).toEqual({ cidade: "Japaratinga", uf: "AL" });
+    expect(cidadeDoEndereco({ address: { country: "Brasil" } })).toBeNull();
+  });
+});

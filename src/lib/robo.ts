@@ -5,7 +5,7 @@ import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
 import { nutrirPorTelefone } from "./captacao-db";
-import { pedirAoClaude, tratarCentral, tratarEstudos, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
+import { pedirAoClaude, tratarCentral, tratarEstudos, tratarKmzCentral, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -67,6 +67,8 @@ export async function tratarMensagem(m: Recebida) {
 
   /* ---------- chegou um arquivo ---------- */
   if (m.arquivo) {
+    // KMZ no Central: vira área e o robô pergunta se faz a pré-pesquisa (pedido 20/11/2026)
+    if (g.funcao === "central" && (await tratarKmzCentral(m, responder))) return;
     if (await db.projectDocument.findUnique({ where: { messageId: m.id } })) return;
     const midia = await baixarMidia(m.id);
     const bytes = Buffer.from(midia.base64, "base64");
@@ -103,6 +105,8 @@ export async function tratarMensagem(m: Recebida) {
 
   /* ---------- grupo JBL - Claude: pedido de pesquisa para o Claude da VPS (só Fernando e Marcelo) ---------- */
   if (g.funcao === "claude") return void (await pedirAoClaude(m, responder));
+  // no Central, "Claude, …" também vira pedido para o Claude da VPS
+  if (g.funcao === "central" && /^\s*claude\s*[,:]/i.test(m.texto)) return void (await pedirAoClaude({ ...m, texto: m.texto.replace(/^\s*claude\s*[,:]\s*/i, "") }, responder));
 
   /* ---------- lembretes ("me lembra amanhã às 9h de…") e situação das áreas da Captação ---------- */
   if (await tratarLembrete(m, responder)) return;

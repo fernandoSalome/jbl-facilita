@@ -98,3 +98,11 @@ describe("voltar ao original", async () => {
     expect(atualizarOriginais({ zona: "outra" }, { zona: "ZRDS" }, o2)).toEqual({});
   });
 });
+
+describe("confirmação no Central", async () => {
+  const { respostaCentral } = await import("./captacao-estudos");
+  it("'segue o documento' não é sim", () => {
+    expect(respostaCentral("segue o documento da matrícula")).toBeNull();
+    expect(respostaCentral("1")).toBe("sim");
+  });
+});
