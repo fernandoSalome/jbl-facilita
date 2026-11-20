@@ -22,36 +22,6 @@ export type Mensagem = { id: string; deMim: boolean; texto: string; quando: stri
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const hora = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
-function LerAntigas() {
-  const router = useRouter();
-  const [msg, setMsg] = useState("");
-  const [lendo, setLendo] = useState(false);
-  async function ler() {
-    if (!confirm("Ler as conversas particulares dos últimos 45 dias? Nada é enviado; o Claude separa as que são de terra e o resto é descartado.")) return;
-    setLendo(true);
-    try {
-      let sem = 0;
-      for (let p: number | null = 0; p !== null; ) {
-        const r: { feitas: number; total: number; proxima: number | null; semNumero: number } = await chamar("/api/contatos-terra", "POST", { pagina: p });
-        sem += r.semNumero;
-        setMsg(`Lendo… ${r.feitas} de ${r.total}`);
-        p = r.proxima;
-      }
-      setMsg(`✅ Lidas. Os áudios são transcritos e o Claude separa as de terra aos poucos.${sem ? ` ${sem} sem número ficaram de fora.` : ""}`);
-      router.refresh();
-    } catch (e) {
-      setMsg((e as Error).message);
-    }
-    setLendo(false);
-  }
-  return (
-    <div className="grid gap-1">
-      <button className="btn-ghost py-1 text-[12.5px]" disabled={lendo} onClick={ler}>{lendo ? "Lendo…" : "Ler conversas antigas"}</button>
-      {msg && <p className="text-[12px] font-semibold text-navy">{msg}</p>}
-    </div>
-  );
-}
-
 function Cabecalho({ c, resumo, todasAreas }: { c: ItemConversa; resumo: string | null; todasAreas: { id: string; titulo: string }[] }) {
   const router = useRouter();
   const [area, setArea] = useState("");
@@ -110,8 +80,8 @@ function Responder({ telefone }: { telefone: string }) {
   );
 }
 
-export default function Inbox({ lista, atual, resumo, mensagens, areas, pendentes, admin }: {
-  lista: ItemConversa[]; atual: ItemConversa | null; resumo: string | null; mensagens: Mensagem[]; areas: { id: string; titulo: string }[]; pendentes: number; admin: boolean;
+export default function Inbox({ lista, atual, resumo, mensagens, areas, pendentes }: {
+  lista: ItemConversa[]; atual: ItemConversa | null; resumo: string | null; mensagens: Mensagem[]; areas: { id: string; titulo: string }[]; pendentes: number;
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
@@ -133,7 +103,7 @@ export default function Inbox({ lista, atual, resumo, mensagens, areas, pendente
         <div className="grid gap-2 border-b border-line p-3">
           <input className="input py-1.5 text-[13px]" type="search" placeholder="🔎 Buscar nome ou número" value={busca} onChange={(e) => setBusca(e.target.value)} />
           {pendentes > 0 && <p className="text-[12px] text-muted">{pendentes} conversa(s) esperando o Claude ler.</p>}
-          {admin && <LerAntigas />}
+          <p className="text-[11.5px] text-muted">Lê o WhatsApp sozinho a cada 20 minutos (conversas, áudios e quem é de terra).</p>
         </div>
         <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
           {filtrada.map((c) => (

@@ -1,22 +1,7 @@
 import { json, withSession } from "@/lib/api";
-import { importarConversas, ligarContato, marcarFora } from "@/lib/contatos-terra-db";
+import { ligarContato, marcarFora } from "@/lib/contatos-terra-db";
 
 export const dynamic = "force-dynamic";
-/** Ler as conversas antigas vai de 15 em 15; cada vez cabe no tempo da Vercel */
-export const maxDuration = 60;
-
-/** Ler as conversas antigas do WhatsApp (só admin; não manda nada) */
-export async function POST(req: Request) {
-  return withSession(async () => {
-    const b = await req.json().catch(() => ({}));
-    const pagina = Number.isInteger(b.pagina) && b.pagina >= 0 && b.pagina < 1000 ? b.pagina : 0;
-    try {
-      return json(await importarConversas(pagina));
-    } catch (e) {
-      return json({ error: `Não consegui ler o WhatsApp: ${(e as Error).message.slice(0, 200)}` }, 502);
-    }
-  }, { admin: true });
-}
 
 /** "Não é de terra" ou ligar a uma área */
 export async function PATCH(req: Request) {

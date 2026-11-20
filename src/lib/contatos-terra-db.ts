@@ -76,16 +76,17 @@ export async function guardarClassificacao(comandoTexto: string, resposta: strin
   await pedirClassificacao();
 }
 
-/** Lê as conversas antigas (últimos 45 dias, pedido 20/11/2026), de 5 em 5, sem mandar nada; a tela chama até acabar.
+/** Lê as conversas do WhatsApp (pedido 20/11/2026): a VPS chama sozinha, a primeira vez com os últimos 45 dias e
+ *  depois a cada 20 minutos só com o que mudou ("desde"). De 5 em 5 conversas, até 80 mensagens cada, sem mandar nada.
  *  Grava cada conversa de uma vez (gravar mensagem por mensagem passava do tempo da Vercel). */
-export async function importarConversas(pagina: number) {
+export async function importarConversas(pagina: number, desdeEm?: Date) {
   const { listarConversas, mensagensDaConversa } = await import("./whatsapp");
   const POR_VEZ = 5;
-  const desde = Date.now() - 45 * 864e5;
+  const desde = Math.max(Date.now() - 45 * 864e5, desdeEm ? +desdeEm : 0);
   // conversa particular pode vir com id interno (@lid): as mensagens trazem o número junto
   const todas = (await listarConversas()).filter((c) => (ehParticular(c.jid) || /@lid$/.test(c.jid)) && (!c.em || +c.em > desde)).sort((a, b) => +(b.em ?? 0) - +(a.em ?? 0));
   const fatia = todas.slice(pagina * POR_VEZ, pagina * POR_VEZ + POR_VEZ);
-  const listas = await Promise.all(fatia.map((c) => mensagensDaConversa(c.jid, 60).catch(() => [] as Recebida[])));
+  const listas = await Promise.all(fatia.map((c) => mensagensDaConversa(c.jid, 80).catch(() => [] as Recebida[])));
   let semNumero = 0;
   for (const lista of listas) {
     const msgs = lista.filter((m) => +m.quando > desde && (m.texto || m.audio));

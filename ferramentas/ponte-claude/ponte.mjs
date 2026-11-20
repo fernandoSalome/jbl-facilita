@@ -116,6 +116,28 @@ async function cicloAudio() {
   }
 })();
 
+/** Leitura das conversas do WhatsApp (pedido 20/11/2026): a primeira vez tudo (45 dias), depois a cada 20 minutos
+ *  só o que mudou. A data da última leitura fica em ~/ponte/ultima-leitura.txt. */
+const ARQ_LEITURA = new URL("./ultima-leitura.txt", import.meta.url).pathname;
+async function lerConversas() {
+  const inicio = new Date();
+  // 5 minutos de folga para não perder mensagem que chegou durante a leitura anterior
+  const desde = existsSync(ARQ_LEITURA) ? new Date(Date.parse(readFileSync(ARQ_LEITURA, "utf8").trim()) - 5 * 60_000).toISOString() : null;
+  for (let pagina = 0; pagina !== null; ) {
+    const r = await fetch(`${URL_BASE}/api/claude/conversas`, { method: "POST", headers: cab, body: JSON.stringify({ pagina, desde }) });
+    if (!r.ok) throw new Error(`conversas: ${r.status}`);
+    const d = await r.json();
+    pagina = d.proxima;
+  }
+  writeFileSync(ARQ_LEITURA, inicio.toISOString());
+}
+(async () => {
+  for (;;) {
+    try { await lerConversas(); } catch (e) { console.error(new Date().toISOString(), e.message); }
+    await new Promise((r) => setTimeout(r, 20 * 60_000));
+  }
+})();
+
 for (;;) {
   let teve = false;
   try {

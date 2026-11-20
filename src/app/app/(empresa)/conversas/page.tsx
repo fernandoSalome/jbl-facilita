@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import PageHeader from "@/components/PageHeader";
 import { PAPEIS, tituloArea } from "@/lib/captacao";
-import { getSession } from "@/lib/auth";
 import { conversaDoTelefone } from "@/lib/contatos-terra-db";
 import Inbox, { type ItemConversa } from "@/components/conversas/Inbox";
 
@@ -15,7 +14,6 @@ const dia = (d: Date) => d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_
  * uma área e os contatos de terra que o Claude separou; à direita, a conversa aberta, para responder e ligar.
  */
 export default async function Conversas({ searchParams }: { searchParams: { c?: string } }) {
-  const session = await getSession();
   const [ligadas, terra, pendentes, areasDb] = await Promise.all([
     db.areaConversa.findMany({ where: { area: { deletedAt: null } }, include: { area: { select: { id: true, cidade: true, dono: true, corretor: true, nome: true } } } }),
     db.contatoTerra.findMany({ where: { situacao: "terra" }, orderBy: { ultimaEm: "desc" }, take: 500 }),
@@ -59,7 +57,7 @@ export default async function Conversas({ searchParams }: { searchParams: { c?: 
     <>
       <PageHeader eyebrow="Dia a dia" title="Conversas" subtitle="Terrenistas e corretores: o Claude lê suas conversas do WhatsApp e separa as de terra. Responda daqui e ligue à área." />
       <div className="p-6">
-        <Inbox lista={lista} atual={atual} resumo={resumo} mensagens={mensagens} areas={areas} pendentes={pendentes} admin={session?.role === "ADMIN"} />
+        <Inbox lista={lista} atual={atual} resumo={resumo} mensagens={mensagens} areas={areas} pendentes={pendentes} />
       </div>
     </>
   );
