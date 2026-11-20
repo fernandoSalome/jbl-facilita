@@ -364,3 +364,22 @@ export async function mercadoSorocaba20km(db: PrismaClient) {
   const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba-mercado.html", "utf8"), [], "relatorioMercado");
   console.log(`Captação: mercado de Sorocaba em 5 e 20 km (${r.secoes} seções)`);
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): nenhuma viabilidade abre no Claude Artifact; todas abrem dentro da área.
+ * Atibaia e São Roque ainda só tinham o link do Artifact: entra o raio-x completo (texto e imagens).
+ * Uma vez só: área que já tem o raio-x completo fica como está.
+ */
+export async function viabilidadesDentroDaArea(db: PrismaClient) {
+  const { readFileSync } = await import("node:fs");
+  const { guardarRelatorio } = await import("../src/lib/relatorio-db");
+  for (const [link, arquivo, nome] of [
+    ["https://claude.ai/artifact/Fd1Z7teQ1GMvSfSssHdqjs", "atibaia", "Atibaia"],
+    ["https://claude.ai/artifact/FEgkhPXwYBoTcp2woJqBDU", "sao-roque", "São Roque"],
+  ] as const) {
+    const a = await db.area.findFirst({ where: { relatorio: link, deletedAt: null }, select: { id: true, relatorioCompleto: true } });
+    if (!a || a.relatorioCompleto) continue;
+    const r = await guardarRelatorio(db, a.id, readFileSync(`prisma/dados/relatorios/${arquivo}.html`, "utf8"));
+    console.log(`Captação: Viabilidade Legal de ${nome} dentro da área (${r.secoes} seções, ${r.imagens} imagens)`);
+  }
+}

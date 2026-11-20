@@ -65,7 +65,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
       <PageHeader
         eyebrow={`Captação · ${nomeEtapa(etapa)}${a.situacao !== "ativa" ? ` · ${a.situacao}` : ""}`}
         title={tituloArea(a)}
-        subtitle={<><Link href="?aba=config" className="mr-2 inline-block rounded-full border border-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-navy hover:border-gold">✏️ Editar área</Link>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{(a.relatorioCompleto || a.relatorio) && <> · <a className="font-semibold text-gold-deep underline" href={a.relatorioCompleto ? "?aba=estudo" : a.relatorio!} {...(a.relatorioCompleto ? {} : { target: "_blank", rel: "noreferrer" })}>estudo completo</a></>}</>}
+        subtitle={<><Link href="?aba=config" className="mr-2 inline-block rounded-full border border-line bg-white px-2.5 py-0.5 text-[12.5px] font-semibold text-navy hover:border-gold">✏️ Editar área</Link>{[a.nome, ha, a.corretor && a.dono ? `corretor ${a.corretor}` : null].filter(Boolean).join(" · ")}{!!a.relatorioCompleto && <> · <Link className="font-semibold text-gold-deep underline" href="?aba=estudo">estudo completo</Link></>}</>}
         actions={<Gate id={a.id} etapa={etapa} situacao={a.situacao} />}
       />
       <div className="grid gap-5 p-8">

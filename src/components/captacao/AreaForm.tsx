@@ -61,7 +61,6 @@ export default function AreaForm({ inicial }: { inicial?: Dados }) {
         <label><span className="label">Corretor</span><input className="input" value={d.corretor} onChange={set("corretor")} /></label>
         <label><span className="label">Tamanho (ha)</span><input className="input" inputMode="decimal" value={d.hectares} onChange={set("hectares")} /></label>
         <label><span className="label">Etapa</span><select className="input" value={d.etapa} onChange={set("etapa")}>{ETAPAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-        <label className="md:col-span-2"><span className="label">Link do raio-x (Estudo 1)</span><input className="input" placeholder="https://claude.ai/artifact/…" value={d.relatorio} onChange={set("relatorio")} /></label>
       </div>
       <label><span className="label">KMZ ou KML da área</span><input type="file" accept=".kml,.kmz" className="text-sm" onChange={(e) => lerArquivo(e.target.files?.[0])} /></label>
       <p className="text-[12.5px] text-muted">Proprietário ou corretor: basta um dos dois.</p>

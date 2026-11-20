@@ -29,7 +29,7 @@ export default async function Estudos() {
                     <td className="px-4 py-2">{STATUS_E1[e1.status]}</td>
                     <td className="px-4 py-2">{[e1.semaforo && SEMAFOROS[e1.semaforo], e1.zona, e1.lotes.medio && `${e1.lotes.medio} lotes`].filter(Boolean).join(" · ") || "—"}</td>
                     <td className="px-4 py-2">{e2.veredito ? VEREDITOS[e2.veredito] : "—"}</td>
-                    <td className="px-4 py-2">{a.relatorio ? <a className="font-semibold text-gold-deep underline" href={a.relatorio} target="_blank" rel="noreferrer">abrir</a> : "—"}</td>
+                    <td className="px-4 py-2">{a.relatorioCompleto ? <Link className="font-semibold text-gold-deep underline" href={`/app/captacao/${a.id}?aba=estudo`}>abrir</Link> : "—"}</td>
                   </tr>
                 );
               })}

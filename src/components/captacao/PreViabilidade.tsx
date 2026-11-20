@@ -154,9 +154,8 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
           <h3 className="font-display text-xl text-navy">🔬 1. Viabilidade Legal</h3>
           <span className="rounded-sm bg-navy-50 px-2 py-0.5 text-[12px] font-bold text-navy">{STATUS_E1[terreno]}</span>
           <span className="flex-1" />
-          {(a.relatorioCompleto || a.relatorio) && (
-            <a className="btn-navy px-5 py-2.5 text-[15px]" href={a.relatorioCompleto ? "?aba=estudo" : a.relatorio!} {...(a.relatorioCompleto ? {} : { target: "_blank", rel: "noreferrer" })}>📄 Abrir a Viabilidade Legal completa</a>
-          )}
+          {/* abre sempre dentro da área, nunca no Claude Artifact (pedido 20/11/2026) */}
+          {!!a.relatorioCompleto && <a className="btn-navy px-5 py-2.5 text-[15px]" href="?aba=estudo">📄 Abrir a Viabilidade Legal completa</a>}
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {c1("semaforo", "Semáforo", { opcoes: Object.entries(SEMAFOROS) })}
