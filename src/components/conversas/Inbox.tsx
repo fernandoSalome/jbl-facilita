@@ -90,7 +90,10 @@ export default function Inbox({ lista, atual, resumo, mensagens, areas, pendente
     const q = norm(busca.trim());
     return q ? lista.filter((c) => norm(`${c.nome} ${c.telefone} ${c.sub}`).includes(q)) : lista;
   }, [lista, busca]);
-  useEffect(() => fim.current?.scrollIntoView({ block: "end" }), [mensagens.length, atual?.telefone]);
+  // chaves: o Chrome novo devolve uma Promise no scrollIntoView, e efeito não pode devolver nada além de função
+  useEffect(() => {
+    fim.current?.scrollIntoView({ block: "end" });
+  }, [mensagens.length, atual?.telefone]);
   // mensagens novas chegam pelo WhatsApp: atualiza a cada 20 s
   useEffect(() => {
     const t = setInterval(() => router.refresh(), 20_000);
