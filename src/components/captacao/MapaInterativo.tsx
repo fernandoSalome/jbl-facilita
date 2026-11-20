@@ -2,8 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
-import type { Poligono } from "@/lib/kml";
-import { centro } from "@/lib/kml";
+import { centro, type Poligono } from "@/lib/poligono";
 
 /**
  * Mapa do KMZ de ponta a ponta, que se arrasta e dá zoom como o Google (pedido 19/11/2026):

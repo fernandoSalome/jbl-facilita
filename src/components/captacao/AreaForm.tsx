@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { Poligono } from "@/lib/kml";
+import type { Poligono } from "@/lib/poligono";
 import { ETAPAS } from "@/lib/captacao";
 import { chamar } from "./chamar";
 

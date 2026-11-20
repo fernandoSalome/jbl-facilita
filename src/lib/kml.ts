@@ -1,7 +1,9 @@
 import { inflateRawSync } from "node:zlib";
 
-/** Polígono como [[lon, lat], ...] */
-export type Poligono = [number, number][];
+import type { Poligono } from "./poligono";
+
+export type { Poligono } from "./poligono";
+export { centro } from "./poligono";
 
 const MAX_PONTOS = 5000;
 
@@ -53,8 +55,6 @@ export function hectares(p: Poligono): number {
   }
   return Math.round((Math.abs(s) / 2 / 1e4) * 100) / 100;
 }
-
-export const centro = (p: Poligono): [number, number] => [p.reduce((a, c) => a + c[0], 0) / p.length, p.reduce((a, c) => a + c[1], 0) / p.length];
 
 /** Polígono vindo da tela: só aceita [[lon, lat], ...] válido */
 export function lerPoligono(v: unknown): Poligono | null {

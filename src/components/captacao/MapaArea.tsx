@@ -1,4 +1,4 @@
-import { centro, type Poligono } from "@/lib/kml";
+import { centro, type Poligono } from "@/lib/poligono";
 
 /** Foto de satélite (Esri) com o polígono do KMZ por cima, e os atalhos para o Google */
 export default function MapaArea({ poligono, altura = 340 }: { poligono: Poligono | null; altura?: number }) {
