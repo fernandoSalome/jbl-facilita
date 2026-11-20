@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { nomeDoGrupo } from "@/lib/whatsapp";
+import { ehFuncao } from "@/lib/grupos";
 
 /** Cadastra um grupo para o robô atender (ID do grupo: 1203…@g.us) */
 export async function POST(req: Request) {
@@ -19,6 +20,19 @@ export async function DELETE(req: Request) {
   return withSession(async () => {
     const id = new URL(req.url).searchParams.get("id") ?? "";
     await db.waGroup.update({ where: { id }, data: { papel: "inativo" } });
+    return json({ ok: true });
+  });
+}
+
+/** Define para que serve o grupo: avisos, central, estudos ou projeto (vazio = só documentos) */
+export async function PATCH(req: Request) {
+  return withSession(async () => {
+    const b = await req.json().catch(() => ({}));
+    const funcao = b.funcao === "" || b.funcao === null ? null : ehFuncao(b.funcao) ? b.funcao : undefined;
+    if (funcao === undefined) return json({ error: "Função inválida" }, 400);
+    // Avisos é um grupo só: quem já era perde a marca
+    if (funcao === "avisos") await db.waGroup.updateMany({ where: { funcao: "avisos" }, data: { funcao: null } });
+    await db.waGroup.update({ where: { id: String(b.id ?? "") }, data: { funcao } });
     return json({ ok: true });
   });
 }

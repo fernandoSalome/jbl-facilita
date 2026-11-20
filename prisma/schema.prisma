@@ -228,6 +228,8 @@ model WaGroup {
   /// último loteamento citado na conversa (para saber de quem é o próximo documento)
   contextoProjectId String?
   contextoAt  DateTime?
+  /// Para que serve o grupo (pedido 19/11/2026): avisos | central | estudos | projeto (vazio = só documentos, como antes)
+  funcao      String?
   createdAt   DateTime @default(now())
 }
 
@@ -315,4 +317,57 @@ model LoginTentativa {
   chave  String   @id
   falhas Int      @default(0)
   desde  DateTime @default(now())
+}
+
+/// Área em captação (pedido 19/11/2026): o card do funil "Cidade · dono", do KMZ ao contrato. Quando vira
+/// loteamento, ganha um Project (projectId) e as propostas seguem o fluxo de sempre.
+model Area {
+  id         String    @id @default(cuid())
+  nome       String    @default("")
+  cidade     String
+  uf         String    @default("SP")
+  dono       String?
+  corretor   String?
+  /// hectares (do KMZ ou digitado)
+  hectares   Float?
+  /// captacao | previabilidade | reuniao | proposta | estudo30 | contrato
+  etapa      String    @default("captacao")
+  /// ativa | geladeira | descartada
+  situacao   String    @default("ativa")
+  /// [[lon, lat], ...] lido do KML/KMZ
+  poligono   Json?
+  /// respostas do checklist: [{ secao, pergunta, resposta, fonte, ref, em }]
+  checklist  Json      @default("[]")
+  /// { "<nome do documento>": "ok" | "pedido" | "falta" }
+  documentos Json      @default("{}")
+  /// hipóteses do estudo de 30 dias: [{ texto, origem, prova, status }]
+  hipoteses  Json      @default("[]")
+  conclusao  String?
+  /// link do relatório do raio-x (Estudo 1)
+  relatorio  String?
+  projectId  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  conversas  AreaConversa[]
+
+  @@index([situacao, etapa])
+}
+
+/// Conversa de WhatsApp ligada à área (proprietário, corretor, fonte de mercado...). Com "nutrir",
+/// as mensagens novas entram no checklist da área.
+model AreaConversa {
+  id        String   @id @default(cuid())
+  areaId    String
+  area      Area     @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  nome      String
+  /// só dígitos, com DDI (5511...)
+  telefone  String
+  /// proprietario | corretor_proprietario | fonte_mercado | tecnico | outro
+  papel     String   @default("proprietario")
+  nutrir    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([areaId, telefone])
+  @@index([telefone])
 }

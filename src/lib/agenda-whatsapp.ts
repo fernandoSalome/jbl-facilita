@@ -18,8 +18,9 @@ export const whatsappConfigurado = () => !!(process.env.EVOLUTION_URL && process
 
 /** Grupo de avisos: o cadastrado com "Avisos" no nome (pedido 19/11/2026: "JBL - Avisos"); "monitoring"/"monitoramento" continuam valendo */
 export async function grupoMonitoring() {
-  const gs = await db.waGroup.findMany({ where: { papel: { not: "inativo" } }, select: { jid: true, name: true } });
-  return gs.find((g) => /avisos|monitor(ing|amento)/i.test(g.name)) ?? null;
+  const gs = await db.waGroup.findMany({ where: { papel: { not: "inativo" } }, select: { jid: true, name: true, funcao: true } });
+  // o marcado como "Avisos" na tela vale primeiro; sem marca, o nome (como antes)
+  return gs.find((g) => g.funcao === "avisos") ?? gs.find((g) => /avisos|monitor(ing|amento)/i.test(g.name)) ?? null;
 }
 
 /** "1 dia", "2 horas", "1 hora e 5 minutos", "45 minutos" */

@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { regiaoDaUf } from "../src/lib/orcamento2026";
 import { doItem, idUniao, listaCompleta, textoBf, uniaoBenfeitorias } from "../src/lib/benfeitorias";
 import { newToken } from "../src/lib/token";
+import { areasDosEstudos } from "./seed-areas";
 import { FORMATOS, FORMATOS_INICIAIS, aplicarDiff, INFRA_MAIS, infraMais, juntar, mesclarComum, parseContent, separarEmoji, trocarObras, type FormatoKey, type ObraItem, type QtdCalcKey } from "../src/lib/formatos";
 
 const db = new PrismaClient();
@@ -80,6 +81,7 @@ async function main() {
   await campoSocietyNasBenfeitorias();
   await naoBloqueadasNaVersaoAtual();
   await listarBloqueadas();
+  await areasDosEstudos(db);
 }
 
 /**

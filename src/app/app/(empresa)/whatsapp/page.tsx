@@ -5,6 +5,7 @@ import { estadoConexao } from "@/lib/whatsapp";
 import PageHeader from "@/components/PageHeader";
 import DocsBoard from "@/components/docs/DocsBoard";
 import GruposWhatsapp from "@/components/docs/GruposWhatsapp";
+import FuncoesGrupos from "@/components/docs/FuncoesGrupos";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +29,9 @@ export default async function WhatsappPage() {
               <span className={`h-3 w-3 rounded-full ${on ? "bg-emerald-500" : "bg-rose-500"}`} />
               <b className="text-navy">{on ? "WhatsApp conectado" : "WhatsApp desconectado"}</b>
             </div>
-            <GruposWhatsapp grupos={grupos.map(({ id, jid, name, papel }) => ({ id, jid, name, papel }))} />
+            <GruposWhatsapp grupos={grupos.map(({ id, jid, name, papel, funcao }) => ({ id, jid, name, papel, funcao }))} />
           </section>
+          <FuncoesGrupos />
           <section className="card p-5 text-sm leading-relaxed">
             <h3 className="eyebrow mb-3">Como usar no grupo</h3>
             <ul className="grid gap-2">

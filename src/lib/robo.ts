@@ -4,6 +4,8 @@ import { entenderTexto, lerDocumento, norm, projetoPorTexto, TIPOS } from "./ia"
 import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
+import { nutrirPorTelefone } from "./captacao-db";
+import { tratarEstudos } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -46,7 +48,11 @@ const tamanho = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1).replace(".", "
 const listaProjetos = (ps: { name: string }[]) => ps.map((p) => `• ${p.name}`).join("\n");
 
 export async function tratarMensagem(m: Recebida) {
-  if (!m.grupo.endsWith("@g.us")) return;
+  if (!m.grupo.endsWith("@g.us")) {
+    // conversa individual: só entra no checklist se estiver ligada a uma área com "nutrir" (pedido 19/11/2026)
+    if (!m.deMim && m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando);
+    return;
+  }
   if (enviadasPeloRobo.has(m.id)) return;
   if (m.deMim && m.texto.startsWith(ROBO)) return;
   if (Date.now() - m.quando.getTime() > 10 * 60 * 1000) return; // histórico antigo sincronizando
@@ -89,6 +95,9 @@ export async function tratarMensagem(m: Recebida) {
   }
 
   if (!m.texto) return;
+
+  /* ---------- grupo JBL - Estudos: o texto vai para o checklist da área citada ---------- */
+  if (g.funcao === "estudos" && (await tratarEstudos(m, responder))) return;
 
   /* ---------- texto ---------- */
   // documento que chegou sem loteamento: a resposta com o nome resolve

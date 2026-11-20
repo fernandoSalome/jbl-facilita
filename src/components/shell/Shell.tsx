@@ -6,6 +6,7 @@ import SideNav, { type NavItem } from "./SideNav";
 
 const empresaNav: NavItem[] = [
   { href: "/app", label: "Painel", icon: "grid", exact: true },
+  { href: "/app/captacao", label: "Captação de áreas", icon: "target" },
   { href: "/app/projetos", label: "Loteamentos", icon: "map" },
   { href: "/app/propostas", label: "Propostas", icon: "doc" },
   { href: "/app/cartas", label: "Cartas recebidas", icon: "inbox" },
