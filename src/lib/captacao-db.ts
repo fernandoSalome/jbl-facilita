@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { criarCompromisso } from "./agenda-server";
@@ -105,3 +106,21 @@ export async function loteamentoDaArea(areaId: string) {
   await db.area.update({ where: { id: a.id }, data: { projectId: p.id } });
   return p.id;
 }
+
+/** Link do estudo para parceiros: cria o código uma vez (o mesmo link continua valendo) */
+export async function gerarLinkEstudo(areaId: string) {
+  const a = await db.area.findFirst({ where: { id: areaId, deletedAt: null }, select: { estudoToken: true } });
+  if (!a) throw new Error("Área não encontrada");
+  if (a.estudoToken) return a.estudoToken;
+  // 24 caracteres aleatórios: o link é a única chave (a página não pede login)
+  const estudoToken = randomBytes(18).toString("base64url");
+  await db.area.update({ where: { id: areaId }, data: { estudoToken, estudoLinkEm: new Date() } });
+  return estudoToken;
+}
+
+/** Desativa: o link antigo para de abrir (gerar de novo cria outro código) */
+export const desativarLinkEstudo = (areaId: string) => db.area.updateMany({ where: { id: areaId }, data: { estudoToken: null, estudoLinkEm: null } });
+
+/** Estudo pelo link público: só com código válido e área não apagada */
+export const estudoPorToken = (token: string) =>
+  /^[A-Za-z0-9_-]{24}$/.test(token) ? db.area.findFirst({ where: { estudoToken: token, deletedAt: null } }) : Promise.resolve(null);

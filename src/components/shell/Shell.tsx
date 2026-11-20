@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import ProjectSwitcher from "./ProjectSwitcher";
+import { tituloArea } from "@/lib/captacao";
 import SideNav, { type NavItem } from "./SideNav";
 
 const empresaNav: NavItem[] = [
@@ -50,6 +51,11 @@ export default async function Shell({ projectId, children }: { projectId?: strin
     select: { id: true, name: true, municipio: true, uf: true },
   });
   const current = projectId ? projects.find((p) => p.id === projectId) : undefined;
+  const areas = await db.area.findMany({
+    where: { deletedAt: null, situacao: { not: "descartada" }, projectId: null },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, cidade: true, uf: true, dono: true, corretor: true, nome: true },
+  });
 
   return (
     <div className="flex min-h-screen bg-alt">
@@ -66,7 +72,7 @@ export default async function Shell({ projectId, children }: { projectId?: strin
               <div className="text-[9.5px] uppercase tracking-[0.22em] text-white/50">Portal da empresa</div>
             </div>
           </div>
-          <ProjectSwitcher projects={projects} currentId={current?.id} />
+          <ProjectSwitcher projects={projects} areas={areas.map((a) => ({ id: a.id, titulo: tituloArea(a), cidade: a.cidade, uf: a.uf }))} currentId={current?.id} />
         </div>
         <SideNav items={current ? projectNav(current.id) : empresaNav} />
         <div className="mt-auto border-t border-white/10 px-5 py-4">

@@ -8,7 +8,7 @@ import ConversasArea from "@/components/captacao/ConversasArea";
 import DocumentosArea from "@/components/captacao/DocumentosArea";
 import Gate from "@/components/captacao/Gate";
 import HipotesesArea from "@/components/captacao/HipotesesArea";
-import MapaArea from "@/components/captacao/MapaArea";
+import MapaInterativo from "@/components/captacao/MapaInterativo";
 import ChatArea from "@/components/captacao/ChatArea";
 import ListaEditavel from "@/components/captacao/ListaEditavel";
 import PreViabilidade from "@/components/captacao/PreViabilidade";
@@ -73,11 +73,10 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         {aba === "etapa" && (
           <>
             {ver === "captacao" && (
+              <>
+              <MapaInterativo poligono={poligono} altura={560} />
               <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-                <div className="grid gap-5">
-                  <MapaArea poligono={poligono} />
-                  <ChatArea id={a.id} conversas={a.conversas} mensagens={mensagens.map((m) => ({ ...m, quando: m.quando.toISOString() }))} />
-                </div>
+                <ChatArea id={a.id} conversas={a.conversas} mensagens={mensagens.map((m) => ({ ...m, quando: m.quando.toISOString() }))} />
                 <section className="card p-5 text-sm">
                   <h3 className="eyebrow mb-3">Resumo</h3>
                   <ul className="grid gap-1.5">
@@ -90,6 +89,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
                   <p className="mt-3 text-[13px] text-muted">KMZ conferido? Use “Sim, estudar” no topo para o raio-x (Estudo 1).</p>
                 </section>
               </div>
+              </>
             )}
             {ver === "previabilidade" && <PreViabilidade a={a} e1={lerEstudo1(a.estudo1)} e2={lerEstudo2(a.estudo2)} />}
             {ver === "reuniao" && (

@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type P = { id: string; name: string; municipio: string; uf: string };
+/** Área da Captação que ainda não virou loteamento (pedido 19/11/2026) */
+type A = { id: string; titulo: string; cidade: string; uf: string };
 
-export default function ProjectSwitcher({ projects, currentId }: { projects: P[]; currentId?: string }) {
+export default function ProjectSwitcher({ projects, areas = [], currentId }: { projects: P[]; areas?: A[]; currentId?: string }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -18,6 +20,7 @@ export default function ProjectSwitcher({ projects, currentId }: { projects: P[]
   }, []);
 
   const list = projects.filter((p) => `${p.name} ${p.municipio}`.toLowerCase().includes(q.toLowerCase()));
+  const listaAreas = areas.filter((a) => `${a.titulo} ${a.cidade}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div ref={ref} className="relative">
@@ -38,7 +41,7 @@ export default function ProjectSwitcher({ projects, currentId }: { projects: P[]
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-2 w-[320px] overflow-hidden rounded-md border border-line bg-white text-ink shadow-2xl">
           <div className="border-b border-line p-2">
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar loteamento…" className="input py-1.5 text-sm" />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar loteamento ou área…" className="input py-1.5 text-sm" />
           </div>
           <Link href="/app" onClick={() => setOpen(false)} className={`flex items-center gap-3 border-b border-line px-3 py-2.5 hover:bg-alt ${!current ? "bg-gold-soft" : ""}`}>
             <span className="grid h-8 w-8 place-items-center rounded bg-navy font-display text-sm text-gold">J</span>
@@ -52,7 +55,7 @@ export default function ProjectSwitcher({ projects, currentId }: { projects: P[]
             {list.map((p) => (
               <Link
                 key={p.id}
-                href={`/app/projetos/${p.id}/propostas`}
+                href={`/app/projetos/${p.id}`}
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2 hover:bg-alt ${p.id === currentId ? "bg-gold-soft" : ""}`}
               >
@@ -64,6 +67,16 @@ export default function ProjectSwitcher({ projects, currentId }: { projects: P[]
               </Link>
             ))}
             {list.length === 0 && <div className="px-3 py-3 text-sm text-muted">Nenhum loteamento encontrado.</div>}
+            {listaAreas.length > 0 && <div className="px-3 pb-1 pt-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Áreas em captação</div>}
+            {listaAreas.map((a) => (
+              <Link key={a.id} href={`/app/captacao/${a.id}`} onClick={() => setOpen(false)} className="flex items-center gap-3 px-3 py-2 hover:bg-alt">
+                <span className="grid h-7 w-7 place-items-center rounded bg-navy-50 font-display text-xs text-navy ring-1 ring-line">{a.cidade.slice(0, 1)}</span>
+                <span className="min-w-0 leading-tight">
+                  <span className="block truncate text-sm font-medium text-navy">{a.titulo}</span>
+                  <span className="block text-[11px] text-muted">{a.cidade} · {a.uf} · captação</span>
+                </span>
+              </Link>
+            ))}
           </div>
           <Link href="/app/projetos/novo" onClick={() => setOpen(false)} className="flex items-center gap-2 border-t border-line px-3 py-2.5 text-sm font-semibold text-gold-deep hover:bg-gold-soft">
             <span className="text-lg leading-none">+</span> Novo loteamento

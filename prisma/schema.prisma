@@ -355,6 +355,9 @@ model Area {
   pessoas    Json      @default("[]")
   /// reunião marcada pela área (compromisso do calendário)
   reuniaoId  String?
+  /// link público do estudo para parceiros (/estudo/<token>); vazio = sem link (pedido 19/11/2026)
+  estudoToken String?  @unique
+  estudoLinkEm DateTime?
   projectId  String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
