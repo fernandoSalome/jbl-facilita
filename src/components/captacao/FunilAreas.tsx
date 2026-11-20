@@ -6,6 +6,8 @@ import { ETAPAS, nomeEtapa, SITUACOES, tituloArea } from "@/lib/captacao";
 import AreaCard, { COR_TOM, type CardArea } from "./AreaCard";
 
 type A = CardArea & { etapa: string; updatedAt: string };
+/** Colunas do funil: as etapas e, no fim, geladeira e descartadas */
+const COLUNAS: [string, string][] = [...ETAPAS.map(([k, n]) => [k, n] as [string, string]), ["geladeira", "Geladeira"], ["descartada", "Descartadas"]];
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Funil por etapa (ou lista), com busca por cidade, proprietário ou corretor */
@@ -15,14 +17,15 @@ export default function FunilAreas({ areas }: { areas: A[] }) {
   const [vista, setVista] = useState<"funil" | "lista">("funil");
   const lista = useMemo(() => {
     const q = norm(busca.trim());
-    return areas.filter((a) => a.situacao === sit && (!q || norm(`${a.cidade} ${a.dono ?? ""} ${a.corretor ?? ""} ${a.nome}`).includes(q)));
-  }, [areas, busca, sit]);
+    // no funil, geladeira e descartadas viram colunas no fim (pedido 20/11/2026); a lista segue o filtro
+    return areas.filter((a) => (vista === "funil" || a.situacao === sit) && (!q || norm(`${a.cidade} ${a.dono ?? ""} ${a.corretor ?? ""} ${a.nome}`).includes(q)));
+  }, [areas, busca, sit, vista]);
 
   return (
     <div className="p-8">
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <input className="input max-w-sm py-2" type="search" placeholder="🔎 Buscar proprietário, cidade, área ou corretor" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        {SITUACOES.map(([k, n]) => (
+        {vista === "lista" && SITUACOES.map(([k, n]) => (
           <button key={k} className={k === sit ? "btn-navy py-1.5 text-[13px]" : "btn-ghost py-1.5 text-[13px]"} onClick={() => setSit(k)}>
             {n} <span className="opacity-60">{areas.filter((a) => a.situacao === k).length}</span>
           </button>
@@ -32,13 +35,13 @@ export default function FunilAreas({ areas }: { areas: A[] }) {
         <button className={vista === "lista" ? "btn-navy py-1.5 text-[13px]" : "btn-ghost py-1.5 text-[13px]"} onClick={() => setVista("lista")}>Lista</button>
       </div>
       {vista === "funil" ? (
-        <div className="grid gap-3 overflow-x-auto pb-2" style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(290px, 1fr))` }}>
-          {ETAPAS.map(([k, n]) => {
-            const col = lista.filter((a) => a.etapa === k);
+        <div className="grid gap-3 overflow-x-auto pb-2" style={{ gridTemplateColumns: `repeat(${COLUNAS.length}, minmax(290px, 1fr))` }}>
+          {COLUNAS.map(([k, n], i) => {
+            const col = lista.filter((a) => (k === "geladeira" || k === "descartada" ? a.situacao === k : a.situacao === "ativa" && a.etapa === k));
             return (
               <div key={k} className="rounded-md bg-surface p-2.5">
                 <div className="mb-2.5 flex items-center justify-between px-1 text-[12px] font-bold uppercase tracking-wider text-navy">
-                  <span>{ETAPAS.findIndex(([e]) => e === k) + 1}. {n}</span> <span className="rounded-full bg-white px-2 text-muted">{col.length}</span>
+                  <span>{i < ETAPAS.length ? `${i + 1}. ` : k === "geladeira" ? "❄️ " : "✖ "}{n}</span> <span className="rounded-full bg-white px-2 text-muted">{col.length}</span>
                 </div>
                 <div className="grid gap-2.5">{col.map((a) => <AreaCard key={a.id} a={a} />)}{!col.length && <div className="px-1 py-2 text-[13px] text-muted">—</div>}</div>
               </div>

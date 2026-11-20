@@ -7,6 +7,7 @@ import ChecklistVivo from "@/components/captacao/ChecklistVivo";
 import ConversasArea from "@/components/captacao/ConversasArea";
 import DocumentosArea from "@/components/captacao/DocumentosArea";
 import Gate from "@/components/captacao/Gate";
+import MotivoSituacao from "@/components/captacao/MotivoSituacao";
 import HipotesesArea from "@/components/captacao/HipotesesArea";
 import MapaInterativo from "@/components/captacao/MapaInterativo";
 import ChatArea from "@/components/captacao/ChatArea";
@@ -68,6 +69,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         actions={<Gate id={a.id} etapa={etapa} situacao={a.situacao} />}
       />
       <div className="grid gap-5 p-8">
+        <MotivoSituacao a={a} />
         {(() => {
           // modo simples: o próximo passo sempre no topo, com um botão (pedido 20/11/2026)
           if (!modoSimples()) return null;

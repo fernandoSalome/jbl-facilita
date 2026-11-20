@@ -111,3 +111,31 @@ describe("impressão do polígono", async () => {
     expect(impressaoPoligono(a)).not.toBe(impressaoPoligono([...a, [-47.1, -23.2]]));
   });
 });
+
+describe("descarte e geladeira com motivo (pedido 20/11/2026)", () => {
+  const agora = new Date(2026, 10, 20, 12);
+  it("descartar pede o motivo", async () => {
+    const { validarArea } = await import("./captacao");
+    expect(validarArea({ situacao: "descartada" }, true, agora)).toEqual({ erro: "Escreva o motivo do descarte" });
+    expect(validarArea({ situacao: "descartada", motivo: "APP demais" }, true, agora)).toEqual({ dados: { situacao: "descartada", motivoDescarte: "APP demais", descartadaEm: agora } });
+  });
+  it("geladeira pede tempo e motivo e calcula a volta", async () => {
+    const { validarArea } = await import("./captacao");
+    expect(validarArea({ situacao: "geladeira", meses: 2, motivo: "esperar" }, true, agora)).toEqual({ erro: "Escolha o tempo na geladeira" });
+    expect(validarArea({ situacao: "geladeira", meses: 3 }, true, agora)).toEqual({ erro: "Escreva o motivo da espera" });
+    const r = validarArea({ situacao: "geladeira", meses: 3, motivo: "inventário" }, true, agora) as { dados: Record<string, unknown> };
+    expect((r.dados.geladeiraAte as Date).getMonth()).toBe(1);
+  });
+  it("soma meses sem pular o mês", async () => {
+    const { somarMeses } = await import("./captacao");
+    expect(somarMeses(new Date(2026, 0, 31), 1).getDate()).toBe(28);
+    expect(somarMeses(new Date(2026, 10, 20), 12).getFullYear()).toBe(2027);
+  });
+  it("avisa uma vez com 5 dias", async () => {
+    const { avisarGeladeira } = await import("./captacao");
+    const ate = new Date(agora.getTime() + 4 * 864e5);
+    expect(avisarGeladeira({ situacao: "geladeira", geladeiraAte: ate, geladeiraAvisoEm: null }, agora)).toBe(true);
+    expect(avisarGeladeira({ situacao: "geladeira", geladeiraAte: ate, geladeiraAvisoEm: agora }, agora)).toBe(false);
+    expect(avisarGeladeira({ situacao: "geladeira", geladeiraAte: new Date(agora.getTime() + 20 * 864e5), geladeiraAvisoEm: null }, agora)).toBe(false);
+  });
+});

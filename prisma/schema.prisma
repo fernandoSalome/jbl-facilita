@@ -341,6 +341,14 @@ model Area {
   etapa             String         @default("captacao")
   /// ativa | geladeira | descartada
   situacao          String         @default("ativa")
+  /// descarte e geladeira com motivo (pedido 20/11/2026); ficam guardados mesmo depois de reativar
+  motivoDescarte    String?
+  descartadaEm      DateTime?
+  motivoGeladeira   String?
+  geladeiraEm       DateTime?
+  geladeiraAte      DateTime?
+  /// aviso de "faltam 5 dias" já mandado no grupo
+  geladeiraAvisoEm  DateTime?
   /// [[lon, lat], ...] lido do KML/KMZ
   poligono          Json?
   /// respostas do checklist: [{ secao, pergunta, resposta, fonte, ref, em }]

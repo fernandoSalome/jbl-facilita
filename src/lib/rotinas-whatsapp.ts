@@ -51,3 +51,20 @@ export async function respostasClaudePendentes() {
   await db.comandoClaude.update({ where: { id: c.id }, data: { enviadoEm: new Date() } });
   return 1;
 }
+
+/** Área perto de sair da geladeira (5 dias): um aviso só no Central, com o motivo da espera (pedido 20/11/2026) */
+export async function avisosGeladeira(agora = new Date()) {
+  const { avisarGeladeira, diasParaSair, tituloArea } = await import("./captacao");
+  const areas = (await db.area.findMany({ where: { deletedAt: null, situacao: "geladeira", geladeiraAte: { not: null }, geladeiraAvisoEm: null } })).filter((a) => avisarGeladeira(a, agora));
+  if (!areas.length) return 0;
+  const g = await grupoCentral();
+  if (!g) return 0;
+  const linhas = areas.map((a) => {
+    const d = diasParaSair(a.geladeiraAte!, agora);
+    const dia = a.geladeiraAte!.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    return `❄️ *${tituloArea(a)}* sai da geladeira ${d > 0 ? `em ${d} dia(s) (${dia})` : `desde ${dia}`}.\nMotivo da espera: ${a.motivoGeladeira ?? "—"}`;
+  });
+  await enviarTexto(g.jid, `🤖 ${linhas.join("\n\n")}\n\nAbra a área para reativar ou deixar mais tempo.`);
+  await db.area.updateMany({ where: { id: { in: areas.map((a) => a.id) } }, data: { geladeiraAvisoEm: agora } });
+  return areas.length;
+}

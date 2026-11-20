@@ -1,6 +1,6 @@
 import { json } from "@/lib/api";
 import { lembretesWhatsapp } from "@/lib/agenda-whatsapp";
-import { enviarLembretes, respostasClaudePendentes, resumoDaManha } from "@/lib/rotinas-whatsapp";
+import { avisosGeladeira, enviarLembretes, respostasClaudePendentes, resumoDaManha } from "@/lib/rotinas-whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +18,6 @@ export async function GET(req: Request) {
     lembretes: await rodar(() => enviarLembretes()),
     resumo: await rodar(() => resumoDaManha()),
     claude: await rodar(() => respostasClaudePendentes()),
+    geladeira: await rodar(() => avisosGeladeira()),
   });
 }

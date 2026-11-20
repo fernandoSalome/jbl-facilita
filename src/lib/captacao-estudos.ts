@@ -199,8 +199,14 @@ export const mercadoFeito = (v: unknown) => {
 export type Tom = "ok" | "warn" | "bad" | "run";
 
 /** Situação e próximo passo do card (igual à maquete: linha de situação e etiqueta colorida) */
-export function cartao(a: { etapa: string; situacao: string; poligono: unknown; estudo1: unknown; estudo2?: unknown; reuniaoId: string | null; projectId: string | null }): { situacao: string; tom: Tom; passo: string } {
-  if (a.situacao === "geladeira") return { situacao: "Na geladeira", tom: "run", passo: "rever depois" };
+export function cartao(a: { etapa: string; situacao: string; poligono: unknown; estudo1: unknown; estudo2?: unknown; reuniaoId: string | null; projectId: string | null; geladeiraAte?: Date | null }, agora = new Date()): { situacao: string; tom: Tom; passo: string } {
+  if (a.situacao === "geladeira") {
+    if (!a.geladeiraAte) return { situacao: "Na geladeira", tom: "run", passo: "rever depois" };
+    const dias = Math.ceil((a.geladeiraAte.getTime() - agora.getTime()) / 864e5);
+    const dia = a.geladeiraAte.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    if (dias <= 0) return { situacao: "Na geladeira", tom: "bad", passo: "tempo acabou: rever" };
+    return { situacao: `Na geladeira até ${dia}`, tom: dias <= 5 ? "warn" : "run", passo: dias <= 5 ? `faltam ${dias} dia(s)` : `volta em ${dia}` };
+  }
   if (a.situacao === "descartada") return { situacao: "Descartada", tom: "bad", passo: "fora do funil" };
   const e1 = lerEstudo1(a.estudo1);
   switch (a.etapa) {

@@ -17,6 +17,8 @@ export async function GET(req: Request) {
   await db.comandoClaude.updateMany({ where: { status: "rodando", iniciadoEm: { lt: new Date(Date.now() - 40 * 60e3) } }, data: { status: "fila" } });
   // a VPS pergunta a cada 30 s: aproveita para pôr na fila a leitura das conversas que pararam
   await pedirClassificacao().catch(() => {});
+  // e o aviso de geladeira (a rotina de 10 em 10 minutos falha às vezes)
+  await import("@/lib/rotinas-whatsapp").then((r) => r.avisosGeladeira()).catch(() => {});
   const c = await db.comandoClaude.findFirst({ where: { status: "fila" }, orderBy: { createdAt: "asc" } });
   if (!c) return json({ vazio: true });
   const pego = await db.comandoClaude.updateMany({ where: { id: c.id, status: "fila" }, data: { status: "rodando", iniciadoEm: new Date() } });

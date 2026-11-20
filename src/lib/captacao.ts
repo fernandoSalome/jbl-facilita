@@ -34,6 +34,27 @@ export const SITUACOES = [
   ["descartada", "Descartadas"],
 ] as const;
 
+/** Tempo na geladeira, em meses (pedido 20/11/2026) */
+export const MESES_GELADEIRA = [1, 3, 6, 9, 12] as const;
+export const rotuloMeses = (m: number) => (m === 12 ? "1 ano" : m === 1 ? "1 mês" : `${m} meses`);
+
+/** Soma meses sem pular para o mês seguinte (31/01 + 1 mês = 28 ou 29/02) */
+export function somarMeses(d: Date, meses: number) {
+  const r = new Date(d);
+  const dia = r.getDate();
+  r.setDate(1);
+  r.setMonth(r.getMonth() + meses);
+  r.setDate(Math.min(dia, new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate()));
+  return r;
+}
+
+/** Dias que faltam para sair da geladeira (negativo = já passou) */
+export const diasParaSair = (ate: Date, agora = new Date()) => Math.ceil((ate.getTime() - agora.getTime()) / 864e5);
+
+/** Avisa uma vez quando faltam 5 dias ou menos */
+export const avisarGeladeira = (a: { situacao: string; geladeiraAte: Date | null; geladeiraAvisoEm: Date | null }, agora = new Date()) =>
+  a.situacao === "geladeira" && !!a.geladeiraAte && !a.geladeiraAvisoEm && diasParaSair(a.geladeiraAte, agora) <= 5;
+
 export const PAPEIS: Record<string, string> = {
   proprietario: "Proprietário",
   corretor_proprietario: "Corretor do proprietário",
@@ -279,7 +300,7 @@ export function telefoneWa(s: string) {
 const texto = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /** Valida o corpo do cadastro/edição de área. Dono ou corretor: pelo menos um. */
-export function validarArea(b: Record<string, unknown>, parcial = false) {
+export function validarArea(b: Record<string, unknown>, parcial = false, agora = new Date()) {
   const d: Record<string, unknown> = {};
   for (const k of ["nome", "cidade", "dono", "corretor", "conclusao", "relatorio"] as const) if (k in b) d[k] = texto(b[k], k === "conclusao" ? 5000 : 200) || (k === "nome" ? "" : null);
   if ("uf" in b) d.uf = texto(b.uf, 2).toUpperCase();
@@ -294,6 +315,18 @@ export function validarArea(b: Record<string, unknown>, parcial = false) {
   if ("situacao" in b) {
     if (!SITUACOES.some(([e]) => e === b.situacao)) return { erro: "Situação inválida" } as const;
     d.situacao = b.situacao;
+    // descartar e geladeira pedem o motivo; geladeira também o tempo (pedido 20/11/2026)
+    const motivo = texto(b.motivo, 1000);
+    if (b.situacao === "descartada") {
+      if (motivo.length < 3) return { erro: "Escreva o motivo do descarte" } as const;
+      Object.assign(d, { motivoDescarte: motivo, descartadaEm: agora });
+    }
+    if (b.situacao === "geladeira") {
+      const meses = Number(b.meses);
+      if (!MESES_GELADEIRA.includes(meses as (typeof MESES_GELADEIRA)[number])) return { erro: "Escolha o tempo na geladeira" } as const;
+      if (motivo.length < 3) return { erro: "Escreva o motivo da espera" } as const;
+      Object.assign(d, { motivoGeladeira: motivo, geladeiraEm: agora, geladeiraAte: somarMeses(agora, meses), geladeiraAvisoEm: null });
+    }
   }
   if (typeof d.relatorio === "string" && !/^https:\/\//.test(d.relatorio)) return { erro: "O link do relatório precisa começar com https://" } as const;
   if (!parcial) {
