@@ -74,9 +74,32 @@ A função de cada grupo é escolhida na tela **Assistente WhatsApp**:
 
 As conversas individuais só são lidas quando o número está ligado a uma área com "nutrir". As outras continuam sendo ignoradas.
 
+## Segunda parte (19/11/2026): o resto da maquete
+
+| Item da maquete | Onde está |
+|---|---|
+| Menu em grupos (Dia a dia, Negócios, Ferramentas, Empresa) | `src/components/shell/Shell.tsx`, `SideNav.tsx` (`{ grupo }`) |
+| Dashboard Dia a Dia | `/app/dia-a-dia`; as regras ficam em `pendencias()` (`src/lib/captacao-estudos.ts`) |
+| Agenda | É o calendário de sempre (`/app/calendario`), agora no grupo Dia a dia |
+| Conversas | `/app/conversas`; as mensagens ficam em `AreaMensagem` |
+| Chat abaixo do KMZ | `ChatArea.tsx`, com envio por `POST /api/areas/[id]/mensagens` |
+| 📲 "perguntar a X" do professor | Manda a pergunta pronta (`CHAVES.mensagem`) pela conversa ligada |
+| Pré-viabilidade em 3 fases | `PreViabilidade.tsx`; `estudo1` e `estudo2` na área, lidos e validados por `lerEstudo1` e `lerEstudo2` |
+| Resumo no JBL - Central | `POST /api/areas/[id]/central` mostra "Sigo para o mercadológico? 1 Sim · 2 Não"; o robô lê a resposta em `tratarCentral` |
+| Apresentação (9 slides) | `/app/captacao-slides/[id]`; "Imprimir" salva em PDF, um slide por página |
+| Reunião pela área | `ReuniaoArea.tsx` e `POST /api/areas/[id]/reuniao`; vira compromisso do calendário, com e-mail, SMS e aviso no JBL - Avisos, como já funcionava |
+| Estudo 30 dias: hipóteses e custos | `HipotesesArea.tsx` e a tabela de custos (`custos`) |
+| Abas Custos e Pessoas | Página da área (`custos`, `pessoas`) |
+| Estudos | `/app/estudos` |
+| Biblioteca de cidades | `/app/cidades`, tabela `Cidade` e `POST`/`DELETE /api/cidades` |
+| Etapas clicáveis | `?aba=etapa&ver=<etapa>` mostra a etapa sem mudar a etapa da área |
+
+O seed (`estudosEBiblioteca`) preenche o Estudo 1 das 3 áreas com os números do raio-x e cria a biblioteca com Sorocaba, Atibaia e São Roque.
+
 ## Ainda não feito
 
-- **Resumo das 07:30 e pergunta de avanço de etapa no grupo Central.** Precisa de cron.
+- **Resumo das 07:30 no grupo Central.** Precisa de cron.
+- **Convite da reunião para todos os participantes.** Hoje o e-mail vai só para o primeiro; os outros aparecem na descrição.
 - **Gerar o raio-x pelo sistema.** Hoje o link do estudo é colado na área.
 - **Ler a conversa direto do WhatsApp para o "Limpar e extrair".** Hoje é pelo `.txt` exportado.
 - **Áudio no grupo Estudos.** Precisa de transcrição.

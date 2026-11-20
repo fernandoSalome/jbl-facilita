@@ -5,7 +5,7 @@ import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
 import { nutrirPorTelefone } from "./captacao-db";
-import { tratarEstudos } from "./robo-estudos";
+import { tratarCentral, tratarEstudos } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -50,7 +50,7 @@ const listaProjetos = (ps: { name: string }[]) => ps.map((p) => `• ${p.name}`)
 export async function tratarMensagem(m: Recebida) {
   if (!m.grupo.endsWith("@g.us")) {
     // conversa individual: só entra no checklist se estiver ligada a uma área com "nutrir" (pedido 19/11/2026)
-    if (!m.deMim && m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando);
+    if (!m.deMim && m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando, m.id);
     return;
   }
   if (enviadasPeloRobo.has(m.id)) return;
@@ -98,6 +98,8 @@ export async function tratarMensagem(m: Recebida) {
 
   /* ---------- grupo JBL - Estudos: o texto vai para o checklist da área citada ---------- */
   if (g.funcao === "estudos" && (await tratarEstudos(m, responder))) return;
+  /* ---------- grupo JBL - Central: "1 Sim · 2 Não" depois do resumo do terreno ---------- */
+  if (g.funcao === "central" && (await tratarCentral(m, responder))) return;
 
   /* ---------- texto ---------- */
   // documento que chegou sem loteamento: a resposta com o nome resolve

@@ -67,7 +67,12 @@ export default function ChecklistVivo({ id, checklist, prof, conclusao }: { id: 
           {prof.questoes.map((q, i) => (
             <li key={i} className="flex items-baseline gap-3 text-[14px]">
               <span className={`min-w-[86px] rounded-sm px-2 py-0.5 text-center text-[11px] font-bold ${COR_CAT[q.categoria]}`}>{q.categoria}</span>
-              <span className="flex-1">{q.texto}{q.pedirA && <span className="ml-2 text-[12px] font-semibold text-gold-deep">📲 perguntar a {q.pedirA}</span>}</span>
+              <span className="flex-1">{q.texto}{q.pedirA && q.conversaId && q.mensagem && (
+                <button className="ml-2 text-[12px] font-semibold text-gold-deep hover:underline" title={q.mensagem} onClick={async () => {
+                  if (!confirm(`Mandar para ${q.pedirA} no WhatsApp?\n\n“${q.mensagem}”`)) return;
+                  try { await chamar(`/api/areas/${id}/mensagens`, "POST", { conversaId: q.conversaId, texto: q.mensagem }); setMsg(`📲 Pergunta enviada para ${q.pedirA}. A resposta entra no checklist.`); } catch (e) { setMsg((e as Error).message); }
+                }}>📲 perguntar a {q.pedirA}</button>
+              )}</span>
             </li>
           ))}
         </ul>

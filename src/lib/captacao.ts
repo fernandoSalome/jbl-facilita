@@ -192,33 +192,34 @@ export function grauDaFonte(r: Resposta): string {
 
 /* ------------------------------ o professor ------------------------------ */
 
-export type Questao = { categoria: "Geral" | "Jurídica" | "Ambiental" | "Mercado" | "Financeira" | "Acesso"; texto: string; pedirA?: string };
+export type Questao = { categoria: "Geral" | "Jurídica" | "Ambiental" | "Mercado" | "Financeira" | "Acesso"; texto: string; pedirA?: string; conversaId?: string; mensagem?: string };
 
 /** Itens que decidem o negócio: sem eles (ou só com relato), o estudo não se sustenta */
-const CHAVES: { secao: number; pergunta: string; categoria: Questao["categoria"]; falta: string; relato: string; pedirA: string }[] = [
-  { secao: 2, pergunta: "Matrícula", categoria: "Jurídica", falta: "A matrícula ainda não chegou. Quem são os donos? Há inventário ou ônus?", relato: "O que sabemos da matrícula veio de conversa. Pedir a certidão atualizada no cartório.", pedirA: "proprietario" },
-  { secao: 4, pergunta: "Zona", categoria: "Jurídica", falta: "Sem a zona não há lote mínimo nem conta de lotes. Rodar o raio-x ou pedir a certidão de uso do solo.", relato: "A zona foi dita, não conferida no mapa oficial.", pedirA: "tecnico" },
-  { secao: 7, pergunta: "Córregos e nascentes", categoria: "Ambiental", falta: "Ninguém confirmou córregos e nascentes. Cada curso d'água tira 30 m de cada lado.", relato: "Córregos e nascentes vêm de relato. Precisa de vistoria em dia seco ou laudo.", pedirA: "proprietario" },
-  { secao: 8, pergunta: "Preço do lote na região", categoria: "Mercado", falta: "Sem preço de lote na região não dá para estimar o VGV.", relato: "O preço vem de conversa ou anúncio. Qual foi o preço de venda fechado?", pedirA: "fonte_mercado" },
-  { secao: 17, pergunta: "Viabilidade de água e esgoto", categoria: "Financeira", falta: "Água e esgoto não foram vistos. Sem rede, a estação de tratamento pesa no custo por lote.", relato: "A água e o esgoto foram ditos, não confirmados pela concessionária.", pedirA: "tecnico" },
-  { secao: 1, pergunta: "Aceita parceria?", categoria: "Geral", falta: "Não sabemos se o dono aceita parceria e em que percentual.", relato: "A parceria foi falada, mas nada assinado. Confirmar percentual e aporte.", pedirA: "proprietario" },
-  { secao: 7, pergunta: "Acesso", categoria: "Acesso", falta: "Não sabemos por onde se entra na área nem se a via é asfaltada.", relato: "O acesso foi descrito em conversa. Conferir na visita.", pedirA: "proprietario" },
+const CHAVES: { secao: number; pergunta: string; categoria: Questao["categoria"]; falta: string; relato: string; pedirA: string; mensagem: string }[] = [
+  { secao: 2, pergunta: "Matrícula", categoria: "Jurídica", falta: "A matrícula ainda não chegou. Quem são os donos? Há inventário ou ônus?", relato: "O que sabemos da matrícula veio de conversa. Pedir a certidão atualizada no cartório.", pedirA: "proprietario", mensagem: "Pode me mandar a matrícula atualizada da área? Se tiver herdeiros ou inventário, me conta também." },
+  { secao: 4, pergunta: "Zona", categoria: "Jurídica", falta: "Sem a zona não há lote mínimo nem conta de lotes. Rodar o raio-x ou pedir a certidão de uso do solo.", relato: "A zona foi dita, não conferida no mapa oficial.", pedirA: "tecnico", mensagem: "Você sabe em que zona a área está no Plano Diretor? Tem a certidão de uso do solo?" },
+  { secao: 7, pergunta: "Córregos e nascentes", categoria: "Ambiental", falta: "Ninguém confirmou córregos e nascentes. Cada curso d'água tira 30 m de cada lado.", relato: "Córregos e nascentes vêm de relato. Precisa de vistoria em dia seco ou laudo.", pedirA: "proprietario", mensagem: "Na área tem córrego ou nascente com água o ano todo, ou só quando chove?" },
+  { secao: 8, pergunta: "Preço do lote na região", categoria: "Mercado", falta: "Sem preço de lote na região não dá para estimar o VGV.", relato: "O preço vem de conversa ou anúncio. Qual foi o preço de venda fechado?", pedirA: "fonte_mercado", mensagem: "Por quanto foram vendidos (de fato) os últimos lotes aí perto? E em quanto tempo?" },
+  { secao: 17, pergunta: "Viabilidade de água e esgoto", categoria: "Financeira", falta: "Água e esgoto não foram vistos. Sem rede, a estação de tratamento pesa no custo por lote.", relato: "A água e o esgoto foram ditos, não confirmados pela concessionária.", pedirA: "tecnico", mensagem: "Já tem rede de água e esgoto chegando na área? Sabe de alguma viabilidade pedida?" },
+  { secao: 1, pergunta: "Aceita parceria?", categoria: "Geral", falta: "Não sabemos se o dono aceita parceria e em que percentual.", relato: "A parceria foi falada, mas nada assinado. Confirmar percentual e aporte.", pedirA: "proprietario", mensagem: "Você toparia parceria, sem colocar dinheiro, recebendo parte dos lotes ou das vendas?" },
+  { secao: 7, pergunta: "Acesso", categoria: "Acesso", falta: "Não sabemos por onde se entra na área nem se a via é asfaltada.", relato: "O acesso foi descrito em conversa. Conferir na visita.", pedirA: "proprietario", mensagem: "Por onde se entra na área hoje? A estrada até lá é asfaltada ou de terra?" },
 ];
 
 const numeros = (s: string) => [...s.matchAll(/(\d+(?:[.,]\d+)?)\s*(ha|hectares?)/gi)].map((m) => parseFloat(m[1].replace(".", "").replace(",", ".")));
 
-export function professor(area: { hectares: number | null; checklist: Resposta[]; conversas: { papel: string; nome: string }[] }) {
+export function professor(area: { hectares: number | null; checklist: Resposta[]; conversas: { id?: string; papel: string; nome: string }[] }) {
   const chk = area.checklist;
   const questoes: Questao[] = [];
   let pontos = 0;
   for (const c of CHAVES) {
     const rs = chk.filter((r) => r.secao === c.secao && r.pergunta === c.pergunta);
     const melhor = Math.max(-1, ...rs.map((r) => FONTES[r.fonte].certeza));
-    const quem = area.conversas.find((x) => x.papel === c.pedirA)?.nome;
-    if (melhor < 0) questoes.push({ categoria: c.categoria, texto: c.falta, pedirA: quem });
+    const conv = area.conversas.find((x) => x.papel === c.pedirA);
+    const pedir = { pedirA: conv?.nome, conversaId: conv?.id, mensagem: c.mensagem };
+    if (melhor < 0) questoes.push({ categoria: c.categoria, texto: c.falta, ...pedir });
     else if (melhor < 2) {
       pontos += 0.5;
-      questoes.push({ categoria: c.categoria, texto: c.relato, pedirA: quem });
+      questoes.push({ categoria: c.categoria, texto: c.relato, ...pedir });
     } else pontos += 1;
   }
   // contradição: tamanho dito nas conversas × tamanho do KMZ

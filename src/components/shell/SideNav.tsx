@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type NavItem = { href?: string; label: string; icon: keyof typeof ICONS; soon?: boolean; exact?: boolean };
+export type NavLink = { href?: string; label: string; icon: keyof typeof ICONS; soon?: boolean; exact?: boolean };
+/** Título de grupo no menu ("Dia a dia", "Negócios"...), pedido 19/11/2026 */
+export type NavItem = NavLink | { grupo: string };
 
 const ICONS = {
   grid: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
@@ -37,7 +39,11 @@ export default function SideNav({ items }: { items: NavItem[] }) {
   return (
     <nav className="flex-1 overflow-auto px-3 py-4">
       <ul className="grid gap-0.5">
-        {items.map((it) => {
+        {items.map((item) => {
+          if ("grupo" in item) {
+            return <li key={`g-${item.grupo}`} className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 first:pt-0">{item.grupo}</li>;
+          }
+          const it = item;
           const active = it.href && (it.exact ? path === it.href : path.startsWith(it.href));
           if (it.soon || !it.href) {
             return (

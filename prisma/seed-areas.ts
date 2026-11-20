@@ -81,3 +81,54 @@ export async function areasDosEstudos(db: PrismaClient) {
     console.log(`Captação: área do estudo criada (${e.cidade} · ${e.nome})`);
   }
 }
+
+/**
+ * Pedido do Fernando (19/11/2026, 2ª parte): o Estudo 1 das áreas dos estudos com os números do raio-x, e a
+ * Biblioteca de cidades com as 3 cidades conferidas. Só preenche o que está vazio (roda uma vez na prática).
+ */
+const ESTUDO1: Record<string, object> = {
+  "https://claude.ai/artifact/5Bt842BwwnapKvfYQ3zsRc": {
+    status: "pronto", semaforo: "amarelo", zona: "ZRDS (ponta em CCS1) · MME", loteMinimo: "300 m² / 12 m",
+    lotes: { pior: 27, medio: 167, bom: 283 }, produto: "Loteamento aberto, lotes de 300 m²",
+    alertas: [
+      { texto: "Hidrografia oficial (APP de 29% a 55%)", comoResolver: "laudo hidrológico e vistoria em dia seco" },
+      { texto: "Manancial (MME)", comoResolver: "esgoto tratado; viabilidade da concessionária" },
+      { texto: "Copa de árvores em cerca de 35% da área", comoResolver: "levantamento da vegetação e licença CETESB" },
+      { texto: "Linha de transmissão (faixa de 7.558 m²)", comoResolver: "consulta à concessionária" },
+      { texto: "Faixa de 15 m da rodovia (3.622 m²)", comoResolver: "projeto respeitando a faixa" },
+    ],
+    estrategia: ["Frente de 390 m", "Ponta em corredor CCS1 (comércio na frente)", "Redes externas por conta do loteador (ZRDS)"],
+  },
+  "https://claude.ai/artifact/Fd1Z7teQ1GMvSfSssHdqjs": {
+    status: "pronto", semaforo: "amarelo", zona: "ZP17M8", loteMinimo: "4.000 m²",
+    produto: "Chácaras (lote de 4.000 m² no mapa vigente)",
+    alertas: [{ texto: "A conta de 134 lotes de 800 m² só valia pela minuta antiga", comoResolver: "certidão de uso do solo antes de qualquer proposta" }],
+    estrategia: [],
+  },
+  "https://claude.ai/artifact/FEgkhPXwYBoTcp2woJqBDU": {
+    status: "pronto", zona: "ZUR-md", loteMinimo: "250 m²", lotes: { pior: null, medio: null, bom: 188 },
+    produto: "Loteamento de lotes de 250 m²",
+    alertas: [{ texto: "LC 107/2021 e LC 125/2022 inconstitucionais", comoResolver: "usar a LC 40/2006 com a LC 66/2012 e pedir certidão" }],
+    estrategia: [],
+  },
+};
+
+const CIDADES = [
+  { nome: "Sorocaba", uf: "SP", leis: "Lei 13.123/2025 (Plano Diretor com zoneamento)", mapa: "Mapas 01, 02 e 03 da Lei 13.123/2025", notas: "ADI 2177842-59.2025 só derrubou o art. 163 §2 XV-XVI (Jd. Pagliato). PL 115/2026 (Jd. Astro) e Lei 13.444/2026 (ZEIS) não mudam zonas nem lotes.", conferidoEm: new Date("2026-11-18T12:00:00Z") },
+  { nome: "Atibaia", uf: "SP", leis: "LC 905/2023 (Plano Diretor) · LC 952/2025 (Código de Obras e Urbanismo)", mapa: "KMZ de zoneamento oficial 07/2026", alerta: "PLC 18/2025", notas: "A minuta antiga do mapa mudou a zona de áreas: usar só o KMZ de 07/2026.", conferidoEm: new Date("2026-11-18T12:00:00Z") },
+  { nome: "São Roque", uf: "SP", leis: "LC 39/2006 · LC 40/2006 (Quadro VIII com a LC 66/2012)", mapa: "Mapa Legal (camada pdm2006), não oficial", alerta: "PLC 3 e 4/2026", notas: "LC 107/2021 e LC 125/2022 julgadas inconstitucionais.", conferidoEm: new Date("2026-11-18T12:00:00Z") },
+];
+
+export async function estudosEBiblioteca(db: PrismaClient) {
+  for (const [relatorio, e1] of Object.entries(ESTUDO1)) {
+    const a = await db.area.findFirst({ where: { relatorio }, select: { id: true, estudo1: true } });
+    if (!a || Object.keys((a.estudo1 ?? {}) as object).length) continue;
+    await db.area.update({ where: { id: a.id }, data: { estudo1: e1 } });
+    console.log(`Captação: Estudo 1 preenchido (${relatorio})`);
+  }
+  for (const c of CIDADES) {
+    if (await db.cidade.findUnique({ where: { nome_uf: { nome: c.nome, uf: c.uf } } })) continue;
+    await db.cidade.create({ data: c });
+    console.log(`Biblioteca: ${c.nome}-${c.uf}`);
+  }
+}

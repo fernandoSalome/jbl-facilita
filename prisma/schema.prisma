@@ -345,11 +345,22 @@ model Area {
   conclusao  String?
   /// link do relatório do raio-x (Estudo 1)
   relatorio  String?
+  /// Estudo 1 (terreno): semáforo, % aproveitável, lotes, zona, alertas, estratégia, região (pedido 19/11/2026)
+  estudo1    Json      @default("{}")
+  /// Estudo 2 (mercadológico de concorrentes): concorrentes, revenda, encaixe, produto, prévia financeira, veredito
+  estudo2    Json      @default("{}")
+  /// custos preliminares: [{ item, valor, base, status }]
+  custos     Json      @default("[]")
+  /// pessoas do projeto: [{ nome, papel, email, telefone }]
+  pessoas    Json      @default("[]")
+  /// reunião marcada pela área (compromisso do calendário)
+  reuniaoId  String?
   projectId  String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?
   conversas  AreaConversa[]
+  mensagens  AreaMensagem[]
 
   @@index([situacao, etapa])
 }
@@ -370,4 +381,36 @@ model AreaConversa {
 
   @@unique([areaId, telefone])
   @@index([telefone])
+}
+
+/// Mensagem das conversas ligadas a uma área (recebidas com "nutrir" e enviadas pela tela): o chat da Captação
+model AreaMensagem {
+  id        String   @id @default(cuid())
+  areaId    String
+  area      Area     @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  telefone  String
+  nome      String
+  deMim     Boolean  @default(false)
+  texto     String
+  quando    DateTime @default(now())
+  messageId String?
+
+  @@index([areaId, quando])
+  @@index([telefone, quando])
+}
+
+/// Biblioteca de cidades: leis e mapa vigentes por cidade, com a data da conferência e o alerta (pedido 19/11/2026)
+model Cidade {
+  id          String    @id @default(cuid())
+  nome        String
+  uf          String
+  leis        String
+  mapa        String?
+  conferidoEm DateTime?
+  alerta      String?
+  notas       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([nome, uf])
 }

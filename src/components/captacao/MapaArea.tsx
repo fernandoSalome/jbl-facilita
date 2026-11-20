@@ -25,7 +25,7 @@ export default function MapaArea({ poligono, altura = 340 }: { poligono: Poligon
           <polygon points={pts} fill="rgba(193,148,61,0.18)" stroke="#D4AA55" strokeWidth="4" strokeLinejoin="round" />
         </svg>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-2 print:hidden">
         <a className="btn-ghost py-1.5 text-[13px]" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/@${clat},${clon},800m/data=!3m1!1e3`}>Abrir no Google Maps</a>
         <a className="btn-ghost py-1.5 text-[13px]" target="_blank" rel="noreferrer" href={`https://earth.google.com/web/@${clat},${clon},600a,1500d,35y,0h,0t,0r`}>Abrir no Google Earth</a>
       </div>

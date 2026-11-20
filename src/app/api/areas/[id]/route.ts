@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { lerChecklist, validarArea, validarDocumentos, validarHipoteses } from "@/lib/captacao";
 import { lerPoligono } from "@/lib/kml";
+import { lerCustos, lerEstudo1, lerEstudo2, lerPessoas } from "@/lib/captacao-estudos";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if ("documentos" in b) data.documentos = validarDocumentos(b.documentos);
     if ("hipoteses" in b) data.hipoteses = validarHipoteses(b.hipoteses) as unknown as Prisma.InputJsonValue;
     if ("checklist" in b) data.checklist = lerChecklist(b.checklist).slice(0, 2000) as unknown as Prisma.InputJsonValue;
+    if ("estudo1" in b) data.estudo1 = lerEstudo1(b.estudo1);
+    if ("estudo2" in b) data.estudo2 = lerEstudo2(b.estudo2);
+    if ("custos" in b) data.custos = lerCustos(b.custos);
+    if ("pessoas" in b) data.pessoas = lerPessoas(b.pessoas);
     if ("poligono" in b) {
       const p = lerPoligono(b.poligono);
       if (!p) return json({ error: "Polígono inválido" }, 400);
