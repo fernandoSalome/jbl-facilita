@@ -87,3 +87,14 @@ describe("próximo passo", async () => {
     expect(acaoDoPasso({ ...base, etapa: "reuniao" }).aba).toBe("etapa&ver=reuniao");
   });
 });
+
+describe("voltar ao original", async () => {
+  const { atualizarOriginais } = await import("./captacao-estudos");
+  it("guarda o original na 1ª mudança e esquece quando volta", () => {
+    const o1 = atualizarOriginais({ zona: "ZRDS", risco: "" }, { zona: "ZRDS e CCS1", risco: "novo" }, {});
+    expect(o1).toEqual({ zona: "ZRDS" });
+    const o2 = atualizarOriginais({ zona: "ZRDS e CCS1" }, { zona: "outra" }, o1);
+    expect(o2).toEqual({ zona: "ZRDS" });
+    expect(atualizarOriginais({ zona: "outra" }, { zona: "ZRDS" }, o2)).toEqual({});
+  });
+});

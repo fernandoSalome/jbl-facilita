@@ -15,6 +15,26 @@ const num = (v: unknown) => {
 const lista = <T>(v: unknown, max: number, f: (x: Record<string, unknown>) => T | null): T[] =>
   Array.isArray(v) ? v.slice(0, max).flatMap((x) => (x && typeof x === "object" ? [f(x as Record<string, unknown>)].filter((y): y is T => y !== null) : [])) : [];
 
+/* ------------------------------ Voltar ao original ------------------------------ */
+
+const lerOriginais = (v: unknown): Record<string, string> =>
+  v && typeof v === "object" && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([k, x]) => /^[a-zA-Z.]{1,40}$/.test(k) && typeof x === "string").slice(0, 60).map(([k, x]) => [k, (x as string).slice(0, 3000)]))
+    : {};
+
+/**
+ * Pedido 20/11/2026: campo mudado à mão guarda o texto original (só na primeira mudança), para poder voltar.
+ * Voltou ao original: a marca some.
+ */
+export function atualizarOriginais(antes: Record<string, string>, depois: Record<string, string>, originais: Record<string, string>) {
+  const out = { ...originais };
+  for (const k of Object.keys(depois)) {
+    if (out[k] === undefined && (antes[k] ?? "") !== depois[k] && (antes[k] ?? "") !== "") out[k] = antes[k];
+    if (out[k] !== undefined && out[k] === depois[k]) delete out[k];
+  }
+  return out;
+}
+
 /* ------------------------------ Estudo 1: terreno ------------------------------ */
 
 export const SEMAFOROS = { verde: "🟢 viável", amarelo: "🟡 viável com condição", vermelho: "🔴 não segue" } as const;
@@ -34,6 +54,8 @@ export type Estudo1 = {
   estrategia: string[];
   regiao: { m2Min: number | null; m2Max: number | null; tipologia: string; expansao: string; cidades: string };
   perguntadoEm: string | null;
+  /** texto original de cada campo mudado à mão (para "voltar ao original") */
+  originais: Record<string, string>;
 };
 
 export function lerEstudo1(v: unknown): Estudo1 {
@@ -52,6 +74,7 @@ export function lerEstudo1(v: unknown): Estudo1 {
     estrategia: Array.isArray(o.estrategia) ? o.estrategia.filter((x): x is string => typeof x === "string" && !!x.trim()).slice(0, 10).map((x) => x.trim().slice(0, 300)) : [],
     regiao: { m2Min: num(r.m2Min), m2Max: num(r.m2Max), tipologia: txt(r.tipologia, 200), expansao: txt(r.expansao, 200), cidades: txt(r.cidades, 300) },
     perguntadoEm: typeof o.perguntadoEm === "string" ? o.perguntadoEm : null,
+    originais: lerOriginais(o.originais),
   };
 }
 
@@ -81,7 +104,7 @@ export function respostaCentral(t: string): "sim" | "nao" | null {
 
 /* ------------------------------ Estudo 2: mercado ------------------------------ */
 
-export const VEREDITOS = { encaixa: "🔥 encaixa", ajuste: "🌫 encaixa com ajuste", nao: "❄️ não encaixa" } as const;
+export const VEREDITOS = { encaixa: "🔥 encaixa", ajuste: "🟡 encaixa com ajuste", nao: "❄️ não encaixa" } as const;
 export type Concorrente = { nome: string; distancia: string; tipo: string; lote: string; lancamento: string; hoje: string; estagio: string; vendido: string };
 export type Revenda = { nome: string; lotes: string; variacao: string; tempo: string; ocupacao: string };
 export type Estudo2 = {
@@ -92,6 +115,7 @@ export type Estudo2 = {
   financeiro: { vgv: string; infraPorLote: string; margem: string; parteDono: string; velocidade: string };
   veredito: keyof typeof VEREDITOS | null;
   risco: string;
+  originais: Record<string, string>;
 };
 
 export function lerEstudo2(v: unknown): Estudo2 {
@@ -107,6 +131,7 @@ export function lerEstudo2(v: unknown): Estudo2 {
     financeiro: { vgv: txt(f.vgv, 60), infraPorLote: txt(f.infraPorLote, 60), margem: txt(f.margem, 60), parteDono: txt(f.parteDono, 60), velocidade: txt(f.velocidade, 60) },
     veredito: typeof o.veredito === "string" && o.veredito in VEREDITOS ? (o.veredito as Estudo2["veredito"]) : null,
     risco: txt(o.risco, 500),
+    originais: lerOriginais(o.originais),
   };
 }
 
