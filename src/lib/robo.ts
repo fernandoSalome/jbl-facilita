@@ -8,7 +8,7 @@ import { nutrirPorTelefone } from "./captacao-db";
 import { areaCitada, areaDoContexto, areasDaCaptacao, lembrarArea, listaComAreas, marcarRecebido } from "./robo-areas";
 import { tituloArea } from "./captacao";
 import { resumoArea } from "./lembretes";
-import { pedirAoClaude, tratarCentral, tratarEstudos, tratarKmzCentral, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
+import { pedirAoClaude, salvarKmzParticular, tratarCentral, tratarEstudos, tratarKmzCentral, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -52,6 +52,8 @@ const listaProjetos = (ps: { name: string }[]) => ps.map((p) => `• ${p.name}`)
 
 export async function tratarMensagem(m: Recebida) {
   if (!m.grupo.endsWith("@g.us")) {
+    // KMZ no particular: só guarda quem mandou, sem responder (pedido 20/11/2026)
+    if (m.arquivo && Date.now() - m.quando.getTime() < 10 * 60 * 1000 && (await salvarKmzParticular(m).catch((e) => (console.error("kmz particular", e), true)))) return;
     // conversa individual: só entra no checklist se estiver ligada a uma área com "nutrir" (pedido 19/11/2026)
     if (!m.deMim && m.texto && Date.now() - m.quando.getTime() < 10 * 60 * 1000) await nutrirPorTelefone(m.grupo, m.autor, m.texto, m.quando, m.id);
     return;

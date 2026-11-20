@@ -102,3 +102,12 @@ describe("cidade do KMZ", async () => {
     expect(cidadeDoEndereco({ address: { country: "Brasil" } })).toBeNull();
   });
 });
+
+describe("impressão do polígono", async () => {
+  const { impressaoPoligono } = await import("./poligono");
+  it("igual para o mesmo KMZ, diferente para outro", () => {
+    const a: [number, number][] = [[-47.1, -23.1], [-47.2, -23.1], [-47.2, -23.2]];
+    expect(impressaoPoligono(a)).toBe(impressaoPoligono(a.map(([x, y]) => [x + 1e-7, y] as [number, number])));
+    expect(impressaoPoligono(a)).not.toBe(impressaoPoligono([...a, [-47.1, -23.2]]));
+  });
+});

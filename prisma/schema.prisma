@@ -480,3 +480,24 @@ model ComandoClaude {
 
   @@index([status, createdAt])
 }
+
+/// KMZ que alguém mandou no particular (pedido 20/11/2026): o sistema só guarda, sem responder nem criar área.
+/// Quando o Fernando encaminha o mesmo KMZ no Central, a área nasce com o nome e o telefone de quem mandou.
+model KmzRecebido {
+  id        String   @id @default(cuid())
+  telefone  String
+  /// nome achado nos cadastros (conversa, proposta, carta), senão o nome do WhatsApp, senão vazio
+  nome      String?
+  fileName  String
+  poligono  Json
+  /// impressão digital do polígono (para reconhecer o mesmo KMZ encaminhado)
+  hash      String
+  hectares  Float?
+  cidade    String?
+  uf        String?
+  messageId String   @unique
+  areaId    String?
+  createdAt DateTime @default(now())
+
+  @@index([hash])
+}
