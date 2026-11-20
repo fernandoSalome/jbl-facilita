@@ -9,10 +9,11 @@ import { chamar } from "./chamar";
 const quando = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 
 /**
- * Etapa "Assinatura da carta" (pedido 20/11/2026): a carta de intenção no assinador, quem viu, assinou ou recusou.
+ * Carta de intenção na etapa Proposta (pedido 20/11/2026): aguardando o recebimento; depois os dados que a pessoa
+ * mandou, o editor de contrato e a confirmação do envio (nada sai sozinho); depois quem viu, assinou ou recusou.
  * Atualiza sozinha a cada 30 s; quando todos assinam, a área segue para o estudo de 30 dias.
  */
-export default function AssinaturaCarta({ carta }: { carta: CartaDaArea | null }) {
+export default function CartaDaProposta({ carta }: { carta: CartaDaArea | null }) {
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,9 +25,10 @@ export default function AssinaturaCarta({ carta }: { carta: CartaDaArea | null }
 
   if (!carta)
     return (
-      <section className="card p-5 text-sm">
-        <h3 className="eyebrow mb-2">Assinatura da carta</h3>
-        <p>Ainda não chegou a carta de intenção. Quando o proprietário preencher a proposta, a carta vai sozinha para o assinador e aparece aqui.</p>
+      <section className="card border-dashed p-5 text-sm">
+        <h3 className="eyebrow mb-2">Carta de intenção</h3>
+        <p className="font-semibold text-navy">⏳ Aguardando o recebimento.</p>
+        <p className="mt-1 text-muted">Quando o proprietário preencher e enviar a proposta, os dados dele aparecem aqui e o JBL - Central recebe a minuta para confirmar o envio.</p>
       </section>
     );
 
@@ -48,9 +50,16 @@ export default function AssinaturaCarta({ carta }: { carta: CartaDaArea | null }
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="font-display text-xl text-navy">✍️ Carta de intenção · {carta.nome}</h3>
         <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-bold ring-1 ${assinada ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : carta.status === "enviada" ? "bg-gold-soft text-gold-ink ring-gold-line" : "bg-navy-50 text-navy ring-line"}`}>
-          {assinada ? `Assinada por todos em ${quando(carta.assinadaEm)}` : carta.status === "enviada" ? "No assinador, esperando assinar" : "Minuta em revisão (link ainda não saiu)"}
+          {assinada ? `Assinada por todos em ${quando(carta.assinadaEm)}` : carta.status === "enviada" ? "No assinador, esperando assinar" : "Recebida · falta confirmar o envio"}
         </span>
       </div>
+      {carta.status === "revisao" && (
+        <div className="mt-3 grid gap-1 rounded border border-line bg-surface px-3 py-2.5">
+          <p><b className="text-navy">Dados que chegaram:</b> {carta.nome}{carta.cpf ? ` · CPF ${carta.cpf}` : ""}</p>
+          <p>{carta.telefone ? `📱 ${carta.telefone}` : "sem telefone"} · {carta.email ? `✉️ ${carta.email}` : "sem e-mail"}</p>
+          <p className="text-muted">Proposta {carta.proposta}. Confira e mude o contrato no editor antes de confirmar o envio.</p>
+        </div>
+      )}
       <p className="mt-1 text-[12.5px] text-muted">Protocolo {carta.protocolo} · recebida em {quando(carta.recebidaEm)}{carta.linkEnviadoEm ? ` · link enviado em ${quando(carta.linkEnviadoEm)}` : ""}</p>
 
       {carta.assinaturas.length > 0 && (
@@ -69,17 +78,23 @@ export default function AssinaturaCarta({ carta }: { carta: CartaDaArea | null }
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Link className="btn-navy py-1.5 text-[13px]" href={`/app/minuta/${carta.id}`}>📄 Ver a minuta</Link>
-        {!assinada && (
+        <Link className={carta.status === "revisao" ? "btn-gold py-1.5 text-[13px]" : "btn-navy py-1.5 text-[13px]"} href={`/app/minuta/${carta.id}`}>✏️ {carta.status === "revisao" ? "Abrir no editor de contrato" : "Ver o contrato"}</Link>
+        {carta.status === "revisao" && (
           <>
-            <button className="btn-ghost py-1.5 text-[13px]" disabled={busy} onClick={() => reenviar("whatsapp")}>{carta.status === "enviada" ? "Reenviar" : "Enviar"} no WhatsApp</button>
-            <button className="btn-ghost py-1.5 text-[13px]" disabled={busy} onClick={() => reenviar("email")}>{carta.status === "enviada" ? "Reenviar" : "Enviar"} por e-mail</button>
+            <button className="btn-navy py-1.5 text-[13px]" disabled={busy || !carta.telefone} onClick={() => confirm(`Confirmar o envio para assinatura no WhatsApp de ${carta.nome}? Depois disso o texto fica travado.`) && reenviar("whatsapp")}>✓ Confirmar envio no WhatsApp</button>
+            <button className="btn-ghost py-1.5 text-[13px]" disabled={busy || !carta.email} onClick={() => confirm(`Confirmar o envio para assinatura no e-mail de ${carta.nome}? Depois disso o texto fica travado.`) && reenviar("email")}>Confirmar envio por e-mail</button>
+          </>
+        )}
+        {carta.status === "enviada" && (
+          <>
+            <button className="btn-ghost py-1.5 text-[13px]" disabled={busy} onClick={() => reenviar("whatsapp")}>Reenviar no WhatsApp</button>
+            <button className="btn-ghost py-1.5 text-[13px]" disabled={busy} onClick={() => reenviar("email")}>Reenviar por e-mail</button>
           </>
         )}
         {assinada && <span className="text-[13px] text-emerald-800">A área seguiu para o Estudo de 30 dias.</span>}
       </div>
       {msg && <p className="mt-2 text-[13px] font-semibold text-navy">{msg}</p>}
-      {!assinada && <p className="mt-2 text-[12px] text-muted">Esta tela confere o assinador sozinha a cada 30 segundos.</p>}
+      {carta.status === "enviada" && <p className="mt-2 text-[12px] text-muted">Esta tela confere o assinador sozinha a cada 30 segundos.</p>}
     </section>
   );
 }

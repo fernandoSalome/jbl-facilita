@@ -6,10 +6,10 @@ import { avisarGrupos, dadosDaCarta, linkPortal, quemRecebeu } from "@/lib/aviso
 import { linkMinutaPortal } from "@/lib/minuta-acoes";
 import { faltandoNaCarta, semConjuge } from "@/lib/carta";
 import { waitUntil } from "@vercel/functions";
-import { areaEmProposta, cartaRecebidaNaArea } from "@/lib/captacao-assinatura";
+import { areaEmProposta, avisarCartaNoCentral } from "@/lib/captacao-assinatura";
 
 const MAX_FILE = 6 * 1024 * 1024;
-/** O envio automático para o assinador (PDF + Autentique) continua depois da resposta */
+/** O aviso no Central (minuta em PDF) continua depois da resposta */
 export const maxDuration = 60;
 
 export async function POST(req: Request, { params }: { params: { token: string } }) {
@@ -44,18 +44,9 @@ export async function POST(req: Request, { params }: { params: { token: string }
   const nome = String(b.proprietario?.nome ?? "").trim() || quemRecebeu(p);
   const carta = await db.intentLetter.findUnique({ where: { protocolo }, select: { id: true } });
   const tel = String(b.proprietario?.telefone ?? "").trim(), email = String(b.proprietario?.email ?? "").trim();
-  // proposta de uma área da Captação: a área vai para Assinatura e o link já sai sozinho (pedido 20/11/2026)
-  // (o PDF e a Autentique levam alguns segundos: roda depois de responder, para a pessoa não esperar)
-  const daArea = carta ? await areaEmProposta(p.id) : false;
-  if (carta && daArea) {
-    waitUntil(
-      (async () => {
-        const enviado = await cartaRecebidaNaArea(p.id, carta.id).catch((e) => `⚠️ Não consegui mandar o link sozinho: ${(e as Error).message}`);
-        await avisarGrupos(
-          `📩 *${nome}* enviou os dados da carta de intenção (proposta *${p.name}*, ${p.project.name}).\nProtocolo: ${protocolo}\n\n${dadosDaCarta(b)}\n\n${enviado ?? ""}\nA área passou para a etapa *Assinatura da carta*. Para ver ou reabrir a minuta: ${linkMinutaPortal(carta.id)}`,
-        ).catch(() => {});
-      })(),
-    );
+  // proposta de uma área da Captação: dados e minuta em PDF no JBL - Central, que confirma se pode enviar (pedido 20/11/2026)
+  if (carta && (await areaEmProposta(p.id))) {
+    waitUntil(avisarCartaNoCentral(carta.id, dadosDaCarta(b)).catch((e) => console.error("carta no central", e)));
     return json({ protocolo });
   }
   await avisarGrupos(

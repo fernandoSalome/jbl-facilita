@@ -8,8 +8,6 @@ export const ETAPAS = [
   ["previabilidade", "Pré-viabilidade"],
   ["reuniao", "Reunião"],
   ["proposta", "Proposta"],
-  // a carta de intenção vai sozinha para o assinador quando a pessoa preenche a proposta (pedido 20/11/2026)
-  ["assinatura", "Assinatura da carta"],
   ["estudo30", "Estudo 30 dias"],
   ["contrato", "Contrato"],
 ] as const;
@@ -26,7 +24,6 @@ export const ACAO_DA_ETAPA: Record<Etapa, string> = {
   previabilidade: "Marcar reunião",
   reuniao: "Fazer proposta",
   proposta: "Proposta aceita",
-  assinatura: "Carta assinada",
   estudo30: "Fechar contrato",
   contrato: "Contrato assinado",
 };

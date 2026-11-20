@@ -383,3 +383,12 @@ export async function viabilidadesDentroDaArea(db: PrismaClient) {
     console.log(`Captação: Viabilidade Legal de ${nome} dentro da área (${r.secoes} seções, ${r.imagens} imagens)`);
   }
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): a etapa "Assinatura da carta" voltou para dentro da Proposta.
+ * Área que tenha ficado nela volta para Proposta (idempotente: depois disso não acha mais nenhuma).
+ */
+export async function assinaturaDentroDaProposta(db: PrismaClient) {
+  const r = await db.area.updateMany({ where: { etapa: "assinatura" }, data: { etapa: "proposta" } });
+  if (r.count) console.log(`Captação: ${r.count} área(s) voltaram de "Assinatura da carta" para Proposta`);
+}

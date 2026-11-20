@@ -8,7 +8,7 @@ import ConversasArea from "@/components/captacao/ConversasArea";
 import DocumentosArea from "@/components/captacao/DocumentosArea";
 import Gate from "@/components/captacao/Gate";
 import MotivoSituacao from "@/components/captacao/MotivoSituacao";
-import AssinaturaCarta from "@/components/captacao/AssinaturaCarta";
+import CartaDaProposta from "@/components/captacao/CartaDaProposta";
 import { cartaDaArea } from "@/lib/captacao-assinatura";
 import HipotesesArea from "@/components/captacao/HipotesesArea";
 import MapaInterativo from "@/components/captacao/MapaInterativo";
@@ -60,6 +60,8 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
   const derivadas = respostasDosPassos({ ...a, reuniao: reuniao && reuniao.status === "marcado" ? reuniao : null });
   const prof = professor({ hectares: a.hectares, checklist: [...derivadas, ...checklist], conversas: a.conversas });
   const pessoas = lerPessoas(a.pessoas);
+  // carta de intenção da proposta (só na etapa Proposta, que é onde aparece)
+  const carta = (searchParams.ver ?? a.etapa) === "proposta" && aba === "etapa" ? await cartaDaArea(a.projectId) : null;
   const ha = a.hectares ? `${a.hectares.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha` : "tamanho a medir";
 
   return (
@@ -108,7 +110,9 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
               />
             )}
             {ver === "proposta" && (
-              <section className="card p-5 text-sm">
+              <>
+              {/* a proposta respondida apaga o bloco de cima; a carta aparece embaixo (pedido 20/11/2026) */}
+              <section className={`card p-5 text-sm ${carta ? "pointer-events-none opacity-50" : ""}`}>
                 <h3 className="eyebrow mb-2">Proposta</h3>
                 <p>A proposta já nasce com o que os estudos definiram (área, lote, frente, aproveitamento e valor do m²) e abre no editor de sempre, onde você muda o que quiser.</p>
                 {propostas.length > 0 && (
@@ -118,10 +122,12 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
                     ))}
                   </ul>
                 )}
+                {carta && <p className="mt-2 font-semibold text-navy">✅ Proposta respondida: a carta de intenção chegou (abaixo).</p>}
                 <div className="mt-3"><BotaoProposta id={a.id} temProposta={propostas.length > 0} /></div>
               </section>
+              <CartaDaProposta carta={carta} />
+              </>
             )}
-            {ver === "assinatura" && <AssinaturaCarta carta={await cartaDaArea(a.projectId)} />}
             {ver === "estudo30" && (
               <>
                 <h3 className="h-display text-xl">Estudo de 30 dias · o que precisamos provar</h3>
