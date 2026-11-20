@@ -220,3 +220,28 @@ export async function estudosDeAlagoas(db: PrismaClient) {
     console.log(`Biblioteca: ${c.nome}-${c.uf}`);
   }
 }
+
+/**
+ * Pedido do Fernando (20/11/2026): os loteamentos que já existem entram no funil de Projetos, cada um como uma
+ * área ligada ao loteamento (projectId). O KMZ vem depois. As propostas não mudam.
+ * Uma vez por loteamento: se já existe área ligada (mesmo apagada), não faz nada.
+ */
+const ETAPA_DA_FASE: Record<string, string> = { prospeccao: "proposta", proposta: "proposta", parceria: "contrato", aprovacao: "contrato", obras: "contrato", vendas: "contrato" };
+
+export async function loteamentosNoFunil(db: PrismaClient) {
+  const ps = await db.project.findMany({
+    where: { deletedAt: null },
+    select: { id: true, name: true, municipio: true, uf: true, areaTotal: true, fase: true, proposals: { where: { deletedAt: null }, orderBy: { updatedAt: "desc" }, take: 1, select: { ownerName: true } } },
+  });
+  for (const p of ps) {
+    if (await db.area.findFirst({ where: { projectId: p.id }, select: { id: true } })) continue;
+    await db.area.create({
+      data: {
+        nome: p.name, cidade: p.municipio, uf: p.uf, dono: p.proposals[0]?.ownerName?.trim() || null,
+        hectares: p.areaTotal > 1 ? Math.round((p.areaTotal / 1e4) * 100) / 100 : null,
+        etapa: ETAPA_DA_FASE[p.fase] ?? "proposta", projectId: p.id,
+      },
+    });
+    console.log(`Projetos: loteamento ${p.name} no funil`);
+  }
+}

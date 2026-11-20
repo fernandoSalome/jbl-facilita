@@ -419,3 +419,13 @@ model Cidade {
 
   @@unique([nome, uf])
 }
+
+/// Mensagens que o sistema mandou pelo WhatsApp: serve para o limite de envio (pedido 20/11/2026: no máximo 2 a cada
+/// 15 minutos, para o número não ser bloqueado)
+model WaEnvio {
+  id  String   @id @default(cuid())
+  jid String
+  em  DateTime @default(now())
+
+  @@index([em])
+}

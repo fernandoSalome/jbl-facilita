@@ -2,6 +2,8 @@
  * Cliente da Evolution API (WhatsApp). Variáveis: EVOLUTION_URL, EVOLUTION_KEY, EVOLUTION_INSTANCE.
  */
 
+import { JANELA_MS, LimiteWhatsapp, podeEnviar } from "./limite-whatsapp";
+
 const URL_ = () => (process.env.EVOLUTION_URL ?? "").replace(/\/+$/, "");
 const INST = () => encodeURIComponent(process.env.EVOLUTION_INSTANCE ?? "");
 
@@ -27,12 +29,29 @@ function marcar(r: { key?: { id?: string } } | null) {
   }
 }
 
+/**
+ * Reserva um envio dentro do limite (2 a cada 15 minutos). A trava do banco faz dois servidores ao mesmo tempo
+ * não passarem juntos do limite. Sem vaga, lança LimiteWhatsapp e nada é mandado.
+ */
+async function reservarEnvio(jid: string) {
+  const { db } = await import("./db");
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(20261120)`;
+    const recentes = await tx.waEnvio.findMany({ where: { em: { gt: new Date(Date.now() - JANELA_MS) } }, select: { em: true } });
+    const r = podeEnviar(recentes.map((x) => x.em));
+    if (!r.ok) throw new LimiteWhatsapp(r.libera);
+    await tx.waEnvio.create({ data: { jid } });
+  });
+}
+
 /** Texto puro: sem a prévia (imagem grande) que o WhatsApp monta para os links */
 export async function enviarTexto(jid: string, text: string) {
+  await reservarEnvio(jid);
   marcar(await call(`/message/sendText/${INST()}`, { number: jid, text, linkPreview: false }));
 }
 
 export async function enviarArquivo(jid: string, f: { base64: string; mime: string; fileName: string; caption: string }) {
+  await reservarEnvio(jid);
   const mediatype = f.mime.startsWith("image/") ? "image" : "document";
   marcar(await call(`/message/sendMedia/${INST()}`, { number: jid, mediatype, mimetype: f.mime, caption: f.caption, media: f.base64, fileName: f.fileName }));
 }
