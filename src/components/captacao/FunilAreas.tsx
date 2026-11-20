@@ -32,7 +32,7 @@ export default function FunilAreas({ areas }: { areas: A[] }) {
         <button className={vista === "lista" ? "btn-navy py-1.5 text-[13px]" : "btn-ghost py-1.5 text-[13px]"} onClick={() => setVista("lista")}>Lista</button>
       </div>
       {vista === "funil" ? (
-        <div className="grid gap-3 overflow-x-auto pb-2" style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(250px, 1fr))` }}>
+        <div className="grid gap-3 overflow-x-auto pb-2" style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(290px, 1fr))` }}>
           {ETAPAS.map(([k, n]) => {
             const col = lista.filter((a) => a.etapa === k);
             return (

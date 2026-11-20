@@ -171,7 +171,7 @@ export const lerPessoas = (v: unknown): Pessoa[] =>
 export type Pendencia = { areaId: string; titulo: string; oQue: string; aba: string; peso: number };
 
 /** O que cada área está esperando de você hoje (mais urgente primeiro) */
-export function pendencias(areas: { id: string; cidade: string; dono: string | null; corretor: string | null; nome: string; etapa: string; situacao: string; estudo1: unknown; poligono: unknown; reuniaoId: string | null; updatedAt: Date }[], agora = new Date()): Pendencia[] {
+export function pendencias(areas: { id: string; cidade: string; dono: string | null; corretor: string | null; nome: string; etapa: string; situacao: string; estudo1: unknown; estudo2?: unknown; poligono: unknown; reuniaoId: string | null; updatedAt: Date }[], agora = new Date()): Pendencia[] {
   const out: Pendencia[] = [];
   for (const a of areas.filter((x) => x.situacao === "ativa")) {
     const t = tituloArea(a);
@@ -180,7 +180,8 @@ export function pendencias(areas: { id: string; cidade: string; dono: string | n
     if (a.etapa === "captacao" && !a.poligono) out.push({ areaId: a.id, titulo: t, oQue: "Falta o KMZ", aba: "config", peso: 2 });
     else if (a.etapa === "captacao") out.push({ areaId: a.id, titulo: t, oQue: "KMZ recebido: estudar?", aba: "etapa", peso: 3 });
     if (a.etapa === "previabilidade" && e1.status === "pronto") out.push({ areaId: a.id, titulo: t, oQue: "Viabilidade Legal pronta: mandar resumo ao Central", aba: "etapa", peso: 3 });
-    if (a.etapa === "previabilidade" && e1.status === "sim") out.push({ areaId: a.id, titulo: t, oQue: "Fazer a Viabilidade Mercadológica", aba: "etapa", peso: 2 });
+    if (a.etapa === "previabilidade" && mercadoFeito(a.estudo2)) out.push({ areaId: a.id, titulo: t, oQue: "Viabilidades prontas: marcar a reunião", aba: "etapa", peso: 3 });
+    else if (a.etapa === "previabilidade" && e1.status === "sim") out.push({ areaId: a.id, titulo: t, oQue: "Fazer a Viabilidade Mercadológica", aba: "etapa", peso: 2 });
     if (a.etapa === "reuniao" && !a.reuniaoId) out.push({ areaId: a.id, titulo: t, oQue: "Marcar a reunião", aba: "etapa", peso: 3 });
     if (dias >= 7) out.push({ areaId: a.id, titulo: t, oQue: `Parada há ${dias} dias em ${nomeEtapa(a.etapa)}`, aba: "etapa", peso: 1 });
   }
@@ -189,10 +190,16 @@ export function pendencias(areas: { id: string; cidade: string; dono: string | n
 
 /* ------------------------------ Card do funil ------------------------------ */
 
+/** A Viabilidade Mercadológica já foi feita (tem veredito ou concorrentes) */
+export const mercadoFeito = (v: unknown) => {
+  const e = lerEstudo2(v);
+  return !!(e.veredito || e.concorrentes.length);
+};
+
 export type Tom = "ok" | "warn" | "bad" | "run";
 
 /** Situação e próximo passo do card (igual à maquete: linha de situação e etiqueta colorida) */
-export function cartao(a: { etapa: string; situacao: string; poligono: unknown; estudo1: unknown; reuniaoId: string | null; projectId: string | null }): { situacao: string; tom: Tom; passo: string } {
+export function cartao(a: { etapa: string; situacao: string; poligono: unknown; estudo1: unknown; estudo2?: unknown; reuniaoId: string | null; projectId: string | null }): { situacao: string; tom: Tom; passo: string } {
   if (a.situacao === "geladeira") return { situacao: "Na geladeira", tom: "run", passo: "rever depois" };
   if (a.situacao === "descartada") return { situacao: "Descartada", tom: "bad", passo: "fora do funil" };
   const e1 = lerEstudo1(a.estudo1);
@@ -200,6 +207,8 @@ export function cartao(a: { etapa: string; situacao: string; poligono: unknown; 
     case "captacao":
       return a.poligono ? { situacao: "KMZ recebido", tom: "warn", passo: "dar play no estudo?" } : { situacao: "Aguardando KMZ", tom: "bad", passo: "pedir o KMZ" };
     case "previabilidade":
+      // as duas viabilidades prontas: o próximo passo é a reunião (pedido 20/11/2026)
+      if (mercadoFeito(a.estudo2)) return { situacao: "Viabilidades prontas", tom: "bad", passo: "marcar a reunião" };
       return (
         {
           aguardando: { situacao: "Viabilidade Legal em andamento", tom: "run" as Tom, passo: "raio-x rodando" },
@@ -280,6 +289,7 @@ export function acaoDoPasso(a: Parameters<typeof cartao>[0]): { titulo: string; 
       if (e1.status === "aguardando") return { titulo: "Preencher a Viabilidade Legal", explica: "Coloque os números do raio-x (zona, lotes, alertas).", botao: "Abrir a Viabilidade Legal", aba: "etapa&ver=previabilidade" };
       if (e1.status === "pronto") return { titulo: "Mandar o resumo para o grupo", explica: "A Viabilidade Legal está pronta. Mande o resumo ao JBL - Central para decidir se segue.", botao: "Mandar o resumo", aba: "etapa&ver=previabilidade" };
       if (e1.status === "perguntado") return { titulo: "Responder no grupo: 1 Sim ou 2 Não", explica: "O resumo foi para o JBL - Central. A resposta lá decide se faz a Viabilidade Mercadológica.", botao: "Ver a Viabilidade Legal", aba: "etapa&ver=previabilidade" };
+      if (mercadoFeito((a as { estudo2?: unknown }).estudo2)) return { titulo: "Marcar a reunião com o proprietário", explica: "As duas viabilidades estão prontas. Use “Marcar reunião” no topo.", botao: "Ver as viabilidades", aba: "etapa&ver=previabilidade" };
       if (e1.status === "sim") return { titulo: "Fazer a Viabilidade Mercadológica", explica: "Concorrentes, revenda e produto. Depois disso, a apresentação fica pronta.", botao: "Abrir a Viabilidade Mercadológica", aba: "etapa&ver=previabilidade" };
       return { titulo: "Decidir: geladeira ou descartar", explica: "A Viabilidade Legal não passou. Use os botões do topo.", botao: "Ver a Viabilidade Legal", aba: "etapa&ver=previabilidade" };
     case "reuniao":

@@ -106,3 +106,12 @@ describe("confirmação no Central", async () => {
     expect(respostaCentral("1")).toBe("sim");
   });
 });
+
+describe("card com as duas viabilidades", async () => {
+  const { cartao } = await import("./captacao-estudos");
+  it("Mercadológica feita: próximo passo é a reunião", () => {
+    const a = { etapa: "previabilidade", situacao: "ativa", poligono: [[0, 0]], estudo1: { status: "sim" }, reuniaoId: null, projectId: null };
+    expect(cartao(a).passo).toBe("fazer a Viabilidade Mercadológica");
+    expect(cartao({ ...a, estudo2: { veredito: "ajuste" } })).toEqual({ situacao: "Viabilidades prontas", tom: "bad", passo: "marcar a reunião" });
+  });
+});
