@@ -46,6 +46,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
     a.reuniaoId ? db.compromisso.findUnique({ where: { id: a.reuniaoId }, select: { inicio: true, fim: true, local: true, status: true, convidadoNome: true, descricao: true } }) : null,
   ]);
   const custos = lerCustos(a.custos);
+  const propostas = a.projectId ? await db.proposal.findMany({ where: { projectId: a.projectId, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, status: true } }) : [];
   // o checklist também sabe o que os passos já dizem (pedido 20/11/2026)
   const derivadas = respostasDosPassos({ ...a, reuniao: reuniao && reuniao.status === "marcado" ? reuniao : null });
   const prof = professor({ hectares: a.hectares, checklist: [...derivadas, ...checklist], conversas: a.conversas });
@@ -99,8 +100,15 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             {ver === "proposta" && (
               <section className="card p-5 text-sm">
                 <h3 className="eyebrow mb-2">Proposta</h3>
-                <p>A proposta é feita no loteamento, do jeito de sempre (formatos, template, carta de intenção). A área vira loteamento uma vez só.</p>
-                <div className="mt-3"><BotaoProposta id={a.id} temLoteamento={!!a.projectId} /></div>
+                <p>A proposta já nasce com o que os estudos definiram (área, lote, frente, aproveitamento e valor do m²) e abre no editor de sempre, onde você muda o que quiser.</p>
+                {propostas.length > 0 && (
+                  <ul className="mt-3 grid gap-1.5">
+                    {propostas.map((p) => (
+                      <li key={p.id}><Link className="font-semibold text-navy hover:underline" href={`/app/proposta/${p.id}`}>{p.name}</Link> <span className="text-muted">· {p.status.replace("_", " ")}</span></li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-3"><BotaoProposta id={a.id} temProposta={propostas.length > 0} /></div>
               </section>
             )}
             {ver === "estudo30" && (

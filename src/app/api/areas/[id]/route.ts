@@ -3,13 +3,14 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { lerChecklist, validarArea, validarDocumentos, validarHipoteses } from "@/lib/captacao";
 import { lerPoligono } from "@/lib/kml";
+import { propostaDaArea } from "@/lib/captacao-db";
 import { lerCustos, lerEstudo1, lerEstudo2, lerPessoas } from "@/lib/captacao-estudos";
 
 export const dynamic = "force-dynamic";
 
 /** Altera a área: dados, etapa, situação, conclusão, documentos, hipóteses, checklist (edição) e polígono */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  return withSession(async () => {
+  return withSession(async (sessao) => {
     const atual = await db.area.findFirst({ where: { id: params.id, deletedAt: null }, select: { id: true } });
     if (!atual) return json({ error: "Área não encontrada" }, 404);
     const b = await req.json().catch(() => ({}));
@@ -29,6 +30,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data.poligono = p;
     }
     await db.area.update({ where: { id: atual.id }, data });
+    // chegou na etapa Proposta: a proposta já nasce com os dados dos estudos (pedido 20/11/2026)
+    if (v.dados.etapa === "proposta") await propostaDaArea(atual.id, sessao.sub).catch((e) => console.error("proposta da área", e));
     return json({ ok: true });
   });
 }

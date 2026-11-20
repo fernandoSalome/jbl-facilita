@@ -124,3 +124,58 @@ export const desativarLinkEstudo = (areaId: string) => db.area.updateMany({ wher
 /** Estudo pelo link público: só com código válido e área não apagada */
 export const estudoPorToken = (token: string) =>
   /^[A-Za-z0-9_-]{24}$/.test(token) ? db.area.findFirst({ where: { estudoToken: token, deletedAt: null } }) : Promise.resolve(null);
+
+/**
+ * Etapa Proposta (pedido 20/11/2026): cria o loteamento e uma proposta-rascunho com o que os estudos definiram,
+ * pelo mesmo caminho do formulário "Nova proposta" (mesmo template, formato e padrões). Se o loteamento já tem
+ * proposta, devolve a primeira (não cria outra). A proposta abre no editor de sempre.
+ */
+export async function propostaDaArea(areaId: string, userId: string) {
+  const projectId = await loteamentoDaArea(areaId);
+  if (!projectId) throw new Error("Área não encontrada");
+  const ja = await db.proposal.findFirst({ where: { projectId, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true } });
+  if (ja) return ja.id;
+  const a = await db.area.findFirst({ where: { id: areaId }, include: { conversas: true } });
+  if (!a) throw new Error("Área não encontrada");
+  const { DEFAULT_INPUTS } = await import("./calc");
+  const { formatoTemDados, parseContent } = await import("./formatos");
+  const { latestVersion } = await import("./formato-server");
+  const { parseInputs, parseOptions } = await import("./proposals");
+  const { regiaoDaUf } = await import("./orcamento2026");
+  const { newToken } = await import("./token");
+  const { entradasDaArea, formatoDaArea } = await import("./captacao-proposta");
+  const { lerEstudo1: le1, lerEstudo2: le2 } = await import("./captacao-estudos");
+  const { tituloArea } = await import("./captacao");
+  const template = await db.template.findFirst({ where: { deletedAt: null, status: "ativo" }, orderBy: { createdAt: "asc" } });
+  if (!template) throw new Error("Nenhum template ativo");
+  let formato = formatoDaArea(`${le2(a.estudo2).produto} ${le1(a.estudo1).produto}`);
+  let version = await latestVersion(template.id, formato);
+  if (!version || !formatoTemDados(parseContent(version.content, formato))) {
+    formato = "loteamento_aberto";
+    version = await latestVersion(template.id, formato);
+  }
+  if (!version) throw new Error("O template não tem o formato Loteamento aberto");
+  const padroes = parseContent(version.content, formato).padroes;
+  const ent = entradasDaArea(a, padroes);
+  if (ent.areaTotal) await db.project.update({ where: { id: projectId }, data: { areaTotal: ent.areaTotal } });
+  const proj = await db.project.findUnique({ where: { id: projectId }, select: { uf: true, areaTotal: true } });
+  const inputs = parseInputs({ ...DEFAULT_INPUTS, ...ent, areaTotal: ent.areaTotal ?? proj?.areaTotal ?? 0 });
+  const prop = a.conversas.find((c) => c.papel === "proprietario");
+  const p = await db.proposal.create({
+    data: {
+      projectId,
+      templateId: template.id,
+      formato,
+      formatoVersionId: version.id,
+      name: tituloArea(a),
+      ownerName: a.dono || a.corretor || "Proprietário",
+      ownerPhone: prop?.telefone ?? null,
+      // como na rota de propostas (planilha nova desde 03/11/2026)
+      inputs: { ...inputs, e1PctAproveitavel: undefined, planilhaNova: true, obrasSemEtapa1: true, recebE1Copia: true, regiao: inputs.regiao ?? regiaoDaUf(proj?.uf) } as Prisma.InputJsonValue,
+      options: parseOptions({}) as unknown as Prisma.InputJsonValue,
+      publicToken: newToken(),
+      createdById: userId,
+    },
+  });
+  return p.id;
+}
