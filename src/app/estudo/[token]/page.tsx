@@ -5,6 +5,9 @@ import BotaoImprimir from "@/components/captacao/BotaoImprimir";
 import { estudoPorToken } from "@/lib/captacao-db";
 import { lerEstudo1, lerEstudo2, SEMAFOROS, VEREDITOS } from "@/lib/captacao-estudos";
 import { lerPoligono } from "@/lib/kml";
+import { relatorioGravado } from "@/lib/relatorio";
+import { sanitizeHtml } from "@/lib/sanitize";
+import RelatorioCompleto from "@/components/captacao/RelatorioCompleto";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,9 @@ export default async function EstudoPublico({ params }: { params: { token: strin
   const e1 = lerEstudo1(a.estudo1);
   const e2 = lerEstudo2(a.estudo2);
   const poligono = lerPoligono(a.poligono);
-  const titulo = a.nome || `Área em ${a.cidade}`;
+  // com o raio-x completo, o título é o dele (não leva o nome do proprietário)
+  const rel = relatorioGravado(a.relatorioCompleto);
+  const titulo = rel?.titulo || a.nome || `Área em ${a.cidade}`;
   const data = (a.estudoLinkEm ?? a.updatedAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "long", year: "numeric" });
   const temMercado = !!(e2.veredito || e2.concorrentes.length || e2.produto);
   const Secao = ({ n, t, children }: { n: number; t: string; children: React.ReactNode }) => (
@@ -49,6 +54,9 @@ export default async function EstudoPublico({ params }: { params: { token: strin
           <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.25em] text-gold">Estudo de viabilidade · preliminar</div>
           <h1 className="font-display text-[40px] leading-tight md:text-[52px]">{titulo}</h1>
           <p className="mt-2 text-lg text-white/80">{a.cidade} · {a.uf} · {ha(a.hectares)}</p>
+          {rel?.veredito && <p className="mt-5 inline-block rounded-full bg-gold px-4 py-1.5 text-[14px] font-semibold text-navy">{rel.veredito}</p>}
+          {rel?.lede && <p className="mt-5 max-w-3xl text-[17px] leading-relaxed text-white/90" dangerouslySetInnerHTML={{ __html: sanitizeHtml(rel.lede) }} />}
+          {rel?.destaque && <p className="mt-3 text-[17px] text-gold" dangerouslySetInnerHTML={{ __html: sanitizeHtml(rel.destaque) }} />}
           <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-white/75">
             Este estudo reúne o que a legislação permite fazer na área, quanto dela pode virar lote e como está o mercado em volta.
             É uma triagem: os números servem para decidir se vale aprofundar, e cada ponto em aberto está indicado com o caminho para resolver.
@@ -57,6 +65,22 @@ export default async function EstudoPublico({ params }: { params: { token: strin
         </div>
       </div>
 
+      {rel ? (
+        <div className="mx-auto max-w-5xl px-6">
+          {poligono && (
+            <section className="py-10">
+              <div className="eyebrow mb-3">A área no mapa</div>
+              <MapaInterativo poligono={poligono} altura={480} />
+              <p className="mt-3 text-sm text-muted">Arraste e use o zoom para ver o entorno. Polígono do arquivo KMZ sobre a foto de satélite.</p>
+            </section>
+          )}
+          <RelatorioCompleto r={rel} />
+          <section className="border-t border-line py-8 text-[12.5px] leading-relaxed text-muted">
+            Estudo preliminar, feito com base em legislação publicada, mapas oficiais, imagens de satélite e dados públicos na data acima.
+            Não substitui certidões, levantamento topográfico nem laudos. Documento confidencial, para uso do destinatário.
+          </section>
+        </div>
+      ) : (
       <div className="mx-auto max-w-5xl px-6">
         <section className="grid gap-4 py-10 md:grid-cols-4">
           {[
@@ -64,7 +88,7 @@ export default async function EstudoPublico({ params }: { params: { token: strin
             ["Zona e lote mínimo", [e1.zona, e1.loteMinimo].filter(Boolean).join(" · ") || "—"],
             ["Lotes (cenário médio)", nf(e1.lotes.medio)],
             ["Área aproveitável", e1.aproveitavelPct != null ? `${e1.aproveitavelPct}%` : "—"],
-          ].map(([k, v]) => (
+          ].filter(([, v]) => v !== "—").map(([k, v]) => (
             <div key={k} className="rounded-md border border-gold-line bg-gold-soft p-4">
               <div className="text-[11px] font-bold uppercase tracking-wider text-gold-ink">{k}</div>
               <div className="mt-1 font-display text-[22px] leading-snug text-navy">{v}</div>
@@ -170,6 +194,7 @@ export default async function EstudoPublico({ params }: { params: { token: strin
           Não substitui certidões, levantamento topográfico nem laudos. Documento confidencial, para uso do destinatário.
         </section>
       </div>
+      )}
 
       <footer className="bg-navy py-8 text-center">
         <img src="/brand/logo-vertical.webp" alt="JBL Incorporadora" className="mx-auto h-16 w-auto opacity-90" />

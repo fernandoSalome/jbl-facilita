@@ -358,6 +358,8 @@ model Area {
   /// link público do estudo para parceiros (/estudo/<token>); vazio = sem link (pedido 19/11/2026)
   estudoToken String?  @unique
   estudoLinkEm DateTime?
+  /// raio-x completo (blocos de texto, tabelas e imagens) mostrado no link do parceiro; ver src/lib/relatorio.ts
+  relatorioCompleto Json?
   projectId  String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

@@ -132,3 +132,16 @@ export async function estudosEBiblioteca(db: PrismaClient) {
     console.log(`Biblioteca: ${c.nome}-${c.uf}`);
   }
 }
+
+/**
+ * Pedido do Fernando (19/11/2026): o link do estudo de Sorocaba, para mandar ao corretor, mostra o raio-x
+ * completo, com as imagens. Uma vez só: se a área já tem o raio-x completo, não faz nada.
+ */
+export async function raioXCompletoSorocaba(db: PrismaClient) {
+  const a = await db.area.findFirst({ where: { relatorio: "https://claude.ai/artifact/5Bt842BwwnapKvfYQ3zsRc", deletedAt: null }, select: { id: true, relatorioCompleto: true } });
+  if (!a || a.relatorioCompleto) return;
+  const { readFileSync } = await import("node:fs");
+  const { guardarRelatorio } = await import("../src/lib/relatorio-db");
+  const r = await guardarRelatorio(db, a.id, readFileSync("prisma/dados/relatorios/sorocaba.html", "utf8"));
+  console.log(`Captação: raio-x completo de Sorocaba no link (${r.secoes} seções, ${r.imagens} imagens)`);
+}

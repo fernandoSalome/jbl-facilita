@@ -8,7 +8,7 @@ import { chamar } from "./chamar";
 import ListaEditavel from "./ListaEditavel";
 import LinkEstudo from "./LinkEstudo";
 
-type A = { id: string; cidade: string; dono: string | null; corretor: string | null; nome: string; hectares: number | null; relatorio: string | null; estudoToken: string | null };
+type A = { id: string; cidade: string; dono: string | null; corretor: string | null; nome: string; hectares: number | null; relatorio: string | null; estudoToken: string | null; relatorioCompleto: unknown };
 
 const Fase = ({ n, t, sub, on, off }: { n: number; t: string; sub: string; on: boolean; off: boolean }) => (
   <div className={`flex-1 rounded-md border-2 px-4 py-3 ${on ? "border-gold bg-gold-soft" : off ? "border-line bg-alt opacity-60" : "border-navy-50 bg-white"}`}>
@@ -168,7 +168,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
         </div>
         <p className="mt-2 text-[13px] text-muted">9 slides no modelo da JBL, montados com o que está nos dois estudos: capa, quem somos, parceria, a área, o que dá para fazer, mercado, produto, quanto pode render e próximos passos.</p>
       </section>
-      <LinkEstudo id={a.id} token={a.estudoToken} />
+      <LinkEstudo id={a.id} token={a.estudoToken} temRelatorio={!!a.relatorioCompleto} />
       {msg && <p className="text-sm font-semibold text-navy">{msg}</p>}
     </div>
   );
