@@ -5,7 +5,7 @@ import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
 import { nutrirPorTelefone } from "./captacao-db";
-import { tratarCentral, tratarEstudos, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
+import { pedirAoClaude, tratarCentral, tratarEstudos, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
 /**
@@ -100,6 +100,9 @@ export async function tratarMensagem(m: Recebida) {
   if (g.funcao === "estudos" && (await tratarEstudos(m, responder))) return;
   /* ---------- grupo JBL - Central: "1 Sim · 2 Não" depois do resumo do terreno ---------- */
   if (g.funcao === "central" && (await tratarCentral(m, responder))) return;
+
+  /* ---------- grupo JBL - Claude: pedido de pesquisa para o Claude da VPS (só Fernando e Marcelo) ---------- */
+  if (g.funcao === "claude") return void (await pedirAoClaude(m, responder));
 
   /* ---------- lembretes ("me lembra amanhã às 9h de…") e situação das áreas da Captação ---------- */
   if (await tratarLembrete(m, responder)) return;

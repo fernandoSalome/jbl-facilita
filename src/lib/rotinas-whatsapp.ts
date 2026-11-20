@@ -41,3 +41,13 @@ export async function enviarLembretes(agora = new Date()) {
   }
   return n;
 }
+
+/** Respostas do Claude que o limite de envio barrou: tenta de novo (uma por rodada) */
+export async function respostasClaudePendentes() {
+  const c = await db.comandoClaude.findFirst({ where: { status: { in: ["feito", "erro"] }, enviadoEm: null }, orderBy: { terminadoEm: "asc" } });
+  if (!c) return 0;
+  const { cortarResposta } = await import("./claude-ponte");
+  await enviarTexto(c.grupoJid, `🤖 🧠 ${cortarResposta(c.resposta ?? "")}`);
+  await db.comandoClaude.update({ where: { id: c.id }, data: { enviadoEm: new Date() } });
+  return 1;
+}

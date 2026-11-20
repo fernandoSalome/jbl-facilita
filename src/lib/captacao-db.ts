@@ -179,3 +179,28 @@ export async function propostaDaArea(areaId: string, userId: string) {
   });
   return p.id;
 }
+
+/**
+ * Estudo feito pelo Claude da VPS (pedido 20/11/2026): grava os campos da viabilidade e o estudo completo na área.
+ * Estudo (Viabilidade Legal): estudo1 + relatorioCompleto, e a área vai para Pré-viabilidade.
+ * Mercado (Viabilidade Mercadológica): estudo2 + relatorioMercado. Devolve um aviso para a resposta do grupo.
+ */
+export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "mercado" | string, estudo: unknown, html: string) {
+  const { lerEstudo1: le1, lerEstudo2: le2 } = await import("./captacao-estudos");
+  const { guardarRelatorio } = await import("./relatorio-db");
+  const a = await db.area.findFirst({ where: { id: areaId, deletedAt: null }, select: { id: true, etapa: true, estudo1: true, estudo2: true } });
+  if (!a) throw new Error("área não encontrada");
+  let linhas = "";
+  if (tipo === "estudo") {
+    const antes = le1(a.estudo1);
+    const e = le1({ ...(estudo && typeof estudo === "object" ? estudo : {}), status: "pronto", originais: antes.originais });
+    await db.area.update({ where: { id: a.id }, data: { estudo1: e, ...(a.etapa === "captacao" ? { etapa: "previabilidade" } : {}) } });
+    if (html) linhas = `${(await guardarRelatorio(db, a.id, html)).secoes} seções`;
+  } else {
+    const antes = le2(a.estudo2);
+    const e = le2({ ...(estudo && typeof estudo === "object" ? estudo : {}), originais: antes.originais });
+    await db.area.update({ where: { id: a.id }, data: { estudo2: e } });
+    if (html) linhas = `${(await guardarRelatorio(db, a.id, html, [], "relatorioMercado")).secoes} seções`;
+  }
+  return `\n\n✅ Entrou na plataforma${linhas ? ` (${linhas})` : ""}: abra a área em Projetos.`;
+}

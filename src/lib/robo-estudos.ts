@@ -77,3 +77,30 @@ export async function tratarSituacaoArea(m: Recebida, responder: (t: string) => 
   await responder(resumoArea(achadas[0]));
   return true;
 }
+
+/**
+ * Grupo JBL - Claude (pedido 20/11/2026): o pedido entra na fila do Claude da VPS, que pesquisa com a
+ * assinatura e responde no grupo. Só o próprio WhatsApp e os números em CLAUDE_AUTORIZADOS; os outros são ignorados.
+ */
+export async function pedirAoClaude(m: Recebida, responder: (t: string) => Promise<unknown>) {
+  const { autorizado, tipoDoPedido } = await import("./claude-ponte");
+  if (!autorizado(m) || m.texto.trim().length < 3) return;
+  const tipo = tipoDoPedido(m.texto);
+  let areaId: string | null = null;
+  if (tipo !== "pesquisa") {
+    // estudo e mercado são de uma área da Captação: precisa saber qual
+    const areas = await db.area.findMany({ where: { deletedAt: null, situacao: { not: "descartada" } } });
+    const achadas = areaPorTexto(m.texto, areas);
+    if (achadas.length !== 1) {
+      const lista = (achadas.length ? achadas : areas).slice(0, 10).map((a) => `• ${tituloArea(a)}`).join("\n");
+      return void (await responder(`De qual área? Mande de novo com o nome:\n${lista}`));
+    }
+    const a = achadas[0];
+    if (!a.poligono) return void (await responder(`*${tituloArea(a)}* ainda não tem o KMZ. Suba o arquivo em Configurações da área e peça de novo.`));
+    areaId = a.id;
+  }
+  const naFila = await db.comandoClaude.count({ where: { status: { in: ["fila", "rodando"] } } });
+  await db.comandoClaude.create({ data: { texto: m.texto.slice(0, 4000), grupoJid: m.grupo, autor: m.autor || null, tipo, areaId } });
+  const oque = tipo === "estudo" ? "a Viabilidade Legal (leva de 20 a 60 minutos)" : tipo === "mercado" ? "a Viabilidade Mercadológica (leva de 20 a 40 minutos)" : "a pesquisa";
+  await responder(`🧠 Recebi. Vou fazer ${oque}.${naFila ? ` Tem ${naFila} pedido(s) antes.` : ""} Respondo aqui quando terminar.`);
+}

@@ -18,6 +18,11 @@ export const FUNCOES = {
     resumo: "Texto sobre uma área (com o nome dela) vai para o checklist. Se não souber de qual área é, o robô pergunta.",
     regras: ["Cite a área: “Sítio do Pedro: a estrada é de terra”", "Cada frase vai para a seção certa, com a origem", "Na dúvida, o robô pergunta de qual área é"],
   },
+  claude: {
+    nome: "JBL - Claude",
+    resumo: "Pedidos de pesquisa para o Claude da VPS (com a assinatura): ele pesquisa e responde no grupo. Só Fernando e Marcelo.",
+    regras: ["“Pesquise o preço de lotes de 300 m² em Itu”", "“Quais loteamentos foram aprovados em Sorocaba em 2026?”", "Pelo WhatsApp não se altera o código do sistema"],
+  },
   projeto: {
     nome: "Grupo do projeto",
     resumo: "Grupo de um loteamento específico: documentos vão direto para a pasta dele.",

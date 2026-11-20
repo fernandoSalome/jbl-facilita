@@ -451,3 +451,25 @@ model WaRotina {
   chave String   @id
   em    DateTime @default(now())
 }
+
+/// Pedido ao Claude da VPS pelo grupo JBL - Claude (pedido 20/11/2026): pesquisas e perguntas, pela assinatura.
+/// O Claude da VPS busca a fila, faz e devolve; o Facilita manda a resposta no grupo.
+model ComandoClaude {
+  id          String    @id @default(cuid())
+  texto       String
+  grupoJid    String
+  autor       String?
+  /// pesquisa (pergunta livre) | estudo (Viabilidade Legal da área) | mercado (Viabilidade Mercadológica)
+  tipo        String    @default("pesquisa")
+  areaId      String?
+  /// fila | rodando | feito | erro
+  status      String    @default("fila")
+  resposta    String?
+  createdAt   DateTime  @default(now())
+  iniciadoEm  DateTime?
+  terminadoEm DateTime?
+  /// resposta já mandada no grupo (vazio com status feito = tenta de novo na rotina, por causa do limite)
+  enviadoEm   DateTime?
+
+  @@index([status, createdAt])
+}

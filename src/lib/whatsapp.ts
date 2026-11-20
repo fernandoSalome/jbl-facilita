@@ -87,10 +87,12 @@ export type Recebida = {
   quando: Date;
   texto: string;
   arquivo: { fileName: string; mime: string } | null;
+  /** em grupo: número de quem mandou (só dígitos); em conversa individual, vazio */
+  participante: string;
 };
 
 export function lerMensagem(data: Record<string, unknown>): Recebida | null {
-  const key = data.key as { remoteJid?: string; fromMe?: boolean; id?: string } | undefined;
+  const key = data.key as { remoteJid?: string; fromMe?: boolean; id?: string; participant?: string; participantAlt?: string; participantPn?: string } | undefined;
   if (!key?.id || !key.remoteJid) return null;
   let m = (data.message ?? {}) as Msg;
   if (m.documentWithCaptionMessage?.message) m = m.documentWithCaptionMessage.message;
@@ -111,5 +113,7 @@ export function lerMensagem(data: Record<string, unknown>): Recebida | null {
     quando: ts ? new Date(ts * 1000) : new Date(),
     texto: texto.trim(),
     arquivo,
+    // o WhatsApp pode mandar um id interno (@lid) no lugar do número: usa o número quando vier junto
+    participante: ([key.participantPn, key.participantAlt, key.participant].find((x) => x && /@s\.whatsapp\.net$/.test(x)) ?? "").split("@")[0].replace(/\D/g, ""),
   };
 }
