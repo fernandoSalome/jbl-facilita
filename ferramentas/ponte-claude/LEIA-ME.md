@@ -50,3 +50,18 @@ O que acontece:
 5. O resumo vai para o grupo.
 
 As referências ficam em `~/estudos/referencia`: o padrão, as regras, as fontes, os scripts e os exemplos. A pasta `base/` com o material do professor não vai para a VPS.
+
+## Repetidor do webhook do WhatsApp
+
+Na Evolution, cada conexão manda as mensagens para um só endereço. A conexão **"Fernando"** é a do Facilita: por ela saem as mensagens 🤖.
+
+Desde 20/11/2026, essa conexão manda para o repetidor (`~/ponte/repetidor.mjs`, serviço `jbl-repetidor`). O repetidor:
+
+- escuta só na rede interna do Docker (`172.17.0.1:8110`), num caminho com código (`/wa/<TOKEN>`);
+- repassa cada mensagem para todos os endereços em `ALVOS`:
+  - o Facilita (`/api/whatsapp/webhook?k=<WA_WEBHOOK_SECRET>`);
+  - o my-leads-metrics.
+
+As variáveis ficam em `~/.repetidor.env` (`TOKEN`, `FACILITA_K`, `ALVOS`), com `chmod 600`. O `FACILITA_K` é o mesmo valor do `WA_WEBHOOK_SECRET` da Vercel.
+
+Para acompanhar: `journalctl -u jbl-repetidor -f`. Ele só registra os repasses que deram erro.
