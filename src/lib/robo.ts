@@ -135,7 +135,7 @@ export async function tratarMensagem(m: Recebida) {
   /* ---------- grupo JBL - Claude: pedido de pesquisa para o Claude da VPS (só Fernando e Marcelo) ---------- */
   if (g.funcao === "claude") return void (await pedirAoClaude(m, responder));
   // no Central, "Claude, …" também vira pedido para o Claude da VPS
-  if (g.funcao === "central" && /^\s*claude\s*[,:]/i.test(m.texto)) return void (await pedirAoClaude({ ...m, texto: m.texto.replace(/^\s*claude\s*[,:]\s*/i, "") }, responder));
+  if (g.funcao === "central" && /^\s*claude\s*[,:]/i.test(m.texto)) return void (await pedirAoClaude({ ...m, texto: m.texto.replace(/^\s*claude\s*[,:]\s*/i, "") }, responder, true));
 
   /* ---------- lembretes ("me lembra amanhã às 9h de…") e situação das áreas da Captação ---------- */
   if (await tratarLembrete(m, responder)) return;

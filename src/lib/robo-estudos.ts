@@ -100,9 +100,10 @@ export async function tratarSituacaoArea(m: Recebida, responder: (t: string) => 
  * Grupo JBL - Claude (pedido 20/11/2026): o pedido entra na fila do Claude da VPS, que pesquisa com a
  * assinatura e responde no grupo. Só o próprio WhatsApp e os números em CLAUDE_AUTORIZADOS; os outros são ignorados.
  */
-export async function pedirAoClaude(m: Recebida, responder: (t: string) => Promise<unknown>) {
+export async function pedirAoClaude(m: Recebida, responder: (t: string) => Promise<unknown>, doCentral = false) {
   const { autorizado, tipoDoPedido } = await import("./claude-ponte");
-  if (!autorizado(m) || m.texto.trim().length < 3) return;
+  // no JBL - Central todos do grupo podem pedir; no grupo do Claude, só os autorizados
+  if ((!doCentral && !autorizado(m)) || m.texto.trim().length < 3) return;
   const tipo = tipoDoPedido(m.texto);
   let areaId: string | null = null;
   if (tipo !== "pesquisa") {
@@ -130,8 +131,8 @@ export async function pedirAoClaude(m: Recebida, responder: (t: string) => Promi
  */
 export async function tratarKmzCentral(m: Recebida, responder: (t: string) => Promise<unknown>): Promise<boolean> {
   if (!m.arquivo || !/\.km[lz]$/i.test(m.arquivo.fileName)) return false;
-  const { autorizado } = await import("./claude-ponte");
-  if (!autorizado(m)) return true;
+  // só roda no JBL - Central: o grupo é só da equipe, então quem está nele pode mandar KMZ (pedido 20/11/2026;
+  // antes só valia a lista CLAUDE_AUTORIZADOS e o KMZ do Marcelo era ignorado em silêncio)
   const { baixarMidia } = await import("./whatsapp");
   const { centro, cidadeDoPonto, hectares, kmlDoKmz, lerKml } = await import("./kml");
   const midia = await baixarMidia(m.id);
