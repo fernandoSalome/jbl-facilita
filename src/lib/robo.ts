@@ -5,6 +5,8 @@ import { pdfDaProposta } from "./pdf";
 import { responderProposta } from "./robo-propostas";
 import { carregarCarta, enviarLinkEmail, enviarLinkWhatsapp, linkMinutaPortal, nomeArquivo, nomeDe, pdfDaMinuta } from "./minuta-acoes";
 import { nutrirPorTelefone } from "./captacao-db";
+import { areaCitada, areaDoContexto, areasDaCaptacao, lembrarArea, listaComAreas, marcarRecebido } from "./robo-areas";
+import { tituloArea } from "./captacao";
 import { pedirAoClaude, tratarCentral, tratarEstudos, tratarKmzCentral, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
@@ -64,6 +66,10 @@ export async function tratarMensagem(m: Recebida) {
   const contextoValido = g.contextoProjectId && g.contextoAt && Date.now() - g.contextoAt.getTime() < CONTEXTO_MIN * 60 * 1000 ? g.contextoProjectId : null;
   const lembrar = (projectId: string) => db.waGroup.update({ where: { id: g.id }, data: { contextoProjectId: projectId, contextoAt: new Date() } });
   const responder = (t: string) => enviarTexto(m.grupo, `${ROBO} ${t}`);
+  // áreas da Captação: entram nas listas e no contexto do grupo (pedido 20/11/2026)
+  const areas = await areasDaCaptacao();
+  const lista = listaComAreas(projetos, areas);
+  const areaAlvo = citado ? null : (areaCitada(m.texto, areas) ?? areaDoContexto(g, areas));
 
   /* ---------- chegou um arquivo ---------- */
   if (m.arquivo) {
@@ -76,17 +82,24 @@ export async function tratarMensagem(m: Recebida) {
     const mime = midia.mimetype || m.arquivo.mime;
     const fileName = midia.fileName || m.arquivo.fileName;
     const leitura = await lerDocumento({ base64: midia.base64, mime, fileName, legenda: m.texto }, projetos);
-    const projectId = citado?.id ?? leitura.projetoId ?? contextoValido ?? null;
+    // área da Captação citada (ou a última de que se falou): o documento fica na área
+    const paraArea = !citado && !leitura.projetoId ? areaAlvo : null;
+    const projectId = paraArea ? null : (citado?.id ?? leitura.projetoId ?? contextoValido ?? null);
     const projeto = projetos.find((x) => x.id === projectId);
     const fase = leitura.fase && ETAPA[leitura.fase] ? leitura.fase : faseDoDocumento(leitura.tipo, `${m.texto} ${fileName}`, projeto?.fase);
     const doc = await db.projectDocument.create({
       data: {
         projectId, tipo: leitura.tipo, fase, titulo: leitura.titulo, resumo: leitura.resumo ?? null, dados: (leitura.dados ?? undefined) as object | undefined,
-        fileName, mime, size: bytes.length, data: bytes, origem: "whatsapp", enviadoPor: m.autor || null, grupo: g.name, messageId: m.id,
+        fileName, mime, size: bytes.length, data: bytes, origem: "whatsapp", enviadoPor: m.autor || null, grupo: g.name, messageId: m.id, areaId: paraArea?.id ?? null,
       },
     });
+    if (paraArea) {
+      await marcarRecebido(paraArea.id, leitura.tipo);
+      await lembrarArea(m.grupo, paraArea.id);
+      return responder(`Armazenado! ✅\n📍 Área *${tituloArea(paraArea)}* (Captação) › Documentos\n📄 ${doc.titulo} (${fileName}, ${tamanho(bytes.length)})${leitura.resumo ? `\n📝 ${leitura.resumo}` : ""}`);
+    }
     if (!projectId) {
-      return responder(`Recebi *${doc.titulo}* (${fileName}), mas não sei de qual loteamento é. Me responde com o nome:\n${listaProjetos(projetos)}`);
+      return responder(`Recebi *${doc.titulo}* (${fileName}), mas não sei de qual loteamento ou área é. Me responde com o nome:\n${lista}`);
     }
     await lembrar(projectId);
     const p = projetos.find((x) => x.id === projectId)!;
@@ -114,6 +127,20 @@ export async function tratarMensagem(m: Recebida) {
   if (!citado && (await tratarSituacaoArea(m, responder))) return;
 
   /* ---------- texto ---------- */
+  // documento que chegou sem destino: o nome de uma área da Captação também resolve
+  const areaNoTexto = citado ? null : areaCitada(m.texto, areas);
+  if (areaNoTexto) {
+    const pendentes = await db.projectDocument.findMany({
+      where: { projectId: null, areaId: null, grupo: g.name, deletedAt: null, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },
+      select: { id: true, titulo: true, tipo: true },
+    });
+    if (pendentes.length) {
+      await db.projectDocument.updateMany({ where: { id: { in: pendentes.map((d) => d.id) } }, data: { areaId: areaNoTexto.id } });
+      for (const d of pendentes) await marcarRecebido(areaNoTexto.id, d.tipo);
+      await lembrarArea(m.grupo, areaNoTexto.id);
+      return responder(`Pronto! Guardei na área *${tituloArea(areaNoTexto)}*:\n${pendentes.map((d) => `📄 ${d.titulo}`).join("\n")}`);
+    }
+  }
   // documento que chegou sem loteamento: a resposta com o nome resolve
   if (citado) {
     const pendentes = await db.projectDocument.findMany({
@@ -138,6 +165,10 @@ export async function tratarMensagem(m: Recebida) {
   switch (it.acao) {
     case "aviso_envio": {
       const oque = it.tipo ? `a ${TIPOS[it.tipo].nome.toLowerCase()}` : "o documento";
+      if (!alvo && areaAlvo) {
+        await lembrarArea(m.grupo, areaAlvo.id);
+        return responder(`Pode mandar ${oque}! Assim que chegar, guardo na área *${tituloArea(areaAlvo)}*. 📍`);
+      }
       return responder(
         alvo
           ? `Pode mandar ${oque}! Assim que chegar, vou armazenar na pasta do *${alvo.name}*. 📁`
@@ -145,7 +176,12 @@ export async function tratarMensagem(m: Recebida) {
       );
     }
     case "pedido_documento": {
-      if (!alvo) return responder(`De qual loteamento? Tenho pastas para:\n${listaProjetos(projetos)}`);
+      if (!alvo && areaAlvo) {
+        const doc = await db.projectDocument.findFirst({ where: { areaId: areaAlvo.id, deletedAt: null, ...(it.tipo ? { tipo: it.tipo } : {}) }, orderBy: { createdAt: "desc" } });
+        if (!doc) return responder(`Ainda não tenho ${it.tipo ? TIPOS[it.tipo].nome.toLowerCase() : "documento"} da área *${tituloArea(areaAlvo)}*. Se alguém mandar aqui, eu guardo.`);
+        return void (await enviarArquivo(m.grupo, { base64: Buffer.from(doc.data).toString("base64"), mime: doc.mime, fileName: doc.fileName, caption: `${ROBO} *${doc.titulo}*\n📍 Área *${tituloArea(areaAlvo)}* (Captação)` }));
+      }
+      if (!alvo) return responder(`De qual loteamento ou área? Tenho:\n${lista}`);
       // "manda os documentos da aprovação do X": todos os da etapa
       if (!it.tipo && it.fase) {
         const todos = await db.projectDocument.findMany({ where: { projectId: alvo.id, deletedAt: null }, orderBy: { createdAt: "desc" } });
@@ -175,7 +211,7 @@ export async function tratarMensagem(m: Recebida) {
       return;
     }
     case "pedido_proposta": {
-      if (!alvo) return responder(`De qual loteamento? Tenho propostas para:\n${listaProjetos(projetos)}`);
+      if (!alvo) return responder(`De qual loteamento? Tenho propostas para:\n${listaProjetos(projetos)}${areas.length ? "\n\n(As áreas em captação ainda não têm proposta.)" : ""}`);
       const props = await db.proposal.findMany({
         where: { projectId: alvo.id, deletedAt: null },
         select: { name: true, ownerName: true, status: true, publicToken: true },
@@ -204,7 +240,7 @@ export async function tratarMensagem(m: Recebida) {
       return responder(await responderProposta(m.texto, projetoId ?? contextoValido));
     case "status":
     case "listar": {
-      if (!alvo) return responder(`De qual loteamento? Tenho pastas para:\n${listaProjetos(projetos)}`);
+      if (!alvo) return responder(`De qual loteamento ou área? Tenho:\n${lista}`);
       const docs = await db.projectDocument.findMany({ where: { projectId: alvo.id, deletedAt: null }, select: { tipo: true, fase: true, titulo: true, createdAt: true }, orderBy: { createdAt: "desc" } });
       const props = await db.proposal.findMany({ where: { projectId: alvo.id, deletedAt: null }, select: { name: true, status: true } });
       // documentos separados por etapa do processo (e a pasta de cada um)
@@ -222,7 +258,7 @@ export async function tratarMensagem(m: Recebida) {
     }
     case "ajuda":
       return responder(
-        `Sou o assistente da JBL. Aqui você pode:\n• *Mandar um documento* (PDF ou foto) de qualquer etapa: eu guardo na pasta do loteamento. Diga a etapa se quiser: _segue a licença da aprovação do São Judas_\n• *Pedir um documento:* _manda a matrícula do São Judas_\n• *Pedir os de uma etapa:* _manda os documentos da aprovação do São Judas_\n• *Pedir a proposta em PDF:* _manda a proposta do São Judas_\n• *Perguntar das propostas:* _qual o valor do lote na proposta do São Judas?_\n• *Ver o andamento:* _como está o São Judas?_\n• *Situação de uma área da Captação:* _qual a situação de Sorocaba?_\n• *Lembrete:* _me lembra amanhã às 9h de ligar pro Pedro_\n\nEtapas: ${FASES.map(([f]) => ETAPA[f]).join(" · ")}\n\nLoteamentos:\n${listaProjetos(projetos)}`,
+        `Sou o assistente da JBL. Aqui você pode:\n• *Mandar um documento* (PDF ou foto) de qualquer etapa: eu guardo na pasta do loteamento. Diga a etapa se quiser: _segue a licença da aprovação do São Judas_\n• *Pedir um documento:* _manda a matrícula do São Judas_\n• *Pedir os de uma etapa:* _manda os documentos da aprovação do São Judas_\n• *Pedir a proposta em PDF:* _manda a proposta do São Judas_\n• *Perguntar das propostas:* _qual o valor do lote na proposta do São Judas?_\n• *Ver o andamento:* _como está o São Judas?_\n• *Situação de uma área da Captação:* _qual a situação de Sorocaba?_\n• *Lembrete:* _me lembra amanhã às 9h de ligar pro Pedro_\n\nEtapas: ${FASES.map(([f]) => ETAPA[f]).join(" · ")}\n\nLoteamentos:\n${lista}`,
       );
     default:
       return;

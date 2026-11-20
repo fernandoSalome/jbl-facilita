@@ -46,6 +46,10 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
     a.reuniaoId ? db.compromisso.findUnique({ where: { id: a.reuniaoId }, select: { inicio: true, fim: true, local: true, status: true, convidadoNome: true, descricao: true } }) : null,
   ]);
   const custos = lerCustos(a.custos);
+  const arquivos = await db.projectDocument.findMany({
+    where: { deletedAt: null, OR: [{ areaId: a.id }, ...(a.projectId ? [{ projectId: a.projectId }] : [])] },
+    orderBy: { createdAt: "desc" }, take: 100, select: { id: true, titulo: true, fileName: true, createdAt: true, enviadoPor: true },
+  });
   const propostas = a.projectId ? await db.proposal.findMany({ where: { projectId: a.projectId, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, status: true } }) : [];
   // o checklist também sabe o que os passos já dizem (pedido 20/11/2026)
   const derivadas = respostasDosPassos({ ...a, reuniao: reuniao && reuniao.status === "marcado" ? reuniao : null });
@@ -133,7 +137,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
           </>
         )}
         {aba === "checklist" && <ChecklistVivo id={a.id} checklist={checklist} derivadas={derivadas} conclusao={a.conclusao ?? ""} simples={modoSimples()} />}
-        {aba === "documentos" && <DocumentosArea id={a.id} documentos={documentos} />}
+        {aba === "documentos" && <DocumentosArea id={a.id} documentos={documentos} arquivos={arquivos.map((d) => ({ id: d.id, titulo: d.titulo, fileName: d.fileName, enviadoPor: d.enviadoPor, criado: d.createdAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) }))} />}
         {aba === "custos" && <TabelaCustos id={a.id} custos={custos} />}
         {aba === "pessoas" && (
           <>

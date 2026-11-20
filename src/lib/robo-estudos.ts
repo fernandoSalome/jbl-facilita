@@ -85,6 +85,8 @@ export async function tratarSituacaoArea(m: Recebida, responder: (t: string) => 
     return true;
   }
   await responder(resumoArea(achadas[0]));
+  // "manda documento dele" logo depois vale para esta área
+  await db.waGroup.updateMany({ where: { jid: m.grupo }, data: { contextoAreaId: achadas[0].id, contextoAreaAt: new Date() } });
   return true;
 }
 

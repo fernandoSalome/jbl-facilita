@@ -195,6 +195,8 @@ model ProjectDocument {
   id         String    @id @default(cuid())
   projectId  String?
   project    Project?  @relation(fields: [projectId], references: [id])
+  /// documento de uma área da Captação que ainda não virou loteamento (pedido 20/11/2026)
+  areaId     String?
   /// matricula | car | certidao | iptu | contrato | planta | procuracao | foto | proposta | obra | venda | outro
   tipo       String    @default("outro")
   /// Etapa do processo: prospeccao | proposta | parceria | aprovacao | obras | vendas (vazio = pela pasta)
@@ -228,6 +230,9 @@ model WaGroup {
   /// último loteamento citado na conversa (para saber de quem é o próximo documento)
   contextoProjectId String?
   contextoAt  DateTime?
+  /// última área da Captação citada no grupo (pedido 20/11/2026: "manda documento dele" depois de falar de Sorocaba)
+  contextoAreaId String?
+  contextoAreaAt DateTime?
   /// Para que serve o grupo (pedido 19/11/2026): avisos | central | estudos | projeto (vazio = só documentos, como antes)
   funcao      String?
   createdAt   DateTime @default(now())
