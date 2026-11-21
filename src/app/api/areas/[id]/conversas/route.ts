@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { PAPEIS, telefoneWa } from "@/lib/captacao";
 
+export const dynamic = "force-dynamic";
+
 /** Liga uma conversa de WhatsApp à área */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {

@@ -8,6 +8,8 @@ import { faltandoNaCarta, semConjuge } from "@/lib/carta";
 import { waitUntil } from "@vercel/functions";
 import { areaEmProposta, avisarCartaNoCentral } from "@/lib/captacao-assinatura";
 
+export const dynamic = "force-dynamic";
+
 const MAX_FILE = 6 * 1024 * 1024;
 /** O aviso no Central (minuta em PDF) continua depois da resposta */
 export const maxDuration = 60;

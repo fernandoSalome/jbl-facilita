@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { configDe } from "@/lib/agenda-server";
 import { quemConectou, trocarCodigo } from "@/lib/google-agenda";
 
+export const dynamic = "force-dynamic";
+
 /** Volta do Google: guarda a conexão e retorna para o calendário */
 export async function GET(req: Request) {
   const u = new URL(req.url);

@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json } from "@/lib/api";
 import { cancelarCompromisso } from "@/lib/agenda-server";
 
+export const dynamic = "force-dynamic";
+
 /** O convidado cancela pelo link do e-mail */
 export async function POST(_req: Request, { params }: { params: { token: string } }) {
   const c = await db.compromisso.findUnique({ where: { cancelToken: params.token } });

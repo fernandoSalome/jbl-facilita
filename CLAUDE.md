@@ -1,5 +1,8 @@
 # Facilita (JBL)
 
+O detalhe de cada parte (arquitetura, como fazer cada mudança, áreas, estudos, propostas, WhatsApp, VPS e deploy)
+está em [docs/](docs/README.md). Mudou uma regra? Mude o documento no mesmo commit.
+
 ## Regra: propostas bloqueadas (desabilitadas) não mudam
 
 Proposta bloqueada (`lockedAt`) já foi enviada e pode ter sido assinada. Nada do que o cliente vê nela pode mudar

@@ -3,6 +3,8 @@ import { json, withSession } from "@/lib/api";
 import { newToken } from "@/lib/token";
 import { regiaoDaUf } from "@/lib/orcamento2026";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(_: Request, { params }: { params: { id: string } }) {
   return withSession(async (s) => {
     const p = await db.proposal.findUnique({ where: { id: params.id }, include: { project: { select: { uf: true } } } });

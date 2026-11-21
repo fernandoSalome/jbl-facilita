@@ -1,105 +1,71 @@
-# Captação de áreas
+# Áreas (Captação)
 
-O módulo foi pedido em 19/11/2026, a partir da maquete do menu JBL. Ele cobre a vida de uma área desde o KMZ até o contrato.
+No menu, **Áreas** (endereço `/app/captacao`). Cada cartão do funil é uma **área**: um terreno com KMZ, dono ou corretor. O mesmo dono pode ter várias áreas. O botão **+ Novo estudo** cria uma área.
 
-Quando a área chega à etapa de proposta, ela vira um **loteamento** (`Project`). A partir daí, as propostas seguem o fluxo que já existia: as propostas, os templates e a aparência delas não mudaram.
-
-## Fluxo
+## Funil
 
 ```
-KMZ / conversa ──► 1 Captação ──► 2 Pré-viabilidade ──► 3 Reunião ──► 4 Proposta ──► 5 Estudo 30 dias ──► 6 Contrato
-                   (mapa, chat)   (raio-x, Estudo 1)    (calendário)   (vira Project,   (hipóteses a provar)
-                                                                        propostas de sempre)
+1 Captação ─► 2 Pré-viabilidade ─► 3 Reunião ─► 4 Proposta ─► 5 Estudo 30 dias ─► 6 Contrato
+  KMZ, chat      Viab. Legal e        agenda      proposta e       hipóteses a        contrato
+                 Mercadológica                    carta de         provar             da SPE
+                                                  intenção
+                                                                   ❄️ Geladeira   ✖ Descartadas  (colunas no fim)
 ```
 
-No topo da página da área ficam três botões:
-- **avançar de etapa**: o texto do botão muda conforme a etapa;
-- **❄️ Geladeira**;
-- **✖ Descartar**.
+- As etapas estão em `ETAPAS` (`src/lib/captacao.ts`). O botão dourado no topo da área avança; o texto dele muda por etapa (`ACAO_DA_ETAPA`).
+- Clicar numa etapa no menu da área (`?aba=etapa&ver=<etapa>`) mostra o conteúdo dela sem mudar a etapa.
+- O cartão mostra a situação e o próximo passo (`cartao()` em `captacao-estudos.ts`).
+
+## Projeto de Loteamento só depois da SPE
+
+Quando a área chega na Proposta, o sistema cria um `Project` por trás, só para guardar as propostas. Ele **não aparece** no seletor do menu nem tem página própria até o contrato da SPE ser assinado (`speAssinadaEm`). Antes disso, qualquer link para `/app/projetos/[id]` leva para a área, na etapa Proposta (`src/app/app/projetos/[projectId]/layout.tsx`).
+
+## Etapa a etapa
+
+| Etapa | O que acontece | Onde |
+|---|---|---|
+| Captação | KMZ no mapa (com Street View), chat com as conversas ligadas | `MapaInterativo.tsx`, `ChatArea.tsx` |
+| Pré-viabilidade | Viabilidade Legal, resumo no Central (1 Sim · 2 Não), Viabilidade Mercadológica, apresentação | `PreViabilidade.tsx`; ver [estudos.md](estudos.md) |
+| Reunião | Marca no calendário, com convite e avisos | `ReuniaoArea.tsx` |
+| Proposta | Em cima, a proposta (nasce com os dados dos estudos). Embaixo, a carta de intenção | `BotaoProposta.tsx`, `CartaDaProposta.tsx` |
+| Estudo 30 dias | Hipóteses a provar e custos | `HipotesesArea.tsx` |
+| Contrato | Contrato da SPE; ao assinar, vira Projeto de Loteamento | `BotaoSpe.tsx` |
+
+### Carta de intenção (dentro da Proposta)
+
+1. Antes de chegar: o bloco de baixo mostra **"Aguardando o recebimento"**.
+2. O proprietário preenche e envia a proposta: o bloco de cima fica apagado ("Proposta respondida") e o de baixo mostra os dados recebidos.
+3. O **JBL - Central** recebe uma mensagem só: o PDF da minuta com os dados na legenda e "Posso enviar para assinatura?" (`enviar link`, `enviar email` ou `não`).
+4. **Nada vai sozinho para o assinador.** A equipe revisa no **editor de contrato** (`/app/minuta/[id]`) e confirma o envio na tela ou no grupo.
+5. O bloco mostra quem abriu, assinou ou recusou (confere a Autentique a cada 30 s). Assinada por todos, a área vai sozinha para o **Estudo 30 dias**.
+
+Código: `src/lib/captacao-assinatura.ts`, `src/app/api/public/[token]/carta/route.ts`, `sincronizarAssinaturas` em `minuta-acoes.ts`. Propostas fora da Captação seguem o fluxo antigo (ver [propostas.md](propostas.md)).
+
+## Geladeira e descarte
+
+- **Descartar** pede o motivo. A área vai para a coluna ✖ Descartadas.
+- **Geladeira** pede o tempo (1, 3, 6, 9 meses ou 1 ano) e o motivo. O cartão mostra "volta em …"; **5 dias antes** o robô avisa no Central (`avisosGeladeira`). A área não volta sozinha: alguém usa "Reativar área".
+- Ao abrir a área, o motivo aparece no topo (`MotivoSituacao.tsx`). Depois de reativada, o motivo antigo continua visível, pequeno.
+- Campos: `motivoDescarte`, `descartadaEm`, `motivoGeladeira`, `geladeiraEm`, `geladeiraAte`, `geladeiraAvisoEm`.
+
+## Checklist oficial
+
+`SECOES` em `src/lib/captacao.ts` é o **checklist oficial JBL de viabilidade in loco** (`base/material/JBL_CHECKLIST _OFICIAL_ESTUDO DE VIABILIDADE IN_LOCO (1).docx`), conferido item a item em 20/11/2026: **30 seções e 265 itens**, na mesma ordem do documento. Se o documento mudar, mude `SECOES` junto.
+
+- Os **números das seções não mudam** (as respostas gravadas usam o índice). Item novo vai no fim da seção.
+- Nomes de item já usados por respostas gravadas ou pelo código (`Zona`, `Lote mínimo`, `Matrícula`, `Córregos e nascentes`, `Produto sugerido`…) não devem ser trocados.
+- **Origem de cada resposta:** 📜 documento, 📐 raio-x, 🗣 WhatsApp ou reunião ("importante checar"), ✍️ manual, 💭 estimativa.
+- **Como é alimentado:** a caixa "Adicionar informação" (cada frase vai para a seção certa); o campo de cada seção; o grupo JBL - Estudos; as conversas ligadas com "nutrir"; os dados dos passos (⚡ automático, `respostasDosPassos`).
+- Cada ponto escrito tem ✏️ editar e 🗑 apagar.
 
 ## Onde está cada coisa
 
-| Camada | Arquivo | O que faz |
-|---|---|---|
-| Banco | `prisma/schema.prisma` (`Area`, `AreaConversa`, `WaGroup.funcao`) | dados da área, conversas ligadas, função do grupo |
-| Migração | `prisma/migrations/0015_captacao` | tabelas novas com RLS |
-| Seed | `prisma/seed-areas.ts` + `prisma/dados/poligonos-estudos.json` | cria uma vez as áreas dos estudos (Sorocaba, Atibaia, São Roque) |
-| Regras (puras) | `src/lib/captacao.ts` | etapas, checklist de 30 seções, distribuição do texto, perguntas, professor, validações, limpeza de conversa exportada |
-| Regras (puras) | `src/lib/kml.ts` | lê KML e KMZ (zip sem biblioteca), calcula hectares |
-| Regras (puras) | `src/lib/grupos.ts` | tipos de grupo de WhatsApp (Avisos, Central, Estudos, Projeto) |
-| Banco (serviço) | `src/lib/captacao-db.ts` | listar, acrescentar ao checklist, nutrir por telefone, extrair conversa, criar o loteamento |
-| Robô | `src/lib/robo-estudos.ts` | grupo JBL - Estudos: o texto vai para o checklist da área citada |
-| Testes | `src/lib/captacao.test.ts` | regras e KML |
-| API | `src/app/api/areas/**` | rotas finas: sessão, validação e chamada ao serviço |
-| API | `src/app/api/whatsapp/grupos` (`PATCH`) | define a função do grupo |
-| Telas | `src/app/app/(empresa)/captacao/**` | funil, nova área, página da área com abas |
-| Componentes | `src/components/captacao/*` | card, funil, formulário, mapa, gate, checklist vivo, conversas, documentos, hipóteses |
-
-## Checklist vivo
-
-- **Origem de cada resposta:**
-  - 📜 Documento: literal.
-  - 📐 Raio-x: medido.
-  - 🗣 WhatsApp e reunião: relato, "importante checar".
-  - ✍️ Manual.
-  - 💭 Estimativa.
-- **Como o checklist é alimentado:**
-  - pela caixa "Adicionar informação": cada frase vai para a seção certa;
-  - pelas respostas digitadas direto numa seção;
-  - pelo grupo JBL - Estudos;
-  - pelas conversas ligadas com a opção "nutrir";
-  - pela opção "Limpar e extrair", que lê o `.txt` exportado do WhatsApp.
-- **Perguntar sobre esta área:** busca no checklist e mostra o grau de prova de cada resposta.
-- **Professor:** confere os 7 itens que decidem o negócio:
-  - matrícula;
-  - zona;
-  - córregos;
-  - preço;
-  - água e esgoto;
-  - parceria;
-  - acesso.
-
-  Um item provado por documento ou pelo raio-x conta inteiro; um relato conta meio. Com isso ele dá a nota, aponta as contradições (por exemplo, o tamanho dito × o KMZ) e diz a quem perguntar, pelo papel da conversa ligada.
-
-## Grupos de WhatsApp
-
-A função de cada grupo é escolhida na tela **Assistente WhatsApp**:
-
-| Função | Comportamento |
+| Camada | Arquivo |
 |---|---|
-| JBL - Avisos | Avisos do calendário. Vale primeiro o grupo marcado; sem marca, vale o nome com "Avisos" ou "monitoring", como antes. |
-| JBL - Central | Comandos e documentos, como hoje. |
-| JBL - Estudos | Texto citando a área entra no checklist. Na dúvida, o robô pergunta de qual área é. |
-| Grupo do projeto | Documentos do loteamento. |
-
-As conversas individuais só são lidas quando o número está ligado a uma área com "nutrir". As outras continuam sendo ignoradas.
-
-## Segunda parte (19/11/2026): o resto da maquete
-
-| Item da maquete | Onde está |
-|---|---|
-| Menu em grupos (Dia a dia, Negócios, Ferramentas, Empresa) | `src/components/shell/Shell.tsx`, `SideNav.tsx` (`{ grupo }`) |
-| Dashboard Dia a Dia | `/app/dia-a-dia`; as regras ficam em `pendencias()` (`src/lib/captacao-estudos.ts`) |
-| Agenda | É o calendário de sempre (`/app/calendario`), agora no grupo Dia a dia |
-| Conversas | `/app/conversas`; as mensagens ficam em `AreaMensagem` |
-| Chat abaixo do KMZ | `ChatArea.tsx`, com envio por `POST /api/areas/[id]/mensagens` |
-| 📲 "perguntar a X" do professor | Manda a pergunta pronta (`CHAVES.mensagem`) pela conversa ligada |
-| Pré-viabilidade em 3 fases | `PreViabilidade.tsx`; `estudo1` e `estudo2` na área, lidos e validados por `lerEstudo1` e `lerEstudo2` |
-| Resumo no JBL - Central | `POST /api/areas/[id]/central` mostra "Sigo para o mercadológico? 1 Sim · 2 Não"; o robô lê a resposta em `tratarCentral` |
-| Apresentação (9 slides) | `/app/captacao-slides/[id]`; "Imprimir" salva em PDF, um slide por página |
-| Reunião pela área | `ReuniaoArea.tsx` e `POST /api/areas/[id]/reuniao`; vira compromisso do calendário, com e-mail, SMS e aviso no JBL - Avisos, como já funcionava |
-| Estudo 30 dias: hipóteses e custos | `HipotesesArea.tsx` e a tabela de custos (`custos`) |
-| Abas Custos e Pessoas | Página da área (`custos`, `pessoas`) |
-| Estudos | `/app/estudos` |
-| Biblioteca de cidades | `/app/cidades`, tabela `Cidade` e `POST`/`DELETE /api/cidades` |
-| Etapas clicáveis | `?aba=etapa&ver=<etapa>` mostra a etapa sem mudar a etapa da área |
-
-O seed (`estudosEBiblioteca`) preenche o Estudo 1 das 3 áreas com os números do raio-x e cria a biblioteca com Sorocaba, Atibaia e São Roque.
-
-## Ainda não feito
-
-- **Resumo das 07:30 no grupo Central.** Precisa de cron.
-- **Convite da reunião para todos os participantes.** Hoje o e-mail vai só para o primeiro; os outros aparecem na descrição.
-- **Gerar o raio-x pelo sistema.** Hoje o link do estudo é colado na área.
-- **Ler a conversa direto do WhatsApp para o "Limpar e extrair".** Hoje é pelo `.txt` exportado.
-- **Áudio no grupo Estudos.** Precisa de transcrição.
+| Banco | `Area`, `AreaConversa`, `AreaMensagem`, `KmzRecebido`, `Cidade` em `prisma/schema.prisma` |
+| Regras puras | `captacao.ts`, `captacao-estudos.ts`, `captacao-proposta.ts`, `kml.ts`, `poligono.ts`, `relatorio.ts` |
+| Serviço | `captacao-db.ts`, `captacao-assinatura.ts`, `relatorio-db.ts` |
+| API | `src/app/api/areas/**` |
+| Telas | `src/app/app/(empresa)/captacao/**`, `src/app/app/(area)/captacao/[id]/**` |
+| Componentes | `src/components/captacao/*` |
+| Dados iniciais | `prisma/seed-areas.ts`, `prisma/dados/` |

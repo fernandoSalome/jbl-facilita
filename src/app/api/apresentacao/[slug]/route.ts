@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { apresentacaoDe } from "@/lib/apresentacao/server";
 
+export const dynamic = "force-dynamic";
+
 type Ctx = { params: { slug: string } };
 
 /** Salva o rascunho: números (planilha aberta na página), textos e aparência (o link só muda em "Gerar link") */

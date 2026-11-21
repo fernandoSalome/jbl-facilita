@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { db } from "@/lib/db";
+import { dadosDoMenu } from "@/lib/queries";
 import { requireSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import ProjectSwitcher from "./ProjectSwitcher";
@@ -62,15 +62,7 @@ function projectNav(id: string, areaId: string | null): NavItem[] {
 export default async function Shell({ projectId, nav, children }: { projectId?: string; nav?: NavItem[]; children: React.ReactNode }) {
   const session = await requireSession();
   const simples = modoSimples();
-  // só os loteamentos com contrato da SPE assinado aparecem no seletor (pedido 20/11/2026)
-  const projects = await db.project.findMany({
-    where: { deletedAt: null, speAssinadaEm: { not: null } },
-    orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true, municipio: true, uf: true },
-  });
-  // o projeto aberto pelo endereço aparece mesmo sem SPE (ex.: para ver as propostas de antes)
-  const current = projectId ? (projects.find((p) => p.id === projectId) ?? (await db.project.findFirst({ where: { id: projectId, deletedAt: null }, select: { id: true, name: true, municipio: true, uf: true } })) ?? undefined) : undefined;
-  const areaDoProjeto = current ? await db.area.findFirst({ where: { projectId: current.id, deletedAt: null }, select: { id: true } }) : null;
+  const { projects, current, areaDoProjeto } = await dadosDoMenu(projectId);
 
 
   return (

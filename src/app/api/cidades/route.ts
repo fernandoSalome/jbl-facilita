@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const s = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 
 /** Biblioteca de cidades: cria ou atualiza (cidade + UF) */

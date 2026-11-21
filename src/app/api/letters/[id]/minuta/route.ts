@@ -5,6 +5,8 @@ import { assinaturasDe, avisosDoContato, carregarCarta, corrigirContato, dadosDe
 import { autentiqueConfigurado } from "@/lib/autentique";
 import { emailConfigurado } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+
 export const maxDuration = 60;
 
 /** Minuta da carta para a equipe revisar */

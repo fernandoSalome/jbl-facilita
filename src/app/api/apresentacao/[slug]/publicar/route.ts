@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { apresentacaoDe, linkApresentacao } from "@/lib/apresentacao/server";
 
+export const dynamic = "force-dynamic";
+
 /** Gerar link: guarda a versão atual (é o que o link mostra) e devolve o endereço para compartilhar */
 export async function POST(_: Request, { params }: { params: { slug: string } }) {
   return withSession(async () => {

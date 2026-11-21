@@ -3,6 +3,8 @@ import { json, withSession } from "@/lib/api";
 import { apresentacaoDe } from "@/lib/apresentacao/server";
 import { lerPlanilhaCustos } from "@/lib/apresentacao/planilha";
 
+export const dynamic = "force-dynamic";
+
 /** Atualizar dados da planilha: lê a aba "CUSTOS" do arquivo enviado; textos e aparência ficam como estão */
 export async function POST(req: Request, { params }: { params: { slug: string } }) {
   return withSession(async () => {

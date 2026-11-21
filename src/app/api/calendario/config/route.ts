@@ -3,6 +3,8 @@ import { json, withSession } from "@/lib/api";
 import { configDe } from "@/lib/agenda-server";
 import { horariosValidos, slugDe } from "@/lib/agenda";
 
+export const dynamic = "force-dynamic";
+
 /** Ajustes da agenda: horários livres, duração, link público, título e local das reuniões */
 export async function PUT(req: Request) {
   return withSession(async (s) => {

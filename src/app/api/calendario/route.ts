@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { conflito, criarCompromisso } from "@/lib/agenda-server";
 
+export const dynamic = "force-dynamic";
+
 /** Compromissos da pessoa entre ?de= e ?ate= (ISO) */
 export async function GET(req: Request) {
   return withSession(async (s) => {

@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { guardarRelatorio } from "@/lib/relatorio-db";
 
+export const dynamic = "force-dynamic";
+
 const MAX = 4 * 1024 * 1024;
 
 /** Sobe o raio-x completo (.html do estudo) para aparecer no link do parceiro */

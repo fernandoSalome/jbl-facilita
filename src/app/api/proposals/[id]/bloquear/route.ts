@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Bloqueia (ou libera) a edição da proposta: bloqueada, nada dela muda (planilha, textos, prazo,
  * template), só dá para ver. Só depois de enviada. Não conta como alteração ("Atualizada" não muda).

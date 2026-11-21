@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 /** Imagem pública (usada na página da proposta). O conteúdo de um id nunca muda. */
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const a = await db.asset.findUnique({ where: { id: params.id }, select: { mime: true, data: true } });

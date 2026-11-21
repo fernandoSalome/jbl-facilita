@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 /** Altera nome, papel ou senha. Um administrador não pode tirar o próprio acesso de admin. */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   return withSession(

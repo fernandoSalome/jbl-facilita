@@ -3,6 +3,8 @@ import { json, withSession } from "@/lib/api";
 import { limparConversa } from "@/lib/captacao";
 import { extrairConversa } from "@/lib/captacao-db";
 
+export const dynamic = "force-dynamic";
+
 const MAX = 2 * 1024 * 1024;
 
 /** "Limpar e extrair": recebe a conversa exportada do WhatsApp (.txt) e manda o que importa para o checklist */

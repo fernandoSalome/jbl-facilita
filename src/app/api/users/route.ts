@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET() {

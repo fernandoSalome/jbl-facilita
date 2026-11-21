@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 /** Fixa (ou solta) a proposta no topo da lista. Não conta como alteração: a data de "Atualizada" não muda. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {

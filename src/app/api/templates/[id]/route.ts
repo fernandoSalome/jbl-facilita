@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   return withSession(
     async () => {

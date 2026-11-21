@@ -4,6 +4,8 @@ import { json, withSession } from "@/lib/api";
 import { arrumarTexto } from "@/lib/ia";
 import { arrumarSimples, lerChecklist, SECOES } from "@/lib/captacao";
 
+export const dynamic = "force-dynamic";
+
 /** Edita um ponto do checklist escrito à mão: ao salvar, o texto é arrumado (IA, ou só acabamento sem IA) */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   return withSession(async (s) => {

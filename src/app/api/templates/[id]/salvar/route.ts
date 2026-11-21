@@ -5,6 +5,8 @@ import { lerTrocas } from "@/lib/personalizadas";
 import { estavel, FORMATOS, juntar, type ComumContent, type FormatoKey, type TipoContent } from "@/lib/formatos";
 import { limparConteudo } from "@/lib/template-salvar";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Salva o template inteiro: a parte compartilhada (vale para os 4 tipos de loteamento)
  * e a parte de cada tipo. Cada tipo que mudou ganha uma versão nova.

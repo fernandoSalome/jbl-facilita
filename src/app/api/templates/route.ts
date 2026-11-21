@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const MAX = 15 * 1024 * 1024;
 
 export async function POST(req: Request) {

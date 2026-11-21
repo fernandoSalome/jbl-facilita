@@ -5,6 +5,8 @@ import { cleanOverride } from "@/lib/sanitize";
 import { latestVersion } from "@/lib/formato-server";
 import { parseFormato } from "@/lib/formatos";
 
+export const dynamic = "force-dynamic";
+
 type Ctx = { params: { id: string } };
 
 export async function PATCH(req: Request, { params }: Ctx) {

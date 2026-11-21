@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { isPreviewBot, parseOptions } from "@/lib/proposals";
 import { avisarGrupos, linkPortal, quemRecebeu } from "@/lib/avisos";
 
+export const dynamic = "force-dynamic";
+
 /** Quem recebeu a proposta começou a preencher a carta de intenção: avisa no grupo (uma vez a cada 2 horas) */
 export async function POST(req: Request, { params }: { params: { token: string } }) {
   if (isPreviewBot(req.headers.get("user-agent"))) return json({ ok: true, ignored: "bot" });

@@ -6,6 +6,8 @@ import { formatoTemDados, parseContent, parseFormato } from "@/lib/formatos";
 import { latestVersion } from "@/lib/formato-server";
 import { regiaoDaUf } from "@/lib/orcamento2026";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   return withSession(async (s) => {
     const b = await req.json();

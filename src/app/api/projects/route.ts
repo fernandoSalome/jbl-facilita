@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   return withSession(async () => {
     const b = await req.json();

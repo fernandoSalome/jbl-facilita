@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { FASES } from "@/lib/fases";
 
+export const dynamic = "force-dynamic";
+
 /** Altera os dados do loteamento (nome, cidade, área, matrícula, tipo, fase e foto aérea) */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {

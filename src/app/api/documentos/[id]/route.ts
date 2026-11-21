@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { ETAPA } from "@/lib/fases";
 
+export const dynamic = "force-dynamic";
+
 /** Abre o arquivo (só para quem está logado). ?baixar=1 força o download. */
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   return withSession(async () => {

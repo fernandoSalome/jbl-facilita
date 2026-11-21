@@ -1,6 +1,6 @@
 # Ponte WhatsApp → Claude Code (VPS)
 
-Pelo grupo **JBL - Claude**, o Fernando e o Marcelo pedem pesquisas. Um pedido percorre este caminho:
+Pelo grupo **JBL - Central** (mensagem começando com "Claude, …") a equipe pede pesquisas; pelo grupo **JBL - Claude**, se existir, só o Fernando e os números de `CLAUDE_AUTORIZADOS`. A visão geral da VPS está em [docs/vps.md](../../docs/vps.md). Um pedido percorre este caminho:
 
 1. O robô do Facilita guarda o pedido numa fila (tabela `ComandoClaude`).
 2. Esta ponte, na VPS, busca o pedido.
@@ -17,13 +17,13 @@ Pelo WhatsApp não se altera o código do sistema. Isso é feito pelo app do Cla
 | Programa | `~/ponte/ponte.mjs` |
 | Variáveis | `~/.ponte.env` (`CLAUDE_PONTE_SECRET` e `FACILITA_URL`), com `chmod 600` |
 | Serviço | `systemctl status jbl-ponte`, que reinicia sozinho |
-| Registro | `journalctl -u jbl-ponte -f` |
+| Registro | `journalctl -u jbl-ponte -f` (só com sudo; o usuário `jbl` não vê) |
 | Login do Claude | uma vez: `claude` e depois `/login`, com a assinatura |
 
 ## Na Vercel
 
 - `CLAUDE_PONTE_SECRET`: a mesma senha do `~/.ponte.env`.
-- `CLAUDE_AUTORIZADOS`: o número do Marcelo, com DDD. As mensagens do próprio WhatsApp conectado já valem.
+- `CLAUDE_AUTORIZADOS`: números que podem pedir no grupo JBL - Claude. No JBL - Central todos do grupo podem (desde 20/11/2026). As mensagens do próprio WhatsApp conectado sempre valem.
 
 ## No sistema
 
@@ -64,4 +64,4 @@ Desde 20/11/2026, essa conexão manda para o repetidor (`~/ponte/repetidor.mjs`,
 
 As variáveis ficam em `~/.repetidor.env` (`TOKEN`, `FACILITA_K`, `ALVOS`), com `chmod 600`. O `FACILITA_K` é o mesmo valor do `WA_WEBHOOK_SECRET` da Vercel.
 
-Para acompanhar: `journalctl -u jbl-repetidor -f`. Ele só registra os repasses que deram erro.
+Para acompanhar: `journalctl -u jbl-repetidor -f` (só com sudo). Ele só registra os repasses que deram erro. Para diagnosticar quando o WhatsApp para de chegar, ver [docs/vps.md](../../docs/vps.md#quando-o-whatsapp-para-de-chegar).

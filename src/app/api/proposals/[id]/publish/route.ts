@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { parseOptions } from "@/lib/proposals";
 
+export const dynamic = "force-dynamic";
+
 /** Publica (ou prorroga): gera a validade e libera o link público. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async (s) => {

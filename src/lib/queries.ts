@@ -62,3 +62,15 @@ export async function listProposals(where: { projectId?: string; showDeleted?: b
     };
   });
 }
+
+/**
+ * Dados do menu lateral (Shell): só os loteamentos com contrato da SPE assinado aparecem no seletor (pedido
+ * 20/11/2026); o projeto aberto pelo endereço aparece mesmo sem SPE, e com ele a área da Captação de onde veio.
+ */
+export async function dadosDoMenu(projectId?: string) {
+  const sel = { id: true, name: true, municipio: true, uf: true } as const;
+  const projects = await db.project.findMany({ where: { deletedAt: null, speAssinadaEm: { not: null } }, orderBy: { updatedAt: "desc" }, select: sel });
+  const current = projectId ? (projects.find((p) => p.id === projectId) ?? (await db.project.findFirst({ where: { id: projectId, deletedAt: null }, select: sel })) ?? undefined) : undefined;
+  const areaDoProjeto = current ? await db.area.findFirst({ where: { projectId: current.id, deletedAt: null }, select: { id: true } }) : null;
+  return { projects, current, areaDoProjeto };
+}

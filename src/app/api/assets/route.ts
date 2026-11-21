@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const MAX = 8 * 1024 * 1024;
 // SVG fica de fora: pode carregar script
 const MIMES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);

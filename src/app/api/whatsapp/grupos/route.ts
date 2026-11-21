@@ -3,6 +3,8 @@ import { json, withSession } from "@/lib/api";
 import { nomeDoGrupo } from "@/lib/whatsapp";
 import { ehFuncao } from "@/lib/grupos";
 
+export const dynamic = "force-dynamic";
+
 /** Cadastra um grupo para o robô atender (ID do grupo: 1203…@g.us) */
 export async function POST(req: Request) {
   return withSession(async () => {

@@ -3,6 +3,8 @@ import { json } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { isPreviewBot } from "@/lib/proposals";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Chamado pelo JavaScript da página pública. Robôs de prévia (WhatsApp etc.) não
  * executam JS, então não marcam a proposta como aberta. Usuários logados no portal

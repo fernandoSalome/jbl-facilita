@@ -5,6 +5,8 @@ import { cartaMontada, CNPJ_JBL } from "@/lib/carta";
 import { camposDaCarta } from "@/lib/minuta";
 import { textosDaProposta } from "@/lib/minuta-acoes";
 
+export const dynamic = "force-dynamic";
+
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 type LetterData = {
