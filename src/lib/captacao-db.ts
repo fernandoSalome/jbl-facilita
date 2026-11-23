@@ -206,6 +206,14 @@ export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "merca
     await db.area.update({ where: { id: a.id }, data: { estudo2: e } });
     if (html) linhas = `${(await guardarRelatorio(db, a.id, html, [], "relatorioMercado")).secoes} seções`;
   }
+  // respostas do checklist oficial que o estudo trouxe (pedido 23/11/2026): entram com a origem "Raio-x"
+  const { respostasDoEstudo } = await import("./checklist-salvar");
+  const dia = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const doChk = respostasDoEstudo((estudo as { checklist?: unknown } | null)?.checklist, `${tipo === "estudo" ? "Viabilidade Legal" : "Viabilidade Mercadológica"} · ${dia}`);
+  if (doChk.length) {
+    await acrescentar(a.id, doChk);
+    linhas = [linhas, `${doChk.length} itens do checklist`].filter(Boolean).join(", ");
+  }
   const pergunta = tipo === "estudo" ? "\n\nSigo para a Viabilidade Mercadológica?\n1 Sim · 2 Não" : "";
   return `\n\n✅ Entrou na plataforma${linhas ? ` (${linhas})` : ""}: abra a área em Projetos.${pergunta}`;
 }

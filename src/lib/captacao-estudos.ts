@@ -269,10 +269,25 @@ export function respostasDosPassos(a: {
   add(12, "Produto sugerido", e2.produto || e1.produto, "raiox", e2.produto ? "Pré-viabilidade · Estudo 2" : pv, "etapa&ver=previabilidade");
   if (e1.lotes.medio) add(12, "Quantidade de lotes", `${e1.lotes.pior ?? "?"} / ${e1.lotes.medio} / ${e1.lotes.bom ?? "?"} (pior / médio / bom)${e1.aproveitavelPct != null ? `, ${e1.aproveitavelPct}% aproveitável` : ""}`, "raiox", pv, "etapa&ver=previabilidade");
   if (e1.regiao.m2Min) add(8, "Preço do lote na região", `R$ ${e1.regiao.m2Min.toLocaleString("pt-BR")}${e1.regiao.m2Max ? ` a ${e1.regiao.m2Max.toLocaleString("pt-BR")}` : ""} por m² (anúncios)`, "raiox", pv, "etapa&ver=previabilidade");
-  add(25, "Expansão urbana", e1.regiao.expansao, "raiox", pv, "etapa&ver=previabilidade");
+  // mais itens do checklist oficial que os estudos já respondem (pedido 23/11/2026)
+  const p2 = "Pré-viabilidade · Estudo 2";
+  add(7, "A cidade cresce na direção da área?", e1.regiao.expansao, "raiox", pv, "etapa&ver=previabilidade");
+  add(8, "Cidades vizinhas importantes (até 200 km): distância, população e clientes", e1.regiao.cidades, "raiox", pv, "etapa&ver=previabilidade");
+  add(7, "Tipologia e potencial (desmembramento, loteamento aberto ou fechado, condomínio, ZEIS/HIS, chacreamento) e padrão", e1.produto, "raiox", pv, "etapa&ver=previabilidade");
+  add(29, "Planejamento de lançamento: desmembramento e etapas 2, 3 e 4", e1.estrategia.join("\n"), "raiox", pv, "etapa&ver=previabilidade");
+  if (e1.semaforo) add(29, "Conclusão", `${SEMAFOROS[e1.semaforo]} (pré-viabilidade)`, "raiox", pv, "etapa&ver=previabilidade");
+  e2.concorrentes.slice(0, 6).forEach((c, k) =>
+    add(11, `Concorrente ${k + 1}: nome, lote (testada × profundidade), preço à vista e m², entrada, parcelas, índices/correção, financiamento próprio ou bancário, relevo, acesso, tempo de lançamento e lotes disponíveis, tipologia`,
+      [c.nome, c.distancia && `a ${c.distancia}`, c.tipo, c.lote && `lote ${c.lote}`, c.lancamento && `lançamento ${c.lancamento}`, c.hoje && `hoje ${c.hoje}`, c.estagio, c.vendido && `vendido ${c.vendido}`].filter(Boolean).join(" · "), "raiox", p2, "etapa&ver=previabilidade"));
+  e2.revenda.slice(0, 6).forEach((r, k) =>
+    add(11, `Revenda particular ${k + 1}: lote (testada × profundidade), preço à vista e m², condições de pagamento, endereço, relevo, acesso, tempo à venda, tipologia`,
+      [r.nome, r.lotes && `${r.lotes} lotes à venda`, r.variacao && `revenda × lançamento ${r.variacao}`, r.tempo && `anunciado há ${r.tempo}`, r.ocupacao && `ocupação ${r.ocupacao}`].filter(Boolean).join(" · "), "raiox", p2, "etapa&ver=previabilidade"));
+  if (e2.veredito) add(12, "O produto JBL é adequado ao mercado?", e2.veredito === "encaixa" ? "Sim" : e2.veredito === "nao" ? "Não" : "Em análise", "raiox", p2, "etapa&ver=previabilidade");
+  add(8, "Velocidade de venda", e2.financeiro.velocidade, "raiox", p2, "etapa&ver=previabilidade");
+  add(12, "Velocidade média de vendas", e2.financeiro.velocidade, "raiox", p2, "etapa&ver=previabilidade");
   e1.alertas.forEach((x) => add(28, "Alerta do estudo", x.comoResolver ? `${x.texto} → ${x.comoResolver}` : x.texto, "raiox", pv, "etapa&ver=previabilidade"));
   if (e2.concorrentes.length) add(11, "Concorrentes no raio de 5 km", e2.concorrentes.map((c) => `${c.nome}${c.hoje ? ` (${c.hoje})` : ""}`).join("; "), "raiox", "Pré-viabilidade · Estudo 2", "etapa&ver=previabilidade");
-  if (e2.veredito) add(8, "Encaixe no mercado", `${VEREDITOS[e2.veredito]}${e2.risco ? `. Risco: ${e2.risco}` : ""}`, "raiox", "Pré-viabilidade · Estudo 2", "etapa&ver=previabilidade");
+  if (e2.veredito) add(12, "Encaixe no mercado", `${VEREDITOS[e2.veredito]}${e2.risco ? `. Risco: ${e2.risco}` : ""}`, "raiox", "Pré-viabilidade · Estudo 2", "etapa&ver=previabilidade");
   if (a.reuniao) add(1, "Reunião com o proprietário", `Marcada para ${a.reuniao.inicio.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`, "reuniao", "Reunião", "etapa&ver=reuniao");
   return out;
 }

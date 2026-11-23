@@ -158,7 +158,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             </section>
           </>
         )}
-        {aba === "checklist" && <ChecklistVivo id={a.id} checklist={checklist} derivadas={derivadas} conclusao={a.conclusao ?? ""} simples={modoSimples()} />}
+        {aba === "checklist" && <ChecklistVivo id={a.id} checklist={checklist} derivadas={derivadas} conclusao={a.conclusao ?? ""} cab={{ titulo: `${a.cidade} – ${a.nome}`, etapa: nomeEtapa(etapa), dono: a.dono ?? "Conforme cadastro", area: ha, municipio: `${a.cidade}/${a.uf}` }} />}
         {aba === "documentos" && <DocumentosArea id={a.id} documentos={documentos} arquivos={arquivos.map((d) => ({ id: d.id, titulo: d.titulo, fileName: d.fileName, enviadoPor: d.enviadoPor, criado: d.createdAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) }))} />}
         {aba === "custos" && <TabelaCustos id={a.id} custos={custos} />}
         {aba === "pessoas" && (

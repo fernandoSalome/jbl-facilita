@@ -2,21 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { FONTES, grauDaFonte, perguntar, progresso, SECOES, type Fonte, type Resposta } from "@/lib/captacao";
+import { FONTES, grauDaFonte, perguntar, SECOES, type Fonte, type Resposta } from "@/lib/captacao";
+import ChecklistEstudo, { type Cabecalho } from "./ChecklistEstudo";
 import { chamar } from "./chamar";
-
-const FILTROS: [string, (r: Resposta) => boolean][] = [
-  ["Todas", () => true],
-  ["Do WhatsApp", (r) => r.fonte === "whatsapp"],
-  ["Da reunião", (r) => r.fonte === "reuniao"],
-  ["Do raio-x", (r) => r.fonte === "raiox"],
-  ["De documento", (r) => r.fonte === "documento"],
-];
-
-function Origem({ r }: { r: Resposta }) {
-  const f = FONTES[r.fonte];
-  return <span className="ml-2 whitespace-nowrap rounded-sm border border-line bg-white px-1.5 py-px text-[11px] text-muted" title={grauDaFonte(r)}>{f.icone} {f.rotulo} · {r.ref}</span>;
-}
 
 /**
  * Checklist vivo (pedido 19/11/2026): o professor no topo, a caixa de perguntas, "adicionar informação"
@@ -24,52 +12,15 @@ function Origem({ r }: { r: Resposta }) {
  */
 type Derivada = Resposta & { aba: string };
 
-/** Um ponto escrito à mão: ✏️ editar (ao salvar, o texto é arrumado) e 🗑 tirar */
-function PontoEditavel({ id, r, indice }: { id: string; r: Resposta; indice: number }) {
-  const router = useRouter();
-  const [editando, setEditando] = useState(false);
-  const [texto, setTexto] = useState(r.resposta);
-  const [secao, setSecao] = useState(r.secao);
-  const [busy, setBusy] = useState(false);
-  if (!editando)
-    return (
-      <span className="group">
-        {r.resposta}
-        <Origem r={r} />
-        <button className="ml-2 rounded border border-line px-1.5 text-[12px] font-semibold text-navy hover:border-gold" onClick={() => setEditando(true)}>✏️ Editar</button>
-        <button className="ml-1 rounded border border-line px-1.5 text-[12px] font-semibold text-rose-700 hover:border-rose-300" onClick={async () => { if (confirm("Apagar este ponto do checklist?")) { await chamar(`/api/areas/${id}/checklist?indice=${indice}`, "DELETE"); router.refresh(); } }}>🗑 Apagar</button>
-      </span>
-    );
-  return (
-    <span className="grid gap-1.5">
-      <textarea className="input text-[14px]" rows={2} value={texto} autoFocus onChange={(e) => setTexto(e.target.value)} />
-      <select className="input w-auto py-1 text-[13px]" value={secao} onChange={(e) => setSecao(+e.target.value)} title="Seção do checklist">
-        {SECOES.map((x, k) => <option key={k} value={k}>{k + 1}. {x.titulo}</option>)}
-      </select>
-      <span className="flex items-center gap-2">
-        <button className="btn-gold py-1 text-[12.5px]" disabled={busy || !texto.trim()} onClick={async () => {
-          setBusy(true);
-          try { await chamar(`/api/areas/${id}/checklist`, "PATCH", { indice, texto, secao }); setEditando(false); router.refresh(); } catch (e) { alert((e as Error).message); }
-          setBusy(false);
-        }}>{busy ? "Arrumando o texto…" : "Salvar"}</button>
-        <button className="btn-ghost py-1 text-[12.5px]" onClick={() => { setTexto(r.resposta); setEditando(false); }}>Cancelar</button>
-        <span className="text-[12px] text-muted">Ao salvar, o texto é arrumado (sem mudar os fatos).</span>
-      </span>
-    </span>
-  );
-}
-
-export default function ChecklistVivo({ id, checklist, derivadas, conclusao, simples = false }: { id: string; checklist: Resposta[]; derivadas: Derivada[]; conclusao: string; simples?: boolean }) {
+export default function ChecklistVivo({ id, checklist, derivadas, conclusao, cab }: { id: string; checklist: Resposta[]; derivadas: Derivada[]; conclusao: string; cab: Cabecalho }) {
   const router = useRouter();
   const [texto, setTexto] = useState("");
   const [fonte, setFonte] = useState<Fonte>("manual");
   const [msg, setMsg] = useState("");
   const [pergunta, setPergunta] = useState("");
   const [achados, setAchados] = useState<Resposta[] | null>(null);
-  const [filtro, setFiltro] = useState(0);
   const [concl, setConcl] = useState(conclusao);
   const todas = useMemo(() => [...derivadas, ...checklist], [derivadas, checklist]);
-  const pr = useMemo(() => progresso(todas), [todas]);
 
   async function distribuir(t = texto, extra: Record<string, unknown> = {}) {
     if (!t.trim()) return;
@@ -82,12 +33,11 @@ export default function ChecklistVivo({ id, checklist, derivadas, conclusao, sim
       setMsg((e as Error).message);
     }
   }
-  const lista = checklist.map((r, indice) => ({ r, indice })).filter(({ r }) => FILTROS[filtro][1](r));
-  const listaDer = derivadas.filter(FILTROS[filtro][1]);
 
   return (
     <div className="grid gap-5">
-
+      {/* o checklist no modelo do Word, seção por seção (pedido 23/11/2026) */}
+      <ChecklistEstudo id={id} cab={cab} todas={todas} />
 
       <section className="card p-5">
         <h3 className="eyebrow mb-2">Perguntar sobre esta área</h3>
@@ -123,47 +73,6 @@ export default function ChecklistVivo({ id, checklist, derivadas, conclusao, sim
         </div>
         {msg && <p className="mt-2 text-[13px] font-semibold text-navy">{msg}</p>}
       </section>
-
-      <div className="flex flex-wrap items-center gap-2">
-        {FILTROS.map(([n], i) => <button key={n} className={i === filtro ? "btn-navy py-1 text-[12.5px]" : "btn-ghost py-1 text-[12.5px]"} onClick={() => setFiltro(i)}>{n}</button>)}
-        <span className="ml-auto text-[13px] text-muted">Checklist oficial JBL · {pr.pct}% · {derivadas.length} vindas dos passos · {checklist.length} escritas</span>
-      </div>
-
-      {SECOES.map((s, i) => {
-        const rs = lista.filter(({ r }) => r.secao === i);
-        const ds = listaDer.filter((r) => r.secao === i);
-        const faltam = s.perguntas.filter((p) => !todas.some((r) => r.secao === i && r.pergunta === p));
-        const { ok, esperadas } = pr.porSecao[i];
-        return (
-          <details key={i} open={!simples || ok > 0} className="card">
-            <summary className="flex cursor-pointer items-center gap-3 px-4 py-3">
-              <b className="flex-1 text-navy">{i + 1}. {s.titulo}</b>
-              <span className="text-[12px] text-muted">{ok} de {esperadas}</span>
-              <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface"><span className="block h-full bg-gold" style={{ width: `${Math.round((ok / esperadas) * 100)}%` }} /></span>
-            </summary>
-            <div className="grid gap-1.5 border-t border-line px-4 py-3 text-[14px]">
-              {ds.map((r, j) => (
-                <div key={`d${j}`} className="grid gap-2 md:grid-cols-[220px_1fr]">
-                  <span className="text-muted">{r.pergunta}</span>
-                  <span>{r.resposta}<a href={`?aba=${r.aba}`} className="ml-2 whitespace-nowrap rounded-sm border border-gold-line bg-gold-soft px-1.5 py-px text-[11px] text-gold-ink hover:border-gold" title="Vem do passo; para mudar, mude lá">⚡ automático · {r.ref}</a></span>
-                </div>
-              ))}
-              {rs.map(({ r, indice }) => <div key={indice} className="grid gap-2 md:grid-cols-[220px_1fr]"><span className="text-muted">{r.pergunta}</span><PontoEditavel id={id} r={r} indice={indice} /></div>)}
-              {faltam.map((p) => (
-                <div key={p} className="grid items-center gap-2 md:grid-cols-[220px_1fr]">
-                  <span className="text-muted">{p}</span>
-                  <input className="input py-1 text-[13px]" placeholder="Preencher (fica como Manual)" onKeyDown={(e) => { const v = (e.target as HTMLInputElement).value; if (e.key === "Enter" && v.trim()) distribuir(v, { secao: i, pergunta: p }); }} />
-                </div>
-              ))}
-              {/* toda seção aceita texto livre (pedido 20/11/2026) */}
-              <div className="grid items-center gap-2 md:grid-cols-[220px_1fr]">
-                <span className="text-muted">{!rs.length && !ds.length && !faltam.length ? "Nada ainda" : "Mais alguma coisa"}</span>
-                <input className="input py-1 text-[13px]" placeholder="Escrever nesta seção… (Enter salva)" onKeyDown={(e) => { const el = e.target as HTMLInputElement; if (e.key === "Enter" && el.value.trim()) { distribuir(el.value, { secao: i, pergunta: "Anotação" }); el.value = ""; } }} />
-              </div>
-            </div>
-          </details>
-        );
-      })}
 
       <section className="card border-2 border-gold-line p-5">
         <h3 className="font-display text-xl text-navy">📌 Conclusão do estudo</h3>

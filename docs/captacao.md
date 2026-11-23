@@ -52,6 +52,8 @@ Ao concluir uma etapa no botão do topo (`Gate.tsx`), a tela mostra "Etapa concl
 
 ## Checklist oficial
 
+Na aba Checklist, a tela segue o modelo do Word (pedido 23/11/2026): uma seção por vez, faixa com o progresso, quadros com ícone e o campo certo para cada item (Sim/Não, R$, %, lista, texto). O formato de cada item está em `src/lib/checklist-formato.ts`; o teste confere que os 265 itens de `SECOES` estão lá, uma vez cada. "Salvar e Continuar" grava a seção (`PUT /api/areas/[id]/checklist`, `checklist-salvar.ts`) e abre a próxima. Mudou uma pergunta em `SECOES`? Mude também o formato.
+
 `SECOES` em `src/lib/captacao.ts` é o **checklist oficial JBL de viabilidade in loco** (`base/material/JBL_CHECKLIST _OFICIAL_ESTUDO DE VIABILIDADE IN_LOCO (1).docx`), conferido item a item em 20/11/2026: **30 seções e 265 itens**, na mesma ordem do documento. Se o documento mudar, mude `SECOES` junto.
 
 - Os **números das seções não mudam** (as respostas gravadas usam o índice). Item novo vai no fim da seção.

@@ -48,6 +48,9 @@ Na VPS, cada estudo trabalha em `~/estudos/trabalho/<id>/` e entrega `relatorio.
 
 ## Como o estudo entra na área
 
+O `resultado.json` também traz `"checklist"`: as respostas do checklist oficial que o estudo encontrou (`~/estudos/referencia/checklist-oficial.json`, gerado de `SECOES`). Entram no checklist da área com a origem Raio-x (`respostasDoEstudo`, `checklist-salvar.ts`). Mudou `SECOES`? Gere o arquivo de novo e suba para a VPS.
+
+
 1. **Campos do formulário** (`estudo1` / `estudo2`): semáforo, zona, lote mínimo, % aproveitável, lotes pior/médio/bom, produto, alertas, estratégia; concorrentes, encaixe, veredito. Lidos e validados por `lerEstudo1` / `lerEstudo2` (`captacao-estudos.ts`). Cada campo mudado à mão tem "↩ Voltar ao original".
 2. **Estudo completo** (`relatorioCompleto` / `relatorioMercado`): o HTML é convertido em blocos de texto, tabelas e imagens (`relatorio.ts`), e as imagens viram `Asset`. **Abre sempre dentro da área** (aba Estudo), nunca no Claude Artifact.
 3. **Link para parceiro** (`/estudo/<token>`): o mesmo estudo com a marca da JBL, sem o nome do dono e do corretor.

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { json, withSession } from "@/lib/api";
 import { arrumarTexto } from "@/lib/ia";
 import { arrumarSimples, lerChecklist, SECOES } from "@/lib/captacao";
+import { aplicarValores } from "@/lib/checklist-salvar";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,25 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const chk = lerChecklist(a.checklist);
     if (!Number.isInteger(i) || !chk[i]) return json({ error: "Item não encontrado" }, 404);
     chk.splice(i, 1);
+    await db.area.update({ where: { id: params.id }, data: { checklist: chk as unknown as Prisma.InputJsonValue } });
+    return json({ ok: true });
+  });
+}
+
+/** "Salvar e Continuar": grava os campos de uma seção do checklist de uma vez (pedido 23/11/2026) */
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  return withSession(async (s) => {
+    const txt = await req.text();
+    if (txt.length > 200_000) return json({ error: "Dados grandes demais" }, 413);
+    let b: { secao?: unknown; valores?: unknown } = {};
+    try { b = JSON.parse(txt); } catch {}
+    const secao = Number(b.secao);
+    if (!Number.isInteger(secao) || secao < 0 || secao >= SECOES.length) return json({ error: "Seção inválida" }, 400);
+    if (!b.valores || typeof b.valores !== "object") return json({ error: "Sem valores" }, 400);
+    const a = await db.area.findFirst({ where: { id: params.id, deletedAt: null }, select: { checklist: true } });
+    if (!a) return json({ error: "Área não encontrada" }, 404);
+    const dia = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    const chk = aplicarValores(lerChecklist(a.checklist), secao, b.valores as Record<string, unknown>, `${s.name} · ${dia}`.slice(0, 120));
     await db.area.update({ where: { id: params.id }, data: { checklist: chk as unknown as Prisma.InputJsonValue } });
     return json({ ok: true });
   });
