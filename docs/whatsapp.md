@@ -10,10 +10,10 @@ Tudo sai por `enviarTexto` e `enviarArquivo` (`src/lib/whatsapp.ts`), que confer
 
 | Quem manda | Limite |
 |---|---|
-| Robô, avisos, lembretes, resumos | **2 a cada 15 minutos** (pedido do Fernando) |
+| Robô, avisos, lembretes, resumos | **1 a cada 10 minutos** (pedido do Fernando, 22/11/2026; antes 2 a cada 15) |
 | Pessoa digitando na tela de Conversas (`{ manual: true }`) | 20 a cada 15 minutos |
 
-Passou do limite, a mensagem não sai e quem chamou recebe o erro. As rotinas tentam de novo na rodada seguinte.
+Texto do sistema que passa do limite **espera a vez** na tabela `MensagemEspera` (também entra nela se já houver outra esperando, para manter a ordem). Sai pela `enviarDaEspera`, chamada pela VPS a cada 30 s (`/api/claude/fila`) e pela rotina de 10 minutos. Arquivo (`enviarArquivo`) não espera: passou do limite, dá erro. As digitadas na tela de Conversas também não esperam.
 
 ## Grupos
 

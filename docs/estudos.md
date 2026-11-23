@@ -7,6 +7,16 @@ O formato de cada estudo, seção por seção, está em [estudos-padrao.md](estu
 | **Viabilidade Legal** | Estudo 1 (raio-x da área) | Dá para lotear, o que dá para fazer e a região tem valor? |
 | **Viabilidade Mercadológica** | Estudo 2 (concorrentes, raios de 5 e 20 km) | Quem vende ao redor, como vende, e onde cabe o nosso produto? |
 
+## Pedir pela tela
+
+Na etapa Pré-viabilidade, **"🧠 Fazer a Viabilidade Legal"** e **"Sim, fazer a Viabilidade Mercadológica"** põem o estudo na fila da VPS (`/api/areas/[id]/estudo-vps`), como o KMZ no Central (pedido 22/11/2026):
+
+1. Enquanto roda, o bloco do estudo fica desativado com "Realizando a …" e o % (`EstudoEmAndamento.tsx`). O % vem do `andamento.txt` que o Claude grava na VPS (fases em `~/estudos/CLAUDE.md`); sem ele, é estimado pelo tempo. A tela se atualiza a cada 15 s.
+2. Quando a VPS pega o pedido: **JBL - Avisos** recebe "Comecei a análise da gleba X. Aviso quando estiver pronta."
+3. Quando termina: o resumo (8 a 12 linhas, `resposta.txt`) vai para o **JBL - Central**, com "Sigo para a Viabilidade Mercadológica?" na Legal; o **JBL - Avisos** recebe "pronta, o resumo está no Central".
+
+Vale também para o estudo pedido pelo WhatsApp (KMZ no Central, "1 Sim").
+
 ## Quem faz
 
 Os estudos são feitos **pela assinatura do Claude, não pela API paga**:

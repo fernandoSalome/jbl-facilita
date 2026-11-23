@@ -7,7 +7,7 @@ import { enviarTexto } from "./whatsapp";
 
 /**
  * Rotinas do WhatsApp chamadas de 10 em 10 minutos (pedido 20/11/2026). Só marcam como feito o que saiu de
- * fato: se o limite de 2 mensagens a cada 15 minutos barrar, tenta de novo na rodada seguinte.
+ * fato: se o limite de envio barrar, tenta de novo na rodada seguinte.
  */
 
 /** Resumo da manhã no JBL - Central, uma vez por dia, a partir das 07:30 (até o meio-dia) */

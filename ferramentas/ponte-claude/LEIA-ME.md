@@ -6,7 +6,7 @@ Pelo grupo **JBL - Central** (mensagem começando com "Claude, …") a equipe pe
 2. Esta ponte, na VPS, busca o pedido.
 3. A ponte roda o `claude -p` com a assinatura. O Claude só pode usar pesquisa na web e leitura: não altera arquivos nem roda comandos.
 4. A ponte devolve a resposta ao Facilita.
-5. O Facilita manda a resposta no grupo, dentro do limite de 2 mensagens a cada 15 minutos.
+5. O Facilita manda a resposta no grupo, dentro do limite de 1 mensagem a cada 10 minutos (o que passar espera a vez).
 
 Pelo WhatsApp não se altera o código do sistema. Isso é feito pelo app do Claude.
 

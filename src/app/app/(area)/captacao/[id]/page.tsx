@@ -15,6 +15,8 @@ import MapaInterativo from "@/components/captacao/MapaInterativo";
 import ChatArea from "@/components/captacao/ChatArea";
 import ListaEditavel from "@/components/captacao/ListaEditavel";
 import PreViabilidade from "@/components/captacao/PreViabilidade";
+import { percentual } from "@/lib/estudo-andamento";
+import { estudoEmAndamento } from "@/lib/estudo-andamento-db";
 import ReuniaoArea from "@/components/captacao/ReuniaoArea";
 import LinkEstudo from "@/components/captacao/LinkEstudo";
 import BotaoSpe from "@/components/captacao/BotaoSpe";
@@ -45,6 +47,8 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
   const iEtapa = ETAPAS.findIndex(([k]) => k === etapa);
   // clicar numa etapa mostra o conteúdo dela sem mudar a etapa da área
   const ver = (ETAPAS.some(([k]) => k === searchParams.ver) ? searchParams.ver : etapa) as Etapa;
+  // estudo na fila ou rodando na VPS: o bloco fica desativado com o % (pedido 22/11/2026)
+  const andamento = ver === "previabilidade" && aba === "etapa" ? await estudoEmAndamento(a.id) : [];
   const [mensagens, reuniao] = await Promise.all([
     db.areaMensagem.findMany({ where: { areaId: a.id }, orderBy: { quando: "asc" }, take: 400 }),
     a.reuniaoId ? db.compromisso.findUnique({ where: { id: a.reuniaoId }, select: { inicio: true, fim: true, local: true, status: true, convidadoNome: true, descricao: true } }) : null,
@@ -101,7 +105,11 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
               </div>
               </>
             )}
-            {ver === "previabilidade" && <PreViabilidade a={a} e1={lerEstudo1(a.estudo1)} e2={lerEstudo2(a.estudo2)} />}
+            {ver === "previabilidade" && (
+              // a chave muda quando o estudo entra: os campos voltam preenchidos com o que a VPS mandou
+              <PreViabilidade key={`${+a.updatedAt}-${andamento.length}`} a={a} e1={lerEstudo1(a.estudo1)} e2={lerEstudo2(a.estudo2)} temKmz={!!a.poligono}
+                andamento={andamento.map((c) => ({ tipo: c.tipo as "estudo" | "mercado", status: c.status, pct: percentual(c, c.tipo as "estudo" | "mercado"), fase: c.fase }))} />
+            )}
             {ver === "reuniao" && (
               <ReuniaoArea
                 id={a.id}

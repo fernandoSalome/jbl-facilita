@@ -41,6 +41,8 @@ Quando a área chega na Proposta, o sistema cria um `Project` por trás, só par
 
 Código: `src/lib/captacao-assinatura.ts`, `src/app/api/public/[token]/carta/route.ts`, `sincronizarAssinaturas` em `minuta-acoes.ts`. Propostas fora da Captação seguem o fluxo antigo (ver [propostas.md](propostas.md)).
 
+Ao concluir uma etapa no botão do topo (`Gate.tsx`), a tela mostra "Etapa concluída → abrindo …" e abre a próxima sozinha (pedido 22/11/2026).
+
 ## Geladeira e descarte
 
 - **Descartar** pede o motivo. A área vai para a coluna ✖ Descartadas.

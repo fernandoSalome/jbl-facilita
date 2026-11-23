@@ -39,7 +39,7 @@ Proposta bloqueada não muda nunca (ver [propostas.md](propostas.md)). Para `Jbl
 4. Na dúvida se aparece para o cliente, trate como se aparecesse.
 
 ## Mensagem de WhatsApp
-1. Sempre por `enviarTexto` ou `enviarArquivo` de `src/lib/whatsapp.ts`: o limite (2 a cada 15 min para o robô) é conferido lá.
+1. Sempre por `enviarTexto` ou `enviarArquivo` de `src/lib/whatsapp.ts`: o limite (1 a cada 10 min para o robô, com fila de espera) é conferido lá.
 2. Mensagem do robô começa com `🤖`. Sem isso, o robô lê a própria mensagem (o WhatsApp conectado é o do Fernando).
 3. Prefira uma mensagem só (por exemplo, PDF com legenda) a várias seguidas.
 4. Mensagem digitada pela pessoa na tela de Conversas usa `{ manual: true }` (limite de 20 a cada 15 min).

@@ -2,7 +2,7 @@
  * Cliente da Evolution API (WhatsApp). Variáveis: EVOLUTION_URL, EVOLUTION_KEY, EVOLUTION_INSTANCE.
  */
 
-import { JANELA_MS, LIMITE_ENVIOS, LIMITE_MANUAL, LimiteWhatsapp, podeEnviar } from "./limite-whatsapp";
+import { JANELA_MANUAL_MS, JANELA_MS, LIMITE_ENVIOS, LIMITE_MANUAL, LimiteWhatsapp, podeEnviar } from "./limite-whatsapp";
 
 const URL_ = () => (process.env.EVOLUTION_URL ?? "").replace(/\/+$/, "");
 const INST = () => encodeURIComponent(process.env.EVOLUTION_INSTANCE ?? "");
@@ -31,27 +31,63 @@ function marcar(r: { key?: { id?: string } } | null) {
 }
 
 /**
- * Reserva um envio dentro do limite (2 a cada 15 minutos). A trava do banco faz dois servidores ao mesmo tempo
- * não passarem juntos do limite. Sem vaga, lança LimiteWhatsapp e nada é mandado.
+ * Reserva um envio dentro do limite (1 a cada 10 minutos; as digitadas na tela, 20 a cada 15). A trava do banco faz
+ * dois servidores ao mesmo tempo não passarem juntos do limite. Sem vaga, lança LimiteWhatsapp e nada é mandado.
  */
 async function reservarEnvio(jid: string, manual = false) {
   const { db } = await import("./db");
   await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(20261120)`;
-    // robô e avisos: 2 a cada 15 min; digitadas na tela de Conversas: contagem e limite próprios
-    const recentes = await tx.waEnvio.findMany({ where: { em: { gt: new Date(Date.now() - JANELA_MS) }, manual }, select: { em: true } });
+    const janela = manual ? JANELA_MANUAL_MS : JANELA_MS;
+    const recentes = await tx.waEnvio.findMany({ where: { em: { gt: new Date(Date.now() - janela) }, manual }, select: { em: true } });
     const limite = manual ? LIMITE_MANUAL : LIMITE_ENVIOS;
-    const r = podeEnviar(recentes.map((x) => x.em), new Date(), limite);
-    if (!r.ok) throw new LimiteWhatsapp(r.libera, limite);
+    const r = podeEnviar(recentes.map((x) => x.em), new Date(), limite, janela);
+    if (!r.ok) throw new LimiteWhatsapp(r.libera, limite, janela);
     await tx.waEnvio.create({ data: { jid, manual } });
   });
 }
 
-/** Texto puro: sem a prévia (imagem grande) que o WhatsApp monta para os links */
+const mandarTexto = async (jid: string, text: string) => marcar(await call(`/message/sendText/${INST()}`, { number: jid, text, linkPreview: false }));
+
+/**
+ * Texto puro: sem a prévia (imagem grande) que o WhatsApp monta para os links. Texto do sistema que passa do limite
+ * (ou chega com outras na espera) entra na fila MensagemEspera e sai na vez dele (pedido 22/11/2026); aí devolve null.
+ * As digitadas na tela de Conversas não esperam: passando do limite delas, dá erro na hora.
+ */
 export async function enviarTexto(jid: string, text: string, opts: { manual?: boolean } = {}) {
-  await reservarEnvio(jid, !!opts.manual);
-  // devolve o id da mensagem (a tela de Conversas guarda com ele, e o eco do webhook não duplica)
-  return marcar(await call(`/message/sendText/${INST()}`, { number: jid, text, linkPreview: false }));
+  if (opts.manual) {
+    await reservarEnvio(jid, true);
+    return mandarTexto(jid, text);
+  }
+  const { db } = await import("./db");
+  const esperando = await db.mensagemEspera.count({ where: { enviadoEm: null } });
+  if (!esperando) {
+    try {
+      await reservarEnvio(jid);
+      // devolve o id da mensagem (a tela de Conversas guarda com ele, e o eco do webhook não duplica)
+      return await mandarTexto(jid, text);
+    } catch (e) {
+      if (!(e instanceof LimiteWhatsapp)) throw e;
+    }
+  }
+  await db.mensagemEspera.create({ data: { jid, texto: text.slice(0, 20_000) } });
+  return null;
+}
+
+/** Manda a mais antiga da fila de espera, se o limite deixar. Chamada pela VPS (30 s) e pela rotina (10 min). */
+export async function enviarDaEspera() {
+  const { db } = await import("./db");
+  const m = await db.mensagemEspera.findFirst({ where: { enviadoEm: null }, orderBy: { createdAt: "asc" } });
+  if (!m) return false;
+  try {
+    await reservarEnvio(m.jid);
+  } catch (e) {
+    if (e instanceof LimiteWhatsapp) return false;
+    throw e;
+  }
+  await mandarTexto(m.jid, m.texto);
+  await db.mensagemEspera.update({ where: { id: m.id }, data: { enviadoEm: new Date() } });
+  return true;
 }
 
 export async function enviarArquivo(jid: string, f: { base64: string; mime: string; fileName: string; caption: string }) {

@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { json } from "@/lib/api";
 import { cortarResposta, senhaValida } from "@/lib/claude-ponte";
-import { enviarTexto } from "@/lib/whatsapp";
+import { enviarDaEspera, enviarTexto } from "@/lib/whatsapp";
+import { avisarComeco, avisarFim } from "@/lib/estudo-andamento-db";
 import { guardarEstudoDaVps } from "@/lib/captacao-db";
 import { guardarClassificacao, montarClassificacao, pedirClassificacao } from "@/lib/contatos-terra-db";
 
@@ -13,8 +14,11 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: Request) {
   if (!senhaValida(req.headers.get("authorization"))) return json({ error: "Não autorizado" }, 401);
-  // pedido que ficou "rodando" por mais de 40 minutos (VPS caiu): volta para a fila
-  await db.comandoClaude.updateMany({ where: { status: "rodando", iniciadoEm: { lt: new Date(Date.now() - 40 * 60e3) } }, data: { status: "fila" } });
+  // pedido que ficou "rodando" além do tempo limite da VPS (ela caiu): volta para a fila. Estudo pode levar 90 min.
+  await db.comandoClaude.updateMany({ where: { status: "rodando", tipo: { notIn: ["estudo", "mercado"] }, iniciadoEm: { lt: new Date(Date.now() - 40 * 60e3) } }, data: { status: "fila", progresso: null, fase: null } });
+  await db.comandoClaude.updateMany({ where: { status: "rodando", tipo: { in: ["estudo", "mercado"] }, iniciadoEm: { lt: new Date(Date.now() - 100 * 60e3) } }, data: { status: "fila", progresso: null, fase: null } });
+  // mensagem que esperava a vez por causa do limite de envio (pedido 22/11/2026)
+  await enviarDaEspera().catch(() => {});
   // a VPS pergunta a cada 30 s: aproveita para pôr na fila a leitura das conversas que pararam
   await pedirClassificacao().catch(() => {});
   // e o aviso de geladeira (a rotina de 10 em 10 minutos falha às vezes)
@@ -30,6 +34,8 @@ export async function GET(req: Request) {
     await db.comandoClaude.update({ where: { id: c.id }, data: { status: "feito", resposta: "(nada para ler)", terminadoEm: new Date(), enviadoEm: new Date() } });
     return json({ vazio: true });
   }
+  // "Comecei a análise da gleba X" no JBL - Avisos (pedido 22/11/2026); falha no aviso não segura o estudo
+  await avisarComeco(c).catch((e) => console.error("aviso começo", e));
   // estudo e mercado: vão junto os dados da área (KMZ e o que os estudos já definiram)
   const area = c.areaId
     ? await db.area.findFirst({ where: { id: c.areaId }, select: { id: true, nome: true, cidade: true, uf: true, hectares: true, poligono: true, estudo1: true, estudo2: true } })
@@ -59,11 +65,13 @@ export async function POST(req: Request) {
       aviso = `\n\n⚠️ O estudo não entrou na plataforma: ${(e as Error).message.slice(0, 200)}`;
     }
   }
-  await db.comandoClaude.update({ where: { id }, data: { status: b.ok === false ? "erro" : "feito", resposta: (resposta || "(sem resposta)") + aviso, terminadoEm: new Date() } });
+  await db.comandoClaude.update({ where: { id }, data: { status: b.ok === false ? "erro" : "feito", resposta: (resposta || "(sem resposta)") + aviso, terminadoEm: new Date(), ...(b.ok === false ? {} : { progresso: 100 }) } });
   // manda já; se o limite de envio barrar, a rotina de 10 em 10 minutos tenta de novo
   try {
     await enviarTexto(c.grupoJid, `🤖 🧠 ${cortarResposta((resposta || "Não consegui responder agora.") + aviso)}`); // 🤖: o robô não lê de volta
     await db.comandoClaude.update({ where: { id }, data: { enviadoEm: new Date() } });
   } catch {}
+  // "pronto, o resumo está no Central" no JBL - Avisos; sai depois do resumo, na vez dele
+  await avisarFim(c, b.ok !== false && !aviso.includes("não entrou")).catch((e) => console.error("aviso fim", e));
   return json({ ok: true });
 }

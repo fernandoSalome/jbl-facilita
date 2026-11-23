@@ -449,6 +449,17 @@ model WaEnvio {
   @@index([em])
 }
 
+/// Mensagem do sistema que passou do limite de envio (pedido 22/11/2026): espera a vez e sai na próxima vaga
+model MensagemEspera {
+  id        String    @id @default(cuid())
+  jid       String
+  texto     String
+  createdAt DateTime  @default(now())
+  enviadoEm DateTime?
+
+  @@index([enviadoEm, createdAt])
+}
+
 /// Lembrete pedido no WhatsApp ("me lembra amanhã às 9h de ligar pro Pedro"), pedido 20/11/2026. Sai no grupo
 /// em que foi pedido, pela rotina de 10 em 10 minutos; enviadoEm vazio = ainda não saiu.
 model Lembrete {
@@ -487,6 +498,9 @@ model ComandoClaude {
   terminadoEm DateTime?
   /// resposta já mandada no grupo (vazio com status feito = tenta de novo na rotina, por causa do limite)
   enviadoEm   DateTime?
+  /// andamento do estudo informado pela VPS (pedido 22/11/2026): 0 a 100 e a fase ("Lendo as leis")
+  progresso   Int?
+  fase        String?
 
   @@index([status, createdAt])
 }

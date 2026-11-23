@@ -1,5 +1,6 @@
 import { json } from "@/lib/api";
 import { lembretesWhatsapp } from "@/lib/agenda-whatsapp";
+import { enviarDaEspera } from "@/lib/whatsapp";
 import { avisosGeladeira, enviarLembretes, respostasClaudePendentes, resumoDaManha } from "@/lib/rotinas-whatsapp";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ export async function GET(req: Request) {
   // cada rotina separada: se uma falhar (ou bater no limite de envio), as outras seguem
   const rodar = async <T>(f: () => Promise<T>) => f().catch((e: Error) => `erro: ${e.message.slice(0, 120)}`);
   return json({
+    // primeiro a que está esperando a vez (pedido 22/11/2026)
+    espera: await rodar(() => enviarDaEspera()),
     enviados: await rodar(() => lembretesWhatsapp()),
     lembretes: await rodar(() => enviarLembretes()),
     resumo: await rodar(() => resumoDaManha()),

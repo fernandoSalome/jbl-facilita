@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { atualizarOriginais, resumoCentral, SEMAFOROS, STATUS_E1, VEREDITOS, type Estudo1, type Estudo2 } from "@/lib/captacao-estudos";
 import { chamar } from "./chamar";
+import EstudoEmAndamento, { type Andamento } from "./EstudoEmAndamento";
 import ListaEditavel from "./ListaEditavel";
 import LinkEstudo from "./LinkEstudo";
 
@@ -51,7 +52,7 @@ function Campo({ label, value, onChange, original, opcoes, placeholder, numero }
  * Pré-viabilidade em 3 fases (pedido 19/11/2026): terreno → (sim no Central) → mercadológico → apresentação.
  * Primeiro o terreno: se não passar, não gasta com mercado.
  */
-export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: Estudo2 }) {
+export default function PreViabilidade({ a, e1, e2, andamento = [], temKmz = true }: { a: A; e1: Estudo1; e2: Estudo2; andamento?: Andamento[]; temKmz?: boolean }) {
   const router = useRouter();
   const [f, setF] = useState({
     ...e1,
@@ -92,6 +93,19 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
       await chamar(`/api/areas/${a.id}`, "PATCH", { estudo1: estudo1("pronto") });
       await chamar(`/api/areas/${a.id}/central`, "POST");
       setMsg("📲 Resumo enviado no JBL - Central. A resposta “1” ou “2” no grupo decide a Viabilidade Mercadológica.");
+      router.refresh();
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  }
+  // os estudos são feitos na VPS, pela assinatura (pedido 22/11/2026)
+  const rodando1 = andamento.find((x) => x.tipo === "estudo") ?? null;
+  const rodando2 = andamento.find((x) => x.tipo === "mercado") ?? null;
+  async function pedirNaVps(tipo: "estudo" | "mercado") {
+    try {
+      if (tipo === "mercado") await chamar(`/api/areas/${a.id}`, "PATCH", { estudo1: estudo1("sim") });
+      await chamar(`/api/areas/${a.id}/estudo-vps`, "POST", { tipo });
+      setMsg("");
       router.refresh();
     } catch (e) {
       setMsg((e as Error).message);
@@ -149,6 +163,7 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
         <Fase n={3} t="Apresentação" sub="Slides para a reunião" on={temMercado} off={!temMercado} />
       </div>
 
+      <EstudoEmAndamento andamento={rodando1}>
       <section className="card p-5">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="font-display text-xl text-navy">🔬 1. Viabilidade Legal</h3>
@@ -180,10 +195,12 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
           {c1("regiao.cidades", "Cidades em volta")}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* sem estudo ainda: o botão principal manda fazer na VPS; com estudo, refazer fica discreto */}
+          {temKmz && <button className={a.relatorioCompleto || f.semaforo ? "btn-ghost" : "btn-gold"} onClick={() => pedirNaVps("estudo")}>🧠 {a.relatorioCompleto || f.semaforo ? "Refazer" : "Fazer"} a Viabilidade Legal</button>}
           <button className="btn-ghost" onClick={() => salvar1()}>Salvar</button>
           <button className="btn-ghost" onClick={central}>📲 Mandar resumo ao JBL - Central</button>
           {/* o botão que leva à próxima etapa fica sempre em destaque (pedido 20/11/2026) */}
-          <button className={terreno === "sim" ? "btn-ghost" : "btn-gold"} onClick={() => salvar1("sim")}>Sim, fazer a Viabilidade Mercadológica</button>
+          <button className={terreno === "sim" ? "btn-ghost" : "btn-gold"} onClick={() => pedirNaVps("mercado")}>Sim, fazer a Viabilidade Mercadológica</button>
           <button className="btn-ghost" onClick={() => salvar1("nao")}>Não, parar na Viabilidade Legal</button>
         </div>
         <details className="mt-3">
@@ -191,8 +208,10 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
           <pre className="mt-2 whitespace-pre-wrap rounded border border-line bg-alt p-3 text-[13px]">{resumoCentral(a, estudo1())}</pre>
         </details>
       </section>
+      </EstudoEmAndamento>
 
-      <section className={`card p-5 ${mercadoLiberado || temMercado ? "" : "opacity-60"}`}>
+      <EstudoEmAndamento andamento={rodando2}>
+      <section className={`card p-5 ${mercadoLiberado || temMercado || rodando2 ? "" : "opacity-60"}`}>
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="font-display text-xl text-navy">📊 2. Viabilidade Mercadológica</h3>
           {!mercadoLiberado && !temMercado && <span className="text-[13px] text-muted">Só depois do “sim” no Central (ou no botão acima).</span>}
@@ -225,10 +244,14 @@ export default function PreViabilidade({ a, e1, e2 }: { a: A; e1: Estudo1; e2: E
               {c2("veredito", "Veredito", { opcoes: Object.entries(VEREDITOS) })}
             </div>
             {c2("risco", "Principal risco de mercado")}
-            <div><button className="btn-gold" onClick={salvar2}>Salvar a Viabilidade Mercadológica</button></div>
+            <div className="flex flex-wrap gap-2">
+              <button className="btn-gold" onClick={salvar2}>Salvar a Viabilidade Mercadológica</button>
+              <button className="btn-ghost" onClick={() => pedirNaVps("mercado")}>🧠 {temMercado ? "Refazer" : "Fazer"} na VPS</button>
+            </div>
           </div>
         )}
       </section>
+      </EstudoEmAndamento>
 
       <section className={`card p-5 ${temMercado ? "border-2 border-gold-line" : "opacity-60"}`}>
         <div className="flex flex-wrap items-center gap-3">

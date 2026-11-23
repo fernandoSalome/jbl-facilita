@@ -13,6 +13,7 @@ export default function Gate({ id, etapa, situacao }: { id: string; etapa: Etapa
   const [quadro, setQuadro] = useState<"" | "descartada" | "geladeira">("");
   const [motivo, setMotivo] = useState("");
   const [meses, setMeses] = useState<number>(3);
+  const [indo, setIndo] = useState("");
   const prox = proximaEtapa(etapa);
   async function mudar(dados: Record<string, unknown>) {
     setBusy(true);
@@ -20,12 +21,23 @@ export default function Gate({ id, etapa, situacao }: { id: string; etapa: Etapa
       await chamar(`/api/areas/${id}`, "PATCH", dados);
       setQuadro("");
       setMotivo("");
+      // etapa concluída: mostra para onde vai e já abre a próxima (pedido 22/11/2026)
+      if (typeof dados.etapa === "string") {
+        setIndo(nomeEtapa(dados.etapa as Etapa));
+        setTimeout(() => {
+          router.push(`?aba=etapa&ver=${dados.etapa}`);
+          setIndo("");
+          setBusy(false);
+        }, 1500);
+        return;
+      }
       router.refresh();
     } catch (e) {
       alert((e as Error).message);
     }
     setBusy(false);
   }
+  if (indo) return <span className="rounded-md bg-gold-soft px-4 py-2 text-[14px] font-bold text-gold-ink">✓ Etapa concluída → abrindo {indo}…</span>;
   if (situacao !== "ativa") return <button className="btn-gold" disabled={busy} onClick={() => mudar({ situacao: "ativa" })}>Reativar área</button>;
   return (
     <>

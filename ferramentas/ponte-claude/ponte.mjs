@@ -52,7 +52,16 @@ async function estudo(c) {
   const a = c.area || {};
   writeFileSync(`${pasta}/entrada.json`, JSON.stringify({ tipo: c.tipo, pedido: c.texto, area: { nome: a.nome, cidade: a.cidade, uf: a.uf, hectares: a.hectares }, poligono: a.poligono, estudo1: a.estudo1, estudo2: a.estudo2 }, null, 1));
   const prompt = `Leia ~/estudos/CLAUDE.md e as referências que ele indica. Depois faça o pedido descrito em trabalho/${c.id}/entrada.json (tipo "${c.tipo}") e entregue em trabalho/${c.id}/ os três arquivos: relatorio.html, resultado.json e resposta.txt.`;
+  // andamento (pedido 22/11/2026): o Claude grava "60 Calculando os lotes" em andamento.txt; a cada 30 s vai para a tela
+  let ultimo = "";
+  const vigia = setInterval(() => {
+    const linha = existsSync(`${pasta}/andamento.txt`) ? readFileSync(`${pasta}/andamento.txt`, "utf8").trim().split("\n")[0] : "";
+    if (!linha || linha === ultimo) return;
+    ultimo = linha;
+    fetch(`${URL_BASE}/api/claude/andamento`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, linha }) }).catch(() => {});
+  }, 30_000);
   const res = await rodarClaude(prompt, { cwd: ESTUDOS, ferramentas: FERRAMENTAS_ESTUDO, limite: LIMITE_ESTUDO_MS, turnos: "400" });
+  clearInterval(vigia);
   const ler = (f) => (existsSync(`${pasta}/${f}`) ? readFileSync(`${pasta}/${f}`, "utf8") : "");
   let estudoJson = null;
   try { estudoJson = JSON.parse(ler("resultado.json") || "null"); } catch {}
