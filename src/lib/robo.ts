@@ -9,6 +9,7 @@ import { nutrirPorTelefone } from "./captacao-db";
 import { areaCitada, areaDoContexto, areasDaCaptacao, lembrarArea, listaComAreas, marcarRecebido } from "./robo-areas";
 import { tituloArea } from "./captacao";
 import { resumoArea } from "./lembretes";
+import { tratarParadaEstudo } from "./estudo-parar-db";
 import { pedirAoClaude, salvarKmzParticular, tratarCentral, tratarEstudos, tratarKmzCentral, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
@@ -130,6 +131,8 @@ export async function tratarMensagem(m: Recebida) {
   /* ---------- grupo JBL - Estudos: o texto vai para o checklist da área citada ---------- */
   if (g.funcao === "estudos" && (await tratarEstudos(m, responder))) return;
   /* ---------- grupo JBL - Central: "1 Sim · 2 Não" depois do resumo do terreno ---------- */
+  // "para o estudo de Ipioca" / "retoma o estudo": antes do "1/2" do Central, que lê "para" como "não" (pedido 23/11/2026)
+  if ((g.funcao === "central" || g.funcao === "claude") && (await tratarParadaEstudo(m, responder))) return;
   if (g.funcao === "central" && (await tratarCentral(m, responder))) return;
 
   /* ---------- grupo JBL - Claude: pedido de pesquisa para o Claude da VPS (só Fernando e Marcelo) ---------- */

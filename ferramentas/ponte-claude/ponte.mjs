@@ -3,7 +3,7 @@
 // só com ferramentas de pesquisa e leitura (não altera arquivos nem roda comandos), e devolve a resposta.
 // Variáveis (arquivo ~/.ponte.env): CLAUDE_PONTE_SECRET (a mesma da Vercel) e FACILITA_URL.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 
 const URL_BASE = (process.env.FACILITA_URL || "https://jbl-facilita.com.br").replace(/\/+$/, "");
@@ -31,9 +31,10 @@ ${texto}
 
 Regras: responda em português do Brasil, para ler no WhatsApp (até 25 linhas, sem tabelas largas). Pesquise na web quando precisar de dado atual. Diga o grau de certeza; marque o que é preço pedido (anúncio) e o que é venda fechada; não invente número. Termine com as fontes (só o domínio). Você não altera o sistema nem arquivos: só pesquisa e responde.`;
 
-function rodarClaude(prompt, { cwd = PASTA, ferramentas = FERRAMENTAS, limite = LIMITE_MS, turnos = "40" } = {}) {
+function rodarClaude(prompt, { cwd = PASTA, ferramentas = FERRAMENTAS, limite = LIMITE_MS, turnos = "40", controle } = {}) {
   return new Promise((resolve) => {
     const p = spawn("claude", ["-p", prompt, "--output-format", "text", "--allowedTools", ferramentas, "--max-turns", turnos], { cwd, env: process.env });
+    if (controle) controle.parar = () => p.kill("SIGTERM");
     let out = "", err = "";
     const t = setTimeout(() => p.kill("SIGTERM"), limite);
     p.stdout.on("data", (d) => (out += d));
@@ -48,20 +49,30 @@ function rodarClaude(prompt, { cwd = PASTA, ferramentas = FERRAMENTAS, limite = 
 /** Estudo da área (Viabilidade Legal) ou mercado (Viabilidade Mercadológica): pasta de trabalho, Claude, 3 arquivos */
 async function estudo(c) {
   const pasta = `${ESTUDOS}/trabalho/${c.id}`;
+  // estudo retomado (pedido 23/11/2026): a pasta guardada continua e o Claude aproveita o que já fez
+  const retomando = existsSync(`${pasta}/entrada.json`);
   mkdirSync(pasta, { recursive: true });
+  rmSync(`${pasta}/parado.txt`, { force: true });
   const a = c.area || {};
   writeFileSync(`${pasta}/entrada.json`, JSON.stringify({ tipo: c.tipo, pedido: c.texto, area: { nome: a.nome, cidade: a.cidade, uf: a.uf, hectares: a.hectares }, poligono: a.poligono, estudo1: a.estudo1, estudo2: a.estudo2 }, null, 1));
-  const prompt = `Leia ~/estudos/CLAUDE.md e as referências que ele indica. Depois faça o pedido descrito em trabalho/${c.id}/entrada.json (tipo "${c.tipo}") e entregue em trabalho/${c.id}/ os três arquivos: relatorio.html, resultado.json e resposta.txt.`;
-  // andamento (pedido 22/11/2026): o Claude grava "60 Calculando os lotes" em andamento.txt; a cada 30 s vai para a tela
-  let ultimo = "";
+  const prompt = `Leia ~/estudos/CLAUDE.md e as referências que ele indica. Depois faça o pedido descrito em trabalho/${c.id}/entrada.json (tipo "${c.tipo}") e entregue em trabalho/${c.id}/ os três arquivos: relatorio.html, resultado.json e resposta.txt.${retomando ? ` Este estudo foi parado e retomado: a pasta trabalho/${c.id}/ já tem o que foi feito antes (andamento.txt e arquivos). Confira o que já está pronto e continue dali, sem refazer.` : ""}`;
+  // andamento (pedido 22/11/2026): o Claude grava "60 Calculando os lotes" em andamento.txt; a cada 30 s vai para a tela.
+  // A resposta diz se pediram para parar (pedido 23/11/2026): mata o Claude e guarda a pasta por 5 dias.
+  const controle = {};
+  let parado = false;
   const vigia = setInterval(() => {
     const linha = existsSync(`${pasta}/andamento.txt`) ? readFileSync(`${pasta}/andamento.txt`, "utf8").trim().split("\n")[0] : "";
-    if (!linha || linha === ultimo) return;
-    ultimo = linha;
-    fetch(`${URL_BASE}/api/claude/andamento`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, linha }) }).catch(() => {});
+    fetch(`${URL_BASE}/api/claude/andamento`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, linha }) })
+      .then((r) => r.json())
+      .then((d) => { if (d?.parar && !parado) { parado = true; controle.parar?.(); } })
+      .catch(() => {});
   }, 30_000);
-  const res = await rodarClaude(prompt, { cwd: ESTUDOS, ferramentas: FERRAMENTAS_ESTUDO, limite: LIMITE_ESTUDO_MS, turnos: "400" });
+  const res = await rodarClaude(prompt, { cwd: ESTUDOS, ferramentas: FERRAMENTAS_ESTUDO, limite: LIMITE_ESTUDO_MS, turnos: "400", controle });
   clearInterval(vigia);
+  if (parado) {
+    writeFileSync(`${pasta}/parado.txt`, new Date().toISOString());
+    return { parado: true };
+  }
   const ler = (f) => (existsSync(`${pasta}/${f}`) ? readFileSync(`${pasta}/${f}`, "utf8") : "");
   let estudoJson = null;
   try { estudoJson = JSON.parse(ler("resultado.json") || "null"); } catch {}
@@ -146,6 +157,20 @@ async function lerConversas() {
     await new Promise((r) => setTimeout(r, 20 * 60_000));
   }
 })();
+
+/** Estudo parado há mais de 5 dias sem retomar (pedido 23/11/2026): apaga a pasta. Confere de hora em hora. */
+const DIAS_GUARDADO = 5;
+function descartarParados() {
+  const base = `${ESTUDOS}/trabalho`;
+  if (!existsSync(base)) return;
+  for (const id of readdirSync(base)) {
+    const marca = `${base}/${id}/parado.txt`;
+    if (!existsSync(marca)) continue;
+    const quando = Date.parse(readFileSync(marca, "utf8").trim());
+    if (Number.isFinite(quando) && Date.now() - quando > DIAS_GUARDADO * 24 * 3600e3) rmSync(`${base}/${id}`, { recursive: true, force: true });
+  }
+}
+setInterval(() => { try { descartarParados(); } catch (e) { console.error(new Date().toISOString(), e.message); } }, 3600e3);
 
 for (;;) {
   let teve = false;

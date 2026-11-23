@@ -3,6 +3,7 @@ import { json } from "@/lib/api";
 import { cortarResposta, senhaValida } from "@/lib/claude-ponte";
 import { enviarDaEspera, enviarTexto } from "@/lib/whatsapp";
 import { avisarComeco, avisarFim } from "@/lib/estudo-andamento-db";
+import { confirmarParada, descartarVencidos } from "@/lib/estudo-parar-db";
 import { guardarEstudoDaVps } from "@/lib/captacao-db";
 import { guardarClassificacao, montarClassificacao, pedirClassificacao } from "@/lib/contatos-terra-db";
 
@@ -17,6 +18,8 @@ export async function GET(req: Request) {
   // pedido que ficou "rodando" além do tempo limite da VPS (ela caiu): volta para a fila. Estudo pode levar 90 min.
   await db.comandoClaude.updateMany({ where: { status: "rodando", tipo: { notIn: ["estudo", "mercado"] }, iniciadoEm: { lt: new Date(Date.now() - 40 * 60e3) } }, data: { status: "fila", progresso: null, fase: null } });
   await db.comandoClaude.updateMany({ where: { status: "rodando", tipo: { in: ["estudo", "mercado"] }, iniciadoEm: { lt: new Date(Date.now() - 100 * 60e3) } }, data: { status: "fila", progresso: null, fase: null } });
+  // estudo parado há mais de 5 dias sem retomar: descartado (pedido 23/11/2026)
+  await descartarVencidos().catch(() => {});
   // mensagem que esperava a vez por causa do limite de envio (pedido 22/11/2026)
   await enviarDaEspera().catch(() => {});
   // a VPS pergunta a cada 30 s: aproveita para pôr na fila a leitura das conversas que pararam
@@ -48,6 +51,11 @@ export async function POST(req: Request) {
   const b = await req.json().catch(() => ({}));
   const id = typeof b.id === "string" ? b.id.slice(0, 40) : "";
   const resposta = typeof b.resposta === "string" ? b.resposta.slice(0, 50_000) : "";
+  // a VPS parou o estudo a pedido e guardou a pasta: confirma no grupo (pedido 23/11/2026)
+  if (b.parado === true) {
+    await confirmarParada(id);
+    return json({ ok: true });
+  }
   const c = await db.comandoClaude.findFirst({ where: { id, status: "rodando" } });
   if (!c) return json({ error: "Pedido não encontrado" }, 404);
   // leitura das conversas: não vai para grupo nenhum

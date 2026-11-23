@@ -52,6 +52,7 @@ Claude da VPS ◄──► /api/claude/fila, /api/claude/audio, /api/claude/conv
 | `whatsapp.ts` | Cliente do Evolution: enviar texto e arquivo, baixar mídia, ler mensagem do webhook, listar conversas |
 | `limite-whatsapp.ts` | Limite de envio: robô 1 a cada 10 min (o resto espera em `MensagemEspera`); mensagens digitadas na tela 20 a cada 15 min |
 | `estudo-andamento.ts` / `-db.ts` | Estudo pedido pela tela: fila da VPS, avisos "comecei" e "pronto" no JBL - Avisos, % na tela |
+| `estudo-parar.ts` / `-db.ts` | Parar e retomar o estudo (tela e WhatsApp): guardado 5 dias na VPS, depois descartado |
 | `robo.ts` | Entrada do robô: decide o que fazer com cada mensagem (grupo ou particular) |
 | `robo-areas.ts`, `robo-estudos.ts`, `robo-propostas.ts` | Comandos sobre áreas, Central (KMZ, 1 Sim · 2 Não, "Claude, …"), propostas |
 | `grupos.ts` | Para que serve cada tipo de grupo |

@@ -23,6 +23,8 @@ export async function pedirEstudoPelaTela(areaId: string, tipo: TipoEstudo, auto
   if ((await estudoEmAndamento(a.id)).some((c) => c.tipo === tipo)) throw new Error(`A ${NOME_ESTUDO[tipo]} desta área já está sendo feita.`);
   const g = await grupoCentral();
   if (!g) throw new Error("Nenhum grupo marcado como JBL - Central (tela Assistente WhatsApp)");
+  // estudo novo do mesmo tipo: o parado (guardado na VPS) deixa de valer
+  await db.comandoClaude.updateMany({ where: { areaId: a.id, tipo, status: "parado" }, data: { status: "descartado" } });
   if (tipo === "mercado") await db.area.update({ where: { id: a.id }, data: { estudo1: { ...lerEstudo1(a.estudo1), status: "sim" } } });
   await db.comandoClaude.create({ data: { texto: `${NOME_ESTUDO[tipo]} de ${tituloArea(a)}`, grupoJid: g.jid, autor, tipo, areaId: a.id } });
 }

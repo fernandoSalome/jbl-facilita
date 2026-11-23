@@ -490,7 +490,7 @@ model ComandoClaude {
   /// pesquisa (pergunta livre) | estudo (Viabilidade Legal da área) | mercado (Viabilidade Mercadológica)
   tipo        String    @default("pesquisa")
   areaId      String?
-  /// fila | rodando | feito | erro
+  /// fila | rodando | feito | erro | confirmar | cancelado | parado (guardado 5 dias na VPS) | descartado
   status      String    @default("fila")
   resposta    String?
   createdAt   DateTime  @default(now())
@@ -501,6 +501,8 @@ model ComandoClaude {
   /// andamento do estudo informado pela VPS (pedido 22/11/2026): 0 a 100 e a fase ("Lendo as leis")
   progresso   Int?
   fase        String?
+  /// estudo parado (pedido 23/11/2026): até 5 dias depois pode ser retomado; terminadoEm = a VPS confirmou que parou
+  paradoEm    DateTime?
 
   @@index([status, createdAt])
 }

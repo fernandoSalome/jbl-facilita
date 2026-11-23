@@ -12,6 +12,7 @@ O formato de cada estudo, seção por seção, está em [estudos-padrao.md](estu
 Na etapa Pré-viabilidade, **"🧠 Fazer a Viabilidade Legal"** e **"Sim, fazer a Viabilidade Mercadológica"** põem o estudo na fila da VPS (`/api/areas/[id]/estudo-vps`), como o KMZ no Central (pedido 22/11/2026):
 
 1. Enquanto roda, o bloco do estudo fica desativado com "Realizando a …" e o % (`EstudoEmAndamento.tsx`). O % vem do `andamento.txt` que o Claude grava na VPS (fases em `~/estudos/CLAUDE.md`); sem ele, é estimado pelo tempo. A tela se atualiza a cada 15 s.
+1. **Parar estudo** (botão no quadro ou _para o estudo de X_ no Central/Claude): o bloco destrava na hora e o status vira `parado`. A VPS mata o Claude no próximo aviso de andamento (até 30 s), grava `parado.txt` na pasta e o robô confirma no grupo do pedido. Por 5 dias dá para retomar (botão na faixa ou _retoma o estudo de X_): volta para a fila e o Claude continua da pasta guardada. Depois de 5 dias o Facilita marca `descartado` e a VPS apaga a pasta. Pedir um estudo novo do mesmo tipo descarta o parado.
 2. Quando a VPS pega o pedido: **JBL - Avisos** recebe "Comecei a análise da gleba X. Aviso quando estiver pronta."
 3. Quando termina: o resumo (8 a 12 linhas, `resposta.txt`) vai para o **JBL - Central**, com "Sigo para a Viabilidade Mercadológica?" na Legal; o **JBL - Avisos** recebe "pronta, o resumo está no Central".
 

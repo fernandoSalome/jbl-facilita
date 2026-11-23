@@ -17,6 +17,8 @@ import ListaEditavel from "@/components/captacao/ListaEditavel";
 import PreViabilidade from "@/components/captacao/PreViabilidade";
 import { percentual } from "@/lib/estudo-andamento";
 import { estudoEmAndamento } from "@/lib/estudo-andamento-db";
+import { dataCurta, guardadoAte } from "@/lib/estudo-parar";
+import { estudosParados } from "@/lib/estudo-parar-db";
 import ReuniaoArea from "@/components/captacao/ReuniaoArea";
 import LinkEstudo from "@/components/captacao/LinkEstudo";
 import BotaoSpe from "@/components/captacao/BotaoSpe";
@@ -48,7 +50,8 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
   // clicar numa etapa mostra o conteúdo dela sem mudar a etapa da área
   const ver = (ETAPAS.some(([k]) => k === searchParams.ver) ? searchParams.ver : etapa) as Etapa;
   // estudo na fila ou rodando na VPS: o bloco fica desativado com o % (pedido 22/11/2026)
-  const andamento = ver === "previabilidade" && aba === "etapa" ? await estudoEmAndamento(a.id) : [];
+  // parado (pedido 23/11/2026): vem depois dos que rodam e destrava o bloco, com "Retomar"
+  const andamento = ver === "previabilidade" && aba === "etapa" ? [...(await estudoEmAndamento(a.id)), ...(await estudosParados(a.id))] : [];
   const [mensagens, reuniao] = await Promise.all([
     db.areaMensagem.findMany({ where: { areaId: a.id }, orderBy: { quando: "asc" }, take: 400 }),
     a.reuniaoId ? db.compromisso.findUnique({ where: { id: a.reuniaoId }, select: { inicio: true, fim: true, local: true, status: true, convidadoNome: true, descricao: true } }) : null,
@@ -108,7 +111,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             {ver === "previabilidade" && (
               // a chave muda quando o estudo entra: os campos voltam preenchidos com o que a VPS mandou
               <PreViabilidade key={`${+a.updatedAt}-${andamento.length}`} a={a} e1={lerEstudo1(a.estudo1)} e2={lerEstudo2(a.estudo2)} temKmz={!!a.poligono}
-                andamento={andamento.map((c) => ({ tipo: c.tipo as "estudo" | "mercado", status: c.status, pct: percentual(c, c.tipo as "estudo" | "mercado"), fase: c.fase }))} />
+                andamento={andamento.map((c) => ({ id: c.id, tipo: c.tipo as "estudo" | "mercado", status: c.status, pct: c.status === "parado" ? (c.progresso ?? 0) : percentual(c, c.tipo as "estudo" | "mercado"), fase: c.fase, ate: "paradoEm" in c && c.paradoEm ? dataCurta(guardadoAte(c.paradoEm)) : undefined }))} />
             )}
             {ver === "reuniao" && (
               <ReuniaoArea

@@ -163,7 +163,7 @@ export default function PreViabilidade({ a, e1, e2, andamento = [], temKmz = tru
         <Fase n={3} t="Apresentação" sub="Slides para a reunião" on={temMercado} off={!temMercado} />
       </div>
 
-      <EstudoEmAndamento andamento={rodando1}>
+      <EstudoEmAndamento areaId={a.id} andamento={rodando1}>
       <section className="card p-5">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="font-display text-xl text-navy">🔬 1. Viabilidade Legal</h3>
@@ -210,7 +210,7 @@ export default function PreViabilidade({ a, e1, e2, andamento = [], temKmz = tru
       </section>
       </EstudoEmAndamento>
 
-      <EstudoEmAndamento andamento={rodando2}>
+      <EstudoEmAndamento areaId={a.id} andamento={rodando2}>
       <section className={`card p-5 ${mercadoLiberado || temMercado || rodando2 ? "" : "opacity-60"}`}>
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="font-display text-xl text-navy">📊 2. Viabilidade Mercadológica</h3>
