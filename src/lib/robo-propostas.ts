@@ -1,4 +1,4 @@
-import { calcular } from "./calc";
+import { calcular, cenariosAte } from "./calc";
 import { LINK_BASE } from "./site";
 import { db } from "./db";
 import { fmtBRL, fmtDate, fmtM2, fmtNum, fmtPct } from "./format";
@@ -57,7 +57,7 @@ export function ficha(p: PropostaDb): string {
     `VGV à vista ${fmtBRL(r.vgvAvista)} (terrenista ${fmtBRL(r.vgvAvistaTer)}, JBL ${fmtBRL(r.vgvAvistaInc)}) · líquido de comissão ${fmtBRL(r.vgvAvistaLiq)}`,
     `Carteira em ${pr.anos} anos: total ${fmtBRL(pr.carteiraEmp)} · terrenista ${fmtBRL(pr.carteiraTer)} · JBL ${fmtBRL(pr.carteiraInc)}`,
     `Recebimento mensal do terrenista: ${fmtBRL(pr.mensalTer)} no 1º ano, ${fmtBRL(pr.mensalTerFinal)} no último · parcela do lote ${fmtBRL(pr.parcela)} → ${fmtBRL(pr.parcelaFinal)}`,
-    `Outros prazos (carteira do terrenista): ${r.cenarios.map((c) => `${c.anos} anos ${fmtBRL(c.carteiraTer)}`).join("; ")}`,
+    `Outros prazos (carteira do terrenista): ${cenariosAte(r.cenarios, r.nParcelas).map((c) => `${c.anos} anos ${fmtBRL(c.carteiraTer)}`).join("; ")}`,
     `Antecipação da carteira do terrenista (deságio ${fmtPct(i.desagio)}): ${fmtBRL(r.antecipacao.valor)}`,
     `Custo de infraestrutura: ${fmtBRL(r.custoInfra)} (${fmtBRL(r.custoInfraM2)}/m²)${r.etapa1 ? ` · 1ª etapa ${fmtNum(r.etapa1.lotes, 0)} lotes` : ""}`,
     `Vendas previstas: ${r.vendas.mes1} / ${r.vendas.mes2} / ${r.vendas.mes3} lotes nos 3 primeiros meses`,

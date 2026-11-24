@@ -13,6 +13,10 @@ Proposta bloqueada (`lockedAt`) já foi enviada e pode ter sido assinada. **Nada
 - Outra saída: uma marca nos `inputs` gravada só nas não bloqueadas.
 - Na dúvida se a mudança aparece na proposta, trate como se aparecesse.
 
+## Prazos de recebimento
+
+Os prazos (botões de "Quanto recebe por mês", barras e tabela completa, e a tabela da planilha) vão só até o prazo escolhido na planilha: 10 anos mostra 3, 5, 8 e 10; 14 mostra até 13 e o 14; 17 mostra até 15 e o 17. A conta é a mesma (`cenariosAte` em `calc.ts`); bloqueadas antes de 24/11/2026 continuam com todos (`prazos-ate-o-escolhido` em `congelada.ts`).
+
 ## Proposta das Áreas (Captação)
 
 Quando a área chega na etapa Proposta, a proposta nasce com o que os estudos definiram (área, lote, frente, aproveitamento, valor do m²) e abre no editor de sempre (`captacao-proposta.ts`). O resto do fluxo da carta está em [captacao.md](captacao.md#carta-de-intenção-dentro-da-proposta).

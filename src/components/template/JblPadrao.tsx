@@ -3,7 +3,7 @@
 import "./jbl-padrao.css";
 import "./jbl-padrao-extra.css";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { calcular, divisaoNaTela, type StudyInputs } from "@/lib/calc";
+import { calcular, cenariosAte, divisaoNaTela, type StudyInputs } from "@/lib/calc";
 import { extensoReais, fmtBRL, fmtBRL0, fmtLongDate, fmtNum, fmtPct } from "@/lib/format";
 import type { Overrides, ProposalOptions } from "@/lib/proposals";
 import type { FormatoContent } from "@/lib/formatos";
@@ -324,16 +324,18 @@ export default function JblPadrao(props: TemplateProps) {
   const { project, inputs, options, mode, formato } = props;
   // o tipo de loteamento diz qual planilha usar nas quantidades de obra
   const r = useMemo(() => calcular({ ...inputs, planilhaInfra: formato.planilha ?? null }), [inputs, formato.planilha]);
+  // prazos só até o escolhido na planilha (pedido 24/11/2026); bloqueada antes disso continua com todos
+  const cenarios = useMemo(() => (mudou(props.bloqueadaEm, "prazos-ate-o-escolhido") ? cenariosAte(r.cenarios, r.nParcelas) : r.cenarios), [r, props.bloqueadaEm]);
   const editing = mode === "edit";
   const [scroll, setScroll] = useState(0);
   const [menu, setMenu] = useState(false);
-  const [pick, setPick] = useState(r.cenarios.length - 1);
+  const [pick, setPick] = useState(cenarios.length - 1);
   const chain = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   useChainArrows(chain, [r, props.overrides]);
   useCenterExtenso(root, [r, props.overrides]);
   useValoresNumaLinha(root, [r, props.overrides, pick]);
-  useEffect(() => setPick(Math.max(0, r.cenarios.findIndex((c) => c.meses === r.nParcelas))), [r]);
+  useEffect(() => setPick(Math.max(0, cenarios.findIndex((c) => c.meses === r.nParcelas))), [r, cenarios]);
 
   useEffect(() => {
     const f = () => {
@@ -392,8 +394,8 @@ export default function JblPadrao(props: TemplateProps) {
   // rótulo curto do leitor nas tabelas: "Família Silva", "Sr. João", "Família" ou "Proprietário"
   const dono = d.nome ? d.rotulo : d.tipo === "familia" ? "Família" : d.rotulo;
   const ext = (v: number) => `(${extensoReais(v)})`;
-  const sim = r.cenarios[pick] ?? r.principal;
-  const maxTot = Math.max(...r.cenarios.map((c) => c.carteiraTer), 1);
+  const sim = cenarios[pick] ?? r.principal;
+  const maxTot = Math.max(...cenarios.map((c) => c.carteiraTer), 1);
   const circ = 2 * Math.PI * 70;
   // corretor da parceria (opcional): última fatia, dentro da parte do incorporador; o percentual é a fatia no total (a conta fecha 100%)
   // corretor da parceria: sai da parte de quem paga (JBL, terrenista ou os dois); as obras não mudam.
@@ -945,7 +947,7 @@ export default function JblPadrao(props: TemplateProps) {
               </div></div>
               <div className="content">
                 <div className="tabs" role="group" aria-label="Prazo de pagamento dos clientes">
-                  {r.cenarios.map((c, i) => (
+                  {cenarios.map((c, i) => (
                     <button key={c.meses} type="button" className="tab" aria-pressed={i === pick} onClick={() => setPick(i)}>{fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos</button>
                   ))}
                 </div>
@@ -956,7 +958,7 @@ export default function JblPadrao(props: TemplateProps) {
                   <div className="tile gold"><div className="k"><DT d={d} k="simK4">{d.pick(fam ? `Total carteira da ${fam}` : "Total carteira da família", `Total carteira ${d.da}`, "Sua carteira total")}</DT></div><div className="v num pulsa">{mi(sim.carteiraTer)}</div><div className="d">em {sim.meses} meses</div></div>
                 </div>
                 <div className="bars" aria-label="Total recebido em cada prazo">
-                  {r.cenarios.map((c, i) => (
+                  {cenarios.map((c, i) => (
                     <div key={c.meses} className={`bar ${i === pick ? "on" : ""}`} onClick={() => setPick(i)}>
                       <span>{fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos</span>
                       <div className="track"><div className="fill" style={{ width: `${((c.carteiraTer / maxTot) * 100).toFixed(1)}%` }} /></div>
@@ -984,7 +986,7 @@ export default function JblPadrao(props: TemplateProps) {
                       <td data-label={dono}>Não se aplica</td>
                       <td data-label={`Total ${dono}`}><E fixo k="t.avista">{fmtBRL(r.vgvAvistaTer)}</E></td>
                     </tr>
-                    {r.cenarios.map((c) => (
+                    {cenarios.map((c) => (
                       <tr key={c.meses} className={c.meses === n ? "you" : ""}>
                         <td data-label="Prazo de venda"><E fixo k={`t.${c.meses}.prazo`}>{`${fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos · ${c.meses} parcelas`}</E></td>
                         <td data-label="Parcela do comprador"><E fixo k={`t.${c.meses}.parcela`}>{fmtBRL(c.parcela)}</E></td>

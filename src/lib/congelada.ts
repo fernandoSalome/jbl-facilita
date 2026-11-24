@@ -24,6 +24,8 @@ export const MUDANCAS = [
   { id: "capa-sem-percentual", desde: "2026-11-14T16:20:00-03:00" },
   // capa sem o botão "Ver minha participação ↓" (15/11/2026)
   { id: "capa-sem-botao", desde: "2026-11-15T00:20:00-03:00" },
+  // prazos de recebimento (botões, barras e tabela) só até o prazo escolhido na planilha (24/11/2026)
+  { id: "prazos-ate-o-escolhido", desde: "2026-11-24T00:43:00-03:00" },
 ] as const;
 
 export type Mudanca = (typeof MUDANCAS)[number]["id"];

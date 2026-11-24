@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseInputs } from "./proposals";
-import { calcular, divisaoNaTela } from "./calc";
+import { calcular, cenariosAte, divisaoNaTela } from "./calc";
 
 // Valores copiados da planilha PLANILHA_ORÇAM_TERRENISTA_OFICIAL.xlsx (aba "Dados do Parcelamento de Solo")
 describe("planilha oficial", () => {
@@ -438,5 +438,16 @@ describe("medidas da 1ª etapa: Copiar da Planilha Geral", () => {
     const r = calcular({ ...base, medidasE1Geral: true });
     expect(r.etapa1!.avista).toBeCloseTo(100 * 500 * 300, 6);
     expect([r.inputs.frenteE1, r.inputs.valorM2Etapa1]).toEqual([15, 300]);
+  });
+});
+
+describe("prazos até o escolhido (pedido 24/11/2026)", () => {
+  const anos = (a: number) => cenariosAte(calcular({ anos: a }).cenarios, Math.round(a * 12)).map((c) => c.meses / 12);
+  it("corta a lista no prazo da planilha e mantém o escolhido", () => {
+    expect(anos(10)).toEqual([3, 5, 8, 10]);
+    expect(anos(13)).toEqual([3, 5, 8, 10, 13]);
+    expect(anos(14)).toEqual([3, 5, 8, 10, 13, 14]);
+    expect(anos(17)).toEqual([3, 5, 8, 10, 13, 15, 17]);
+    expect(anos(20)).toEqual([3, 5, 8, 10, 13, 15, 18, 20]);
   });
 });

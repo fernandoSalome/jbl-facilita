@@ -277,6 +277,12 @@ export function divisaoNaTela(r: StudyResult, mostrar = r.inputs.mostrarCorretor
 /** Prazos da tabela "Outros Períodos de Parcelamento" + 13 anos da proposta, em meses */
 export const PRAZOS_MESES = [36, 60, 96, 120, 156, 180, 216, 240] as const;
 
+/**
+ * Prazos mostrados (pedido 24/11/2026): só até o prazo escolhido na planilha. 10 anos → 3, 5, 8, 10; 14 → … 13, 14;
+ * 17 → … 15, 17. A conta continua a mesma; só a lista é cortada.
+ */
+export const cenariosAte = <T extends { meses: number }>(cenarios: T[], nParcelas: number) => cenarios.filter((c) => c.meses <= nParcelas);
+
 /** Quantidades medidas no estudo da gleba São Judas Tadeu II (137.338,46 m², 343,346 lotes), usadas como proporção */
 const BASE = { area: 137338.46, lotes: 343.34615, rede: 2977.96, ligacoes: 2060, logradouros: 23823.64, eletrica: 3275.75, guias: 5955.91, calcadas: 11911.82 };
 

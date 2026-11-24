@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { calcular, copiaMedidasE1, copiaParceriaE1,copiaReajusteE1, copiaRecebimentosE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
+import { calcular, cenariosAte, copiaMedidasE1, copiaParceriaE1,copiaReajusteE1, copiaRecebimentosE1, divisaoNaTela, FIN_E1, INDICES, type StudyInputs } from "@/lib/calc";
 import { fmtBRL, fmtBRL0, fmtNum, fmtPct } from "@/lib/format";
 import { IMPLANTA_PADRAO, PAVIMENTOS, REGIOES, type Implanta, type Regiao } from "@/lib/orcamento2026";
 
@@ -630,7 +630,7 @@ export default function StudyEditor({ state, bloqueada }: { state: State; compac
             </tr>
           </thead>
           <tbody className="tabular divide-y divide-gold/30">
-            {r.cenarios.map((c) => (
+            {cenariosAte(r.cenarios, r.nParcelas).map((c) => (
               <tr key={c.meses} className={c.meses === r.nParcelas ? "bg-gold-soft font-semibold" : ""}>
                 <td className="px-3 py-1 font-semibold text-navy">Em {fmtNum(c.meses / 12, c.meses % 12 ? 1 : 0)} anos ({c.meses} Parcelas)</td>
                 <td className="px-2 py-1 text-right">{fmtBRL(c.parcela)}</td>
