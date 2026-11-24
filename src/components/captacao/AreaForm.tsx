@@ -62,7 +62,8 @@ export default function AreaForm({ inicial }: { inicial?: Dados }) {
         <label><span className="label">Tamanho (ha)</span><input className="input" inputMode="decimal" value={d.hectares} onChange={set("hectares")} /></label>
         <label><span className="label">Etapa</span><select className="input" value={d.etapa} onChange={set("etapa")}>{ETAPAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
       </div>
-      <label><span className="label">KMZ ou KML da área</span><input type="file" accept=".kml,.kmz" className="text-sm" onChange={(e) => lerArquivo(e.target.files?.[0])} /></label>
+      {/* área já criada: o KMZ se troca em "Trocar o KMZ", que pergunta o que fazer com o estudo (pedido 23/11/2026) */}
+      {!d.id && <label><span className="label">KMZ ou KML da área</span><input type="file" accept=".kml,.kmz" className="text-sm" onChange={(e) => lerArquivo(e.target.files?.[0])} /></label>}
       <p className="text-[12.5px] text-muted">Proprietário ou corretor: basta um dos dois.</p>
       <div className="flex items-center gap-3">
         <button className="btn-gold" disabled={busy} onClick={salvar}>{d.id ? "Salvar" : "Criar área"}</button>

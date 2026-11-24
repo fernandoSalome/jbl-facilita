@@ -31,6 +31,10 @@ Quando a área chega na Proposta, o sistema cria um `Project` por trás, só par
 | Estudo 30 dias | Hipóteses a provar e custos | `HipotesesArea.tsx` |
 | Contrato | Contrato da SPE; ao assinar, vira Projeto de Loteamento | `BotaoSpe.tsx` |
 
+### Trocar o KMZ
+
+Em **Configurações** da área, **Trocar o KMZ** lê o arquivo novo, mostra o tamanho de antes e de agora e pede uma escolha (nenhuma vem marcada): **manter o estudo e só trocar o KMZ** ou **apagar todo o estudo** (Viabilidade Legal e Mercadológica, relatórios, respostas do Raio-x no checklist; conversas e anotações ficam; a área na Pré-viabilidade volta para a Captação; estudo na fila, rodando ou parado é descartado). O formulário de Configurações só pede o KMZ ao criar a área. Código: `TrocarKmz.tsx`, `area-kmz.ts` / `-db.ts`.
+
 ### Carta de intenção (dentro da Proposta)
 
 1. Antes de chegar: o bloco de baixo mostra **"Aguardando o recebimento"**.

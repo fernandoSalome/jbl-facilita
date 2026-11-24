@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import AreaForm from "@/components/captacao/AreaForm";
+import TrocarKmz from "@/components/captacao/TrocarKmz";
 import BotaoProposta from "@/components/captacao/BotaoProposta";
 import ChecklistVivo from "@/components/captacao/ChecklistVivo";
 import ConversasArea from "@/components/captacao/ConversasArea";
@@ -198,6 +199,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         {aba === "config" && (
           <>
             <AreaForm inicial={{ id: a.id, nome: a.nome, cidade: a.cidade, uf: a.uf, dono: a.dono ?? "", corretor: a.corretor ?? "", hectares: a.hectares ? String(a.hectares).replace(".", ",") : "", etapa, relatorio: a.relatorio ?? "" }} />
+            <TrocarKmz id={a.id} temKmz={!!a.poligono} haAtual={a.hectares} />
             <ConversasArea id={a.id} conversas={a.conversas} />
           </>
         )}
