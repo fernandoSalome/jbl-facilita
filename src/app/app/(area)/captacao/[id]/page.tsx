@@ -22,6 +22,8 @@ import { dataCurta, guardadoAte } from "@/lib/estudo-parar";
 import { estudosParados } from "@/lib/estudo-parar-db";
 import ReuniaoArea from "@/components/captacao/ReuniaoArea";
 import LinkEstudo from "@/components/captacao/LinkEstudo";
+import PassoAPasso from "@/components/captacao/PassoAPasso";
+import { lerAndamento } from "@/lib/passo-a-passo";
 import BotaoSpe from "@/components/captacao/BotaoSpe";
 import { acaoDoPasso, lerCustos, lerEstudo1, lerEstudo2, lerPessoas, respostasDosPassos } from "@/lib/captacao-estudos";
 import ProximoPasso from "@/components/captacao/ProximoPasso";
@@ -36,7 +38,7 @@ import { lerPoligono } from "@/lib/kml";
 export const dynamic = "force-dynamic";
 
 /** Abas da área (o menu fica na lateral, em layout.tsx) */
-const ABAS = ["etapa", "checklist", "documentos", "custos", "pessoas", "pagina", "config", "estudo"] as const;
+const ABAS = ["etapa", "passos", "checklist", "documentos", "custos", "pessoas", "pagina", "config", "estudo"] as const;
 
 /** Página da área: etapas no topo, ações à direita, e as abas (etapa, checklist vivo, documentos, configurações) */
 export default async function AreaPagina({ params, searchParams }: { params: { id: string }; searchParams: { aba?: string; ver?: string } }) {
@@ -162,6 +164,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
             </section>
           </>
         )}
+        {aba === "passos" && <PassoAPasso id={a.id} inicial={lerAndamento(a.andamento)} dono={a.dono} token={a.andamentoToken} />}
         {aba === "checklist" && <ChecklistVivo id={a.id} checklist={checklist} derivadas={derivadas} conclusao={a.conclusao ?? ""} cab={{ titulo: `${a.cidade} – ${a.nome}`, etapa: nomeEtapa(etapa), dono: a.dono ?? "Conforme cadastro", area: ha, municipio: `${a.cidade}/${a.uf}` }} />}
         {aba === "documentos" && <DocumentosArea id={a.id} documentos={documentos} arquivos={arquivos.map((d) => ({ id: d.id, titulo: d.titulo, fileName: d.fileName, enviadoPor: d.enviadoPor, criado: d.createdAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) }))} />}
         {aba === "custos" && <TabelaCustos id={a.id} custos={custos} />}

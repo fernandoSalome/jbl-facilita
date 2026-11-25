@@ -53,6 +53,7 @@ Claude da VPS ◄──► /api/claude/fila, /api/claude/audio, /api/claude/conv
 | `limite-whatsapp.ts` | Limite de envio: robô 1 a cada 10 min (o resto espera em `MensagemEspera`); mensagens digitadas na tela 20 a cada 15 min |
 | `estudo-andamento.ts` / `-db.ts` | Estudo pedido pela tela: fila da VPS, avisos "comecei" e "pronto" no JBL - Avisos, % na tela |
 | `area-kmz.ts` / `-db.ts` | Trocar o KMZ da área, mantendo ou apagando o estudo |
+| `passo-a-passo.ts` / `-db.ts` | Passo a passo da parceria que o proprietário acompanha pelo link `/andamento/<token>` |
 | `estudo-parar.ts` / `-db.ts` | Parar e retomar o estudo (tela e WhatsApp): guardado 5 dias na VPS, depois descartado |
 | `robo.ts` | Entrada do robô: decide o que fazer com cada mensagem (grupo ou particular) |
 | `robo-areas.ts`, `robo-estudos.ts`, `robo-propostas.ts` | Comandos sobre áreas, Central (KMZ, 1 Sim · 2 Não, "Claude, …"), propostas |
@@ -94,4 +95,4 @@ Claude da VPS ◄──► /api/claude/fila, /api/claude/audio, /api/claude/conv
 | `/app/propostas`, `/app/cartas`, `/app/proposta/[id]`, `/app/minuta/[id]` | Propostas, cartas recebidas, editor da proposta, editor do contrato |
 | `/app/projetos/[id]` | Projeto de Loteamento: só existe depois do contrato da SPE; antes leva para a área |
 | `/app/whatsapp`, `/app/templates`, `/app/usuarios`, `/app/imagens` | Configurações |
-| `/p/[token]`, `/estudo/[token]`, `/assinar/[token]`, `/agenda/[slug]` | Páginas públicas (cliente, parceiro, assinatura, agendamento) |
+| `/p/[token]`, `/estudo/[token]`, `/andamento/[token]`, `/assinar/[token]`, `/agenda/[slug]` | Páginas públicas (cliente, parceiro, assinatura, agendamento) |

@@ -6,6 +6,7 @@ import { buscarArea } from "@/lib/captacao-db";
 import { respostasDosPassos } from "@/lib/captacao-estudos";
 import { db } from "@/lib/db";
 import { modoSimples } from "@/lib/modo";
+import { lerAndamento, montarPassos, progressoPassos } from "@/lib/passo-a-passo";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,13 @@ export default async function AreaLayout({ params, children }: { params: { id: s
   const i = ETAPAS.findIndex(([k]) => k === a.etapa);
   const reuniao = a.reuniaoId ? await db.compromisso.findFirst({ where: { id: a.reuniaoId, status: "marcado" }, select: { inicio: true } }) : null;
   const pct = progresso([...respostasDosPassos({ ...a, reuniao }), ...lerChecklist(a.checklist)]).pct;
-  const docsOk = Object.values(validarDocumentos(a.documentos)).filter((s) => s === "ok").length;
+  const passos = progressoPassos(montarPassos(lerAndamento(a.andamento), a.dono));
+  const docsOk =Object.values(validarDocumentos(a.documentos)).filter((s) => s === "ok").length;
   const nav: NavItem[] = [
     { href: "/app/captacao", label: "Todas as áreas", simbolo: "◀", exact: true },
     { cabecalho: tituloArea(a), sub: [a.nome, nomeEtapa(a.etapa)].filter(Boolean).join(" · ") },
+    // passo a passo que o proprietário acompanha pelo link (pedido 25/11/2026)
+    { href: `${b}?aba=passos`, label: "Passo a passo", simbolo: "🧭", badge: `${passos.feitos}/${passos.total}`, destaque: true },
     { href: `${b}?aba=checklist`, label: "Checklist do estudo", simbolo: "✅", badge: `${pct}%` },
     { href: `${b}?aba=documentos`, label: "Documentos", simbolo: "📁", badge: `${docsOk}/15` },
     // o estudo completo abre dentro do projeto (pedido 20/11/2026)

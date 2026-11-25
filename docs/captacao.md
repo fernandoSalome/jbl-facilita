@@ -47,6 +47,15 @@ Código: `src/lib/captacao-assinatura.ts`, `src/app/api/public/[token]/carta/rou
 
 Ao concluir uma etapa no botão do topo (`Gate.tsx`), a tela mostra "Etapa concluída → abrindo …" e abre a próxima sozinha (pedido 22/11/2026).
 
+## Passo a passo do proprietário
+
+No menu da área, **🧭 Passo a passo** (acima do Checklist, com moldura dourada e "feitos/total"), pedido 25/11/2026. São os 8 passos da parceria (01 Estudo preliminar, 01.1 Carta de Intenção e SPE, 02 Formalização … 07 Gestão e repasses), com os textos do Marcelo.
+
+- A equipe marca cada passo **à mão** como realizado (com a data), pode trocar o texto ("↩ Voltar ao texto original") e deixar uma **atualização** curta para o proprietário. Grava sozinho.
+- "Como chamar o proprietário" troca `{O}`, `{ao}` e `{nome}` nos textos (padrão: "Sr." + primeiro nome do dono; "Sra./Dona" vira feminino).
+- **Link** (`/andamento/<token>`): página pública no visual da proposta, com o progresso, o **próximo passo** (o primeiro em aberto) em destaque e os outros como "A seguir". Não mostra estudo, conversas nem números. Dá para desativar.
+- Código: `passo-a-passo.ts` (regras e textos), `passo-a-passo-db.ts`, `PassoAPasso.tsx`, `src/components/andamento/`, `/api/areas/[id]/andamento`. Campos `andamento`, `andamentoToken`, `andamentoLinkEm` na `Area`.
+
 ## Geladeira e descarte
 
 - **Descartar** pede o motivo. A área vai para a coluna ✖ Descartadas.

@@ -377,6 +377,11 @@ model Area {
   relatorioCompleto Json?
   /// Estudo 2 completo (mercadológico de concorrentes), no mesmo formato; mostrado depois do raio-x
   relatorioMercado  Json?
+  /// passo a passo da parceria para o proprietário (pedido 25/11/2026): { tratamento, passos: { id: { feitoEm, texto, nota } } }; ver src/lib/passo-a-passo.ts
+  andamento         Json           @default("{}")
+  /// link público do passo a passo (/andamento/<token>); vazio = sem link
+  andamentoToken    String?        @unique
+  andamentoLinkEm   DateTime?
   projectId         String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt

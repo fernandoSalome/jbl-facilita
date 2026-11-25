@@ -15,6 +15,8 @@ export type NavLink = {
   badge?: string;
   /** link com ?aba=...: também fica ativo quando a página abre sem aba */
   ativoSemAba?: boolean;
+  /** item com moldura dourada (passo a passo do proprietário, pedido 25/11/2026) */
+  destaque?: boolean;
 };
 /** Título de grupo no menu ("Dia a dia", "Negócios"...), pedido 19/11/2026 */
 export type NavItem = NavLink | { grupo: string } | { cabecalho: string; sub: string };
@@ -89,7 +91,9 @@ export default function SideNav({ items }: { items: NavItem[] }) {
               <Link
                 href={it.href}
                 className={`relative flex items-center gap-3 rounded px-3 py-2 text-[14px] font-medium transition ${
-                  active ? "bg-white/[0.09] text-white" : "text-white/75 hover:bg-white/[0.05] hover:text-white"
+                  it.destaque
+                    ? `my-1 border border-gold/40 bg-gradient-to-r from-gold/[0.18] to-gold/[0.04] text-white hover:from-gold/25 ${active ? "border-gold" : ""}`
+                    : active ? "bg-white/[0.09] text-white" : "text-white/75 hover:bg-white/[0.05] hover:text-white"
                 }`}
               >
                 {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-gold" />}
@@ -97,7 +101,7 @@ export default function SideNav({ items }: { items: NavItem[] }) {
                   {it.simbolo ?? (it.icon && <Icon d={ICONS[it.icon]} />)}
                 </span>
                 <span className="flex-1">{it.label}</span>
-                {it.badge && <span className="rounded-full bg-white/[0.12] px-2 py-px text-[11.5px] font-semibold text-white/85">{it.badge}</span>}
+                {it.badge && <span className={`rounded-full px-2 py-px text-[11.5px] font-semibold ${it.destaque ? "bg-gold text-navy" : "bg-white/[0.12] text-white/85"}`}>{it.badge}</span>}
               </Link>
             </li>
           );
