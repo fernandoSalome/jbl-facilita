@@ -3,9 +3,9 @@ backup-*.sql
 *.dump
 .env
 .env.*
-referencias/
-# Não fazem parte do sistema publicado
-modelos/
+/referencias/
+# Não fazem parte do sistema publicado (só as pastas da raiz: "modelos/" sem a barra pegava também src/components/modelos)
+/modelos/
 node_modules/
 .next/
-base/
+/base/
