@@ -14,7 +14,7 @@ Servidor da Hostinger (Ubuntu 24.04; o IP está no painel da Hostinger, fora do 
 
 | Fila | A cada | Rota no Facilita | O que faz |
 |---|---|---|---|
-| Pedidos ao Claude | 30 s | `/api/claude/fila` | Pesquisa, Viabilidade Legal, Viabilidade Mercadológica e leitura das conversas (`classificar`), com `claude -p`. No estudo, manda o `andamento.txt` para `/api/claude/andamento` a cada 30 s; se a resposta disser `parar`, mata o Claude e guarda a pasta (`parado.txt`; apagada depois de 5 dias) |
+| Pedidos ao Claude | 30 s | `/api/claude/fila` | Pesquisa, Viabilidade Legal, Viabilidade Mercadológica e leitura das conversas (`classificar`), com `claude -p`. Roda vários ao mesmo tempo (desde 26/11/2026): até 3 estudos e mais 2 pedidos rápidos; com as vagas de estudo cheias pede `?so=rapidos`, e vice-versa. No estudo, manda o `andamento.txt` para `/api/claude/andamento` a cada 30 s; se a resposta disser `parar`, mata o Claude e guarda a pasta (`parado.txt`; apagada depois de 5 dias) |
 | Áudios | 30 s | `/api/claude/audio` | Baixa o áudio e transcreve com o Whisper local (`~/ponte/transcrever.py`, modelo `small`, CPU) |
 | Conversas | 20 min | `/api/claude/conversas` | Lê as conversas particulares do WhatsApp (45 dias na primeira vez; depois, só o que mudou desde `~/ponte/ultima-leitura.txt`) |
 

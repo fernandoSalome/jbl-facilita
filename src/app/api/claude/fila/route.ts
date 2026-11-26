@@ -29,7 +29,10 @@ export async function GET(req: Request) {
   // lembretes na hora certa (a rotina de 10 em 10 minutos atrasa) e a memória do Central com no máximo 90 dias (25/11/2026)
   await import("@/lib/rotinas-whatsapp").then((r) => r.enviarLembretes()).catch(() => {});
   await import("@/lib/central-db").then((c) => c.limparMemoria()).catch(() => {});
-  const c = await db.comandoClaude.findFirst({ where: { status: "fila" }, orderBy: { createdAt: "asc" } });
+  // a VPS roda vários ao mesmo tempo (26/11/2026); com as vagas de estudo cheias, pede só os rápidos, e vice-versa
+  const so = new URL(req.url).searchParams.get("so");
+  const tipo = so === "rapidos" ? { notIn: ["estudo", "mercado"] } : so === "estudos" ? { in: ["estudo", "mercado"] } : undefined;
+  const c = await db.comandoClaude.findFirst({ where: { status: "fila", ...(tipo ? { tipo } : {}) }, orderBy: { createdAt: "asc" } });
   if (!c) return json({ vazio: true });
   const pego = await db.comandoClaude.updateMany({ where: { id: c.id, status: "fila" }, data: { status: "rodando", iniciadoEm: new Date() } });
   if (!pego.count) return json({ vazio: true });

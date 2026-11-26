@@ -5,7 +5,7 @@ export default function NovaArea() {
   return (
     <>
       <PageHeader eyebrow="Áreas" title="Novo estudo" subtitle="Cidade, proprietário ou corretor e, se tiver, o KMZ." />
-      <div className="max-w-4xl p-8"><AreaForm /></div>
+      <div className="max-w-6xl p-8"><AreaForm /></div>
     </>
   );
 }

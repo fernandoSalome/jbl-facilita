@@ -82,24 +82,44 @@ async function estudo(c) {
   return { ok, resposta: ok ? resposta : `Não consegui terminar o estudo. ${res.texto}`.slice(0, 2000), estudo: estudoJson, relatorioHtml: html };
 }
 
-async function ciclo() {
-  const r = await fetch(`${URL_BASE}/api/claude/fila`, { headers: cab });
-  if (!r.ok) throw new Error(`fila: ${r.status}`);
-  const c = await r.json();
-  if (!c.id) return false;
+/** Um pedido da fila, do começo ao fim (devolve a resposta ao Facilita) */
+async function atender(c) {
   console.log(new Date().toISOString(), "pedido", c.id, c.tipo);
   if (c.tipo === "estudo" || c.tipo === "mercado") {
     await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ...(await estudo(c)) }) });
-    return true;
+    return;
   }
   // leitura das conversas particulares (pedido 20/11/2026): o texto já vem pronto; sem ferramentas, rápido
   if (c.tipo === "classificar") {
     const res = await rodarClaude(c.texto, { ferramentas: "Read", limite: 8 * 60_000, turnos: "3" });
     await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ok: res.ok, resposta: res.texto }) });
-    return true;
+    return;
   }
   const res = await rodarClaude(instrucoes(c.autor, c.texto));
   await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ok: res.ok, resposta: res.texto }) });
+}
+
+// Vários ao mesmo tempo (pedido 26/11/2026: um estudo não espera o outro terminar). Até 3 estudos juntos;
+// pesquisa e leitura de conversas têm vagas próprias, para não ficarem atrás dos estudos.
+const MAX_ESTUDOS = 3;
+const MAX_RAPIDOS = 2;
+const rodando = { estudos: 0, rapidos: 0 };
+
+/** Pega o próximo pedido se houver vaga e começa sem esperar terminar; devolve true se pegou */
+async function ciclo() {
+  const vagaEstudo = rodando.estudos < MAX_ESTUDOS;
+  const vagaRapido = rodando.rapidos < MAX_RAPIDOS;
+  if (!vagaEstudo && !vagaRapido) return false;
+  const so = !vagaEstudo ? "?so=rapidos" : !vagaRapido ? "?so=estudos" : "";
+  const r = await fetch(`${URL_BASE}/api/claude/fila${so}`, { headers: cab });
+  if (!r.ok) throw new Error(`fila: ${r.status}`);
+  const c = await r.json();
+  if (!c.id) return false;
+  const vaga = c.tipo === "estudo" || c.tipo === "mercado" ? "estudos" : "rapidos";
+  rodando[vaga]++;
+  atender(c)
+    .catch((e) => console.error(new Date().toISOString(), "pedido", c.id, e.message))
+    .finally(() => { rodando[vaga]--; });
   return true;
 }
 
@@ -179,5 +199,6 @@ for (;;) {
   } catch (e) {
     console.error(new Date().toISOString(), e.message);
   }
-  if (!teve) await new Promise((r) => setTimeout(r, ESPERA_MS));
+  // pegou um: tenta o próximo logo (se houver vaga); senão espera
+  await new Promise((r) => setTimeout(r, teve ? 2_000 : ESPERA_MS));
 }

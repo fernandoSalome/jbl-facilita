@@ -36,10 +36,13 @@ Ordem de execução: do mais barato e decisivo para o mais caro. Se um eliminat�
    - Entradas, frentes, tipo de via (asfalto ou terra) e a vizinhança imediata.
 4. **Zona: o que o mapa oficial diz**
    - Método usado (KMZ oficial ou mapa georreferenciado) e a zona com a % da área em cada uma.
+   - Ordem do método: 1) zoneamento em dados (KMZ, shapefile, geoportal) cruzado com o polígono; 2) só imagem ou PDF: encaixar o mapa na posição da gleba, tirar a cor de cada quadradinho da legenda e contar, ponto a ponto dentro do polígono, a zona de cada cor (linhas, textos e bordas borradas ficam de fora; muita parte sem identificar = baixa certeza). Imagem da gleba pintada por zona.
+   - **Gleba em mais de uma zona** (pedido 26/11/2026, Lages: ZREU-1, EDD-2 e AEAA): listar todas as zonas que passam na gleba, com a %. A JBL pode escolher qualquer uma delas para a gleba inteira, então o estudo leva as zonas todas adiante (seções 6, 7 e 11) e diz qual rende mais. No formulário, `zona` sai como "ZREU-1 · EDD-2 · AEAA (escolher)".
 5. **Leis vigentes e o que está em tramitação**
    - Leis com número e data, alterações, ADI e projetos de lei.
 6. **Parâmetros da zona**
    - Lote mínimo, testada, TO, CA, permeabilidade, gabarito e usos.
+   - Com mais de uma zona na gleba: os parâmetros de cada uma, lado a lado.
 7. ★ **O que pode fazer (tipologia e tamanho)**
    - Usos permitidos e tipologias possíveis: loteamento aberto, condomínio de lotes, chacreamento, desmembramento da frente.
    - Tamanhos de lote permitidos e o tamanho sugerido.
@@ -87,7 +90,7 @@ Ordem de execução: do mais barato e decisivo para o mais caro. Se um eliminat�
 ### Resumo para o grupo JBL · Central
 
 - Cidade · proprietário · semáforo.
-- Zona, lote mínimo, % aproveitável e lotes do cenário médio.
+- Zona, lote mínimo, % aproveitável e lotes do cenário médio. Com mais de uma zona na gleba: cada zona com o lote mínimo e os lotes do cenário médio, e qual rende mais.
 - Produto sugerido, valor do m² e expansão.
 - Principal alerta.
 - Fechar com: "Sigo para o mercadológico? 1 Sim · 2 Não".
