@@ -27,7 +27,7 @@ export const MUDANCAS = [
   // prazos de recebimento (botões, barras e tabela) só até o prazo escolhido na planilha (24/11/2026)
   { id: "prazos-ate-o-escolhido", desde: "2026-11-24T00:43:00-03:00" },
   // carta de intenção em duas partes: 7 campos para o aceite inicial e depois o resto (25/11/2026)
-  { id: "carta-parte-a", desde: "2026-11-25T22:00:00-03:00" },
+  { id: "carta-parte-a", desde: "2026-11-25T21:55:00-03:00" },
 ] as const;
 
 export type Mudanca = (typeof MUDANCAS)[number]["id"];
