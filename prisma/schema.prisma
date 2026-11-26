@@ -215,6 +215,8 @@ model ProjectDocument {
   enviadoPor String?
   grupo      String?
   messageId  String?   @unique
+  /// documento do Central já entrou na resposta única do lote (pedido 25/11/2026)
+  avisadoEm  DateTime?
   createdAt  DateTime  @default(now())
   deletedAt  DateTime?
 
@@ -237,7 +239,26 @@ model WaGroup {
   contextoAreaAt    DateTime?
   /// Para que serve o grupo (pedido 19/11/2026): avisos | central | estudos | projeto (vazio = só documentos, como antes)
   funcao            String?
+  /// conversa em andamento no Central (pedido 25/11/2026): o que o robô perguntou e está esperando; ver src/lib/central.ts
+  conversa          Json?
+  conversaEm        DateTime?
   createdAt         DateTime  @default(now())
+}
+
+/// Memória do JBL - Central (pedido 25/11/2026): tudo o que é dito no grupo, inclusive o robô, por 90 dias, para o
+/// robô entender "essa área", "ele", "pode seguir". Apagado sozinho depois de 90 dias.
+model MensagemCentral {
+  id        String   @id @default(cuid())
+  grupoJid  String
+  messageId String   @unique
+  autor     String   @default("")
+  deMim     Boolean  @default(false)
+  texto     String
+  /// nome do arquivo, quando a mensagem é um arquivo
+  arquivo   String?
+  quando    DateTime
+
+  @@index([grupoJid, quando])
 }
 
 /// Calendário da pessoa (parecido com o Calendly): horários livres, duração da reunião,

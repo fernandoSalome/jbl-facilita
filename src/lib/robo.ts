@@ -10,6 +10,7 @@ import { areaCitada, areaDoContexto, areasDaCaptacao, lembrarArea, listaComAreas
 import { tituloArea } from "./captacao";
 import { resumoArea } from "./lembretes";
 import { tratarParadaEstudo } from "./estudo-parar-db";
+import { guardarNaMemoria, responderLoteDocumentos, tratarConversaCentral } from "./central-db";
 import { pedirAoClaude, salvarKmzParticular, tratarCentral, tratarEstudos, tratarKmzCentral, tratarLembrete, tratarSituacaoArea } from "./robo-estudos";
 import { baixarMidia, enviadasPeloRobo, enviarArquivo, enviarTexto, nomeDoGrupo, type Recebida } from "./whatsapp";
 
@@ -70,6 +71,8 @@ export async function tratarMensagem(m: Recebida) {
     }
     return;
   }
+  // memória do Central (90 dias): tudo, inclusive o que o próprio robô mandou (pedido 25/11/2026)
+  await guardarNaMemoria(m).catch((e) => console.error("memoria central", e));
   if (enviadasPeloRobo.has(m.id)) return;
   if (m.deMim && m.texto.startsWith(ROBO)) return;
   if (Date.now() - m.quando.getTime() > 10 * 60 * 1000) return; // histórico antigo sincronizando
@@ -113,6 +116,10 @@ export async function tratarMensagem(m: Recebida) {
     if (paraArea) {
       await marcarRecebido(paraArea.id, leitura.tipo);
       await lembrarArea(m.grupo, paraArea.id);
+    }
+    // Central: uma resposta só para o lote de arquivos; sem dono, pergunta de quem são (pedido 25/11/2026)
+    if (g.funcao === "central") return responderLoteDocumentos(g, doc.id, responder);
+    if (paraArea) {
       return responder(`Armazenado! ✅\n📍 Área *${tituloArea(paraArea)}* (Captação) › Documentos\n📄 ${doc.titulo} (${fileName}, ${tamanho(bytes.length)})${leitura.resumo ? `\n📝 ${leitura.resumo}` : ""}`);
     }
     if (!projectId) {
@@ -133,12 +140,17 @@ export async function tratarMensagem(m: Recebida) {
   /* ---------- grupo JBL - Central: "1 Sim · 2 Não" depois do resumo do terreno ---------- */
   // "para o estudo de Ipioca" / "retoma o estudo": antes do "1/2" do Central, que lê "para" como "não" (pedido 23/11/2026)
   if ((g.funcao === "central" || g.funcao === "claude") && (await tratarParadaEstudo(m, responder))) return;
+  // resposta a uma pergunta da conversa do Central ("1", "sim", "a do Rogério") vem antes do "1 Sim · 2 Não" antigo
+  if (g.funcao === "central" && (await tratarConversaCentral(m, g, responder, true))) return;
   if (g.funcao === "central" && (await tratarCentral(m, responder))) return;
 
   /* ---------- grupo JBL - Claude: pedido de pesquisa para o Claude da VPS (só Fernando e Marcelo) ---------- */
   if (g.funcao === "claude") return void (await pedirAoClaude(m, responder));
   // no Central, "Claude, …" também vira pedido para o Claude da VPS
   if (g.funcao === "central" && /^\s*claude\s*[,:]/i.test(m.texto)) return void (await pedirAoClaude({ ...m, texto: m.texto.replace(/^\s*claude\s*[,:]\s*/i, "") }, responder, true));
+  // Central (pedido 25/11/2026): status, avançar etapa, estudo, proposta, lembrete, reunião e "os documentos são de…",
+  // entendidos pela IA com a memória do grupo; o que não for pedido ao robô segue o fluxo antigo
+  if (g.funcao === "central" && (await tratarConversaCentral(m, g, responder))) return;
 
   /* ---------- lembretes ("me lembra amanhã às 9h de…") e situação das áreas da Captação ---------- */
   if (await tratarLembrete(m, responder)) return;

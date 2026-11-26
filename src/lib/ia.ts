@@ -213,3 +213,14 @@ export async function arrumarTexto(texto: string, pergunta: string): Promise<str
     return null;
   }
 }
+
+/** Pergunta à IA e devolve o JSON da resposta (null sem IA ou se der errado): usado pela conversa do Central */
+export async function iaJson(prompt: string, max = 600): Promise<unknown | null> {
+  if (!temIA()) return null;
+  try {
+    return json<unknown>(await claude([{ type: "text", text: prompt }], max));
+  } catch (e) {
+    console.error("iaJson", e);
+    return null;
+  }
+}

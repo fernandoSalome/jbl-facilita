@@ -2,7 +2,7 @@
  * Cliente da Evolution API (WhatsApp). Variáveis: EVOLUTION_URL, EVOLUTION_KEY, EVOLUTION_INSTANCE.
  */
 
-import { JANELA_MANUAL_MS, JANELA_MS, LIMITE_ENVIOS, LIMITE_MANUAL, LimiteWhatsapp, podeEnviar } from "./limite-whatsapp";
+import { JANELA_MANUAL_MS, JANELA_MS, LIMITE_ENVIOS, LIMITE_MANUAL, LimiteWhatsapp, podeEnviar, semLimite } from "./limite-whatsapp";
 
 const URL_ = () => (process.env.EVOLUTION_URL ?? "").replace(/\/+$/, "");
 const INST = () => encodeURIComponent(process.env.EVOLUTION_INSTANCE ?? "");
@@ -55,6 +55,7 @@ const mandarTexto = async (jid: string, text: string) => marcar(await call(`/mes
  * As digitadas na tela de Conversas não esperam: passando do limite delas, dá erro na hora.
  */
 export async function enviarTexto(jid: string, text: string, opts: { manual?: boolean } = {}) {
+  if (semLimite(jid)) return mandarTexto(jid, text);
   if (opts.manual) {
     await reservarEnvio(jid, true);
     return mandarTexto(jid, text);
@@ -91,7 +92,7 @@ export async function enviarDaEspera() {
 }
 
 export async function enviarArquivo(jid: string, f: { base64: string; mime: string; fileName: string; caption: string }) {
-  await reservarEnvio(jid);
+  if (!semLimite(jid)) await reservarEnvio(jid);
   const mediatype = f.mime.startsWith("image/") ? "image" : "document";
   marcar(await call(`/message/sendMedia/${INST()}`, { number: jid, mediatype, mimetype: f.mime, caption: f.caption, media: f.base64, fileName: f.fileName }));
 }

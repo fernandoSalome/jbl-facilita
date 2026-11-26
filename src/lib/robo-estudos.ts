@@ -168,13 +168,11 @@ export async function tratarKmzCentral(m: Recebida, responder: (t: string) => Pr
   }
   const onde = lugar ? `${lugar.cidade}/${lugar.uf}` : "cidade a confirmar";
   const quem = contato ? ` · mandado por *${contato}*` : "";
-  // "estude essa área" junto do KMZ: começa direto, sem perguntar
-  await db.comandoClaude.create({ data: { texto: `Viabilidade Legal do KMZ ${nome}`, grupoJid: m.grupo, autor: m.autor || null, tipo: "estudo", areaId: a.id, status: pedeEstudo ? "fila" : "confirmar" } });
+  // KMZ no Central começa o estudo direto, sem perguntar (pedido 25/11/2026; antes perguntava "1 Sim · 2 Não")
+  await db.comandoClaude.create({ data: { texto: `Viabilidade Legal do KMZ ${nome}`, grupoJid: m.grupo, autor: m.autor || null, tipo: "estudo", areaId: a.id, status: "fila" } });
   const ha2 = ha.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
   await responder(
-    pedeEstudo
-      ? `📍 *${nome}* (${onde}, ${ha2} ha)${quem}. Já está em Projetos.\n\n🧠 Começando a Viabilidade Legal (leva de 20 a 60 minutos). Respondo aqui.`
-      : `📍 Recebi o KMZ *${nome}* (${onde}, ${ha2} ha)${quem}. Já está em Projetos.\n\nFaço a pré-pesquisa (Viabilidade Legal)?\n1 Sim · 2 Não`,
+    `📍 Recebi o KMZ *${nome}* (${onde}, ${ha2} ha)${quem}. A área já está em Áreas.\n\n🧠 Começando a Viabilidade Legal (leva de 20 a 60 minutos). O JBL - Avisos avisa quando terminar, e o resumo sai aqui.`,
   );
   return true;
 }

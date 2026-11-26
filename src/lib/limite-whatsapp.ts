@@ -9,6 +9,12 @@ export const JANELA_MS = 10 * 60 * 1000;
 export const LIMITE_MANUAL = 20;
 export const JANELA_MANUAL_MS = 15 * 60 * 1000;
 
+/**
+ * Grupo não tem limite (pedido 25/11/2026: no Central a conversa precisa de resposta na hora); o limite vale para
+ * número particular, que é onde o WhatsApp pode bloquear.
+ */
+export const semLimite = (jid: string) => jid.endsWith("@g.us");
+
 /** Pode mandar mais uma? Recebe os horários dos envios recentes */
 export function podeEnviar(envios: Date[], agora = new Date(), limite = LIMITE_ENVIOS, janela = JANELA_MS) {
   const naJanela = envios.filter((e) => +agora - +e < janela).sort((a, b) => +a - +b);

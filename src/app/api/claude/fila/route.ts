@@ -26,6 +26,9 @@ export async function GET(req: Request) {
   await pedirClassificacao().catch(() => {});
   // e o aviso de geladeira (a rotina de 10 em 10 minutos falha às vezes)
   await import("@/lib/rotinas-whatsapp").then((r) => r.avisosGeladeira()).catch(() => {});
+  // lembretes na hora certa (a rotina de 10 em 10 minutos atrasa) e a memória do Central com no máximo 90 dias (25/11/2026)
+  await import("@/lib/rotinas-whatsapp").then((r) => r.enviarLembretes()).catch(() => {});
+  await import("@/lib/central-db").then((c) => c.limparMemoria()).catch(() => {});
   const c = await db.comandoClaude.findFirst({ where: { status: "fila" }, orderBy: { createdAt: "asc" } });
   if (!c) return json({ vazio: true });
   const pego = await db.comandoClaude.updateMany({ where: { id: c.id, status: "fila" }, data: { status: "rodando", iniciadoEm: new Date() } });

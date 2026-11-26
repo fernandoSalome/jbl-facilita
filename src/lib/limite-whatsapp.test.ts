@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JANELA_MANUAL_MS, LIMITE_MANUAL, podeEnviar } from "./limite-whatsapp";
+import { JANELA_MANUAL_MS, LIMITE_MANUAL, podeEnviar, semLimite } from "./limite-whatsapp";
 
 const t = (min: number) => new Date(Date.UTC(2026, 10, 20, 12, min));
 
@@ -18,5 +18,12 @@ describe("limite do WhatsApp", () => {
     const vinte = Array.from({ length: 20 }, (_, i) => t(i * 0.5));
     expect(podeEnviar(vinte.slice(0, 19), t(10), LIMITE_MANUAL, JANELA_MANUAL_MS).ok).toBe(true);
     expect(podeEnviar(vinte, t(10), LIMITE_MANUAL, JANELA_MANUAL_MS).ok).toBe(false);
+  });
+});
+
+describe("grupo sem limite (pedido 25/11/2026)", () => {
+  it("grupo sai na hora; número particular segue o limite", () => {
+    expect(semLimite("120363434430037648@g.us")).toBe(true);
+    expect(semLimite("5511999999999@s.whatsapp.net")).toBe(false);
   });
 });
