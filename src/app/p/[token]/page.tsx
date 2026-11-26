@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { dataDaProposta, displayStatus, parseInputs, parseOptions, parseOverrides, semObservacoes } from "@/lib/proposals";
 import JblPadrao from "@/components/template/JblPadrao";
+import { camposDaParteA } from "@/lib/carta-parte-a";
 import { contentForProposal } from "@/lib/formato-server";
 import { chaveDeImpressao, pdfKeyOf } from "@/lib/pdf";
 
@@ -56,6 +57,9 @@ export default async function PublicProposal({ params, searchParams }: { params:
   const formato = await contentForProposal(p);
   // carta de intenção já enviada: a seção mostra só o protocolo (em qualquer aparelho)
   const carta = await db.intentLetter.findFirst({ where: { proposalId: p.id }, orderBy: { createdAt: "desc" }, select: { protocolo: true } });
+  // parte A da carta já enviada (aceite inicial): o formulário abre na segunda parte, em qualquer aparelho
+  const eventoA = carta ? null : await db.proposalEvent.findFirst({ where: { proposalId: p.id, type: "letter_part_a" }, orderBy: { createdAt: "desc" }, select: { meta: true } });
+  const parteA = eventoA ? camposDaParteA(eventoA.meta) : null;
   const printing = searchParams.print === "1";
   // número de páginas do PDF: o da impressão em andamento, ou o do último PDF (se ainda vale)
   const pdfPages = printing ? Number(searchParams.pages) || null : p.pdfKey === pdfKeyOf(p) ? p.pdfPages : null;
@@ -74,6 +78,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
       overrides={parseOverrides(p.overrides)}
       date={dataDaProposta({ ...p, options: parseOptions(p.options) }).toISOString()}
       cartaProtocolo={carta?.protocolo ?? null}
+      cartaParteA={parteA}
       bloqueada={!!p.lockedAt}
       bloqueadaEm={p.lockedAt?.toISOString() ?? null}
     />

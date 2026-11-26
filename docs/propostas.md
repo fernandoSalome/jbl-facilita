@@ -23,6 +23,11 @@ Quando a área chega na etapa Proposta, a proposta nasce com o que os estudos de
 
 ## Carta de intenção, minuta e assinatura
 
+**Em duas partes** (pedido 25/11/2026; bloqueadas antes continuam com o formulário inteiro, `carta-parte-a` em `congelada.ts`):
+- **Parte A:** só os 7 campos do proprietário (nome, CPF, RG, nacionalidade, profissão, nascimento, naturalidade) e "Confirmar meu aceite inicial". Vale como aceite inicial, para ele não deixar para depois: fica guardada como evento `letter_part_a` da proposta (`/api/public/[token]/carta/parte-a`) e o **JBL - Avisos** recebe uma vez "Sr. X assinou a parte A da carta de intenção de Cidade/UF". Não monta minuta nem avisa o Central.
+- Depois aparece "✅ Aceite inicial registrado!" e abre o resto do formulário, com os 7 campos já preenchidos (também em outro aparelho). A carta ao lado vai mudando conforme ele digita. O envio completo segue o fluxo abaixo.
+- No editor do template o formulário aparece inteiro, com o aviso, para editar todos os textos. Regras em `carta-parte-a.ts`.
+
 1. O proprietário preenche a carta de intenção na proposta (`IntentForm.tsx`; rota pública `/api/public/[token]/carta`).
 2. A minuta é montada com o texto oficial e os dados recebidos (`minuta.ts`, `carta.ts`). Ela é revisada e editada no **editor de contrato** (`/app/minuta/[id]`).
 3. **Envio para assinatura** (`garantirLink` em `minuta-acoes.ts`): o texto fica travado, vira PDF e documento na **Autentique**. O link vai pelo WhatsApp ou pelo e-mail da pessoa.

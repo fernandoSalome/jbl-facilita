@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { fmtNum } from "@/lib/format";
 import { E } from "./Editable";
 import { CPF, mascarar, RG } from "@/lib/mascara";
+import { mudou } from "@/lib/congelada";
+import { faltandoNaParteA } from "@/lib/carta-parte-a";
 import { BLOCOS_CARTA, CAMPOS_CARTA, CNPJ_JBL, comCamposDaJbl, faltandoNaCarta, limparConjuge, obrigatorio, semConjuge, TITULO, valoresCarta, varsDoEditor, type Campos, type Projeto } from "@/lib/carta";
 
 /**
@@ -44,6 +46,8 @@ export default function IntentForm({
   contatos,
   data,
   bloqueada,
+  bloqueadaEm,
+  parteAEnviada,
 }: {
   token: string;
   disabled: boolean;
@@ -57,11 +61,16 @@ export default function IntentForm({
   protocoloEnviado?: string | null;
   /** Proposta bloqueada: segue como era (seção 02 sempre à vista, nenhum campo obrigatório) */
   bloqueada?: boolean;
+  /** Quando foi bloqueada: a carta em duas partes só vale nas bloqueadas depois dela (congelada.ts) */
+  bloqueadaEm?: string | null;
+  /** A parte A (aceite inicial) já chegou ao servidor, com os 7 campos: abre direto o resto, já preenchido */
+  parteAEnviada?: Record<string, string> | null;
 }) {
   const inicial = (): Campos => ({
     i_area: fmtNum(areaHa, 4),
     i_municipio: `${project.municipio}/${project.uf}`,
     i_matriculas: project.matricula ?? "",
+    ...(parteAEnviada ?? {}),
   });
   const [v, setV] = useState<Campos>(inicial);
   const [file, setFile] = useState<File | null>(null);
@@ -70,19 +79,25 @@ export default function IntentForm({
   const [err, setErr] = useState("");
   const [protocolo, setProtocolo] = useState(disabled ? "" : protocoloEnviado ?? "");
   const [aceite, setAceite] = useState(false);
+  // carta em duas partes (pedido 25/11/2026): primeiro os 7 campos do aceite inicial, depois o resto.
+  // No editor (disabled) o formulário aparece inteiro, para a equipe editar todos os textos.
+  const emDuasPartes = !bloqueada && mudou(bloqueadaEm, "carta-parte-a");
+  const [parteA, setParteA] = useState(!!parteAEnviada);
+  const faseA = emDuasPartes && !parteA && !disabled;
   // o que foi digitado fica guardado neste aparelho: dá para sair e voltar depois para enviar
   const chave = `jbl-carta:${token}`;
   const [lido, setLido] = useState(false);
   useEffect(() => {
     if (disabled) return;
     try {
-      let salvo = JSON.parse(localStorage.getItem(chave) ?? "null") as { v?: number; campos?: Campos; aceite?: boolean; protocolo?: string } | null;
+      let salvo = JSON.parse(localStorage.getItem(chave) ?? "null") as { v?: number; campos?: Campos; aceite?: boolean; protocolo?: string; parteA?: boolean } | null;
       if (salvo && !salvo.v && RASCUNHOS_DE_TESTE.has(token)) {
         localStorage.removeItem(chave);
         salvo = null;
       }
       if (salvo?.campos) setV((o) => ({ ...o, ...salvo.campos }));
       if (salvo?.aceite) setAceite(true);
+      if (salvo?.parteA) setParteA(true);
       // o protocolo vem só do servidor (carta apagada pela equipe: o formulário volta a aparecer)
     } catch {
       // sem acesso ao armazenamento do navegador: segue sem rascunho
@@ -92,11 +107,11 @@ export default function IntentForm({
   useEffect(() => {
     if (disabled || !lido) return;
     try {
-      localStorage.setItem(chave, JSON.stringify({ v: 2, campos: v, aceite }));
+      localStorage.setItem(chave, JSON.stringify({ v: 2, campos: v, aceite, parteA }));
     } catch {
       // armazenamento cheio ou bloqueado
     }
-  }, [v, aceite, lido, chave, disabled]);
+  }, [v, aceite, parteA, lido, chave, disabled]);
   // regras novas (menos nas propostas bloqueadas): campos obrigatórios e, sem cônjuge, a seção 02 some
   const regras = !bloqueada;
   const esconde02 = regras && semConjuge(v.estado_civil);
@@ -119,7 +134,7 @@ export default function IntentForm({
     interesse: { modalidade: g("modalidade"), prazo: g("prazo"), reuniao: g("reuniao"), observacoes: g("obs") },
   });
   // depois da 1ª tentativa de envio, os campos que faltam ficam marcados (e saem da lista ao preencher)
-  const faltando = regras && tentou ? faltandoNaCarta(dados()) : [];
+  const faltando = regras && tentou ? (faseA ? faltandoNaParteA(dados()) : faltandoNaCarta(dados())) : [];
   const marcados = new Set(faltando.map((f) => f.k));
   const obrig = (k: string) => regras && obrigatorio(k, v.estado_civil);
 
@@ -170,8 +185,36 @@ export default function IntentForm({
     limparRascunho();
   }
 
+  /** Parte A: os 7 campos valem como aceite inicial; depois abre o resto do formulário */
+  async function enviarParteA() {
+    const f = faltandoNaParteA(dados());
+    if (f.length) {
+      setTentou(true);
+      setErr("");
+      const el = document.getElementById(`ci-${f[0].k}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus({ preventScroll: true });
+      return;
+    }
+    setErr("");
+    setSending(true);
+    try {
+      const r = await fetch(`/api/public/${token}/carta/parte-a`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ proprietario: dados().proprietario }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Não foi possível enviar.");
+      setParteA(true);
+      setTentou(false);
+      requestAnimationFrame(() => document.getElementById("ci-parte-a-ok")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function enviar() {
     if (disabled) return setErr("Pré-visualização: o formulário só envia na página pública da proposta.");
+    if (faseA) return enviarParteA();
     if (regras) {
       const f = faltandoNaCarta(dados());
       if (f.length) {
@@ -255,11 +298,18 @@ export default function IntentForm({
   return (
     <div className="intent-grid">
       <form noValidate onFocus={comecou} onInput={comecou} onSubmit={(e) => { e.preventDefault(); enviar(); }}>
+        {emDuasPartes && (parteA || disabled) && (
+          <div id="ci-parte-a-ok" className="parte-a-ok" role="status">
+            <strong><E k="form.parteAOkTitulo">✅ Aceite inicial registrado!</E></strong>
+            <span><E k="form.parteAOk">Agora basta preencher os outros campos abaixo para formalizar a minuta da carta.</E></span>
+          </div>
+        )}
         <fieldset className="group"><legend><i>01</i><E k="form.grupo1b">Dados do proprietário</E></legend>
           {I({ k: "p_nome", label: "Nome completo" })}
           <div className="row2">{I({ k: "p_cpf", label: "CPF", mode: "numeric" })}{I({ k: "p_rg", label: "RG" })}</div>
           <div className="row2">{I({ k: "p_nac", label: "Nacionalidade" })}{I({ k: "p_prof", label: "Profissão" })}</div>
           <div className="row2">{I({ k: "p_nasc", label: "Data de nascimento", type: "date" })}{I({ k: "p_natural", label: "Natural de (cidade/UF)" })}</div>
+          {!faseA && <>
           {I({ k: "p_end", label: "Endereço residencial (rua, número, bairro, cidade/UF)" })}
           <div className="row2">{I({ k: "p_email", label: "E-mail", type: "email" })}<div className="field">
             <L k="p_tel">Telefone com DDD</L>
@@ -270,10 +320,11 @@ export default function IntentForm({
             {S({ k: "modalidade", label: "Modalidade de interesse", opts: [["quero avaliar as opções", "Quero avaliar as opções"], ["parceria financeira", "Parceria financeira (dinheiro)"], ["parceria em lotes", "Parceria em lotes"], ["parceria híbrida", "Parceria híbrida (lotes + dinheiro)"]] })}
           </div>
           {S({ k: "prazo", label: "Prazo de vendas que mais interessa", opts: [["a definir em reunião", "Ainda não sei"], ...[3, 5, 8, 10, 13, 15, 18, 20].map((a) => [`${a} anos (${a * 12} meses)`, `${a} anos`] as [string, string])] })}
+          </>}
         </fieldset>
 
         {/* solteiro, divorciado ou viúvo: a seção de casamento e cônjuge some (nas bloqueadas fica como era) */}
-        {!esconde02 && <fieldset className="group"><legend><i>02</i><E k="form.grupo2b">Informações matrimoniais e cônjuge</E></legend>
+        {!faseA && !esconde02 && <fieldset className="group"><legend><i>02</i><E k="form.grupo2b">Informações matrimoniais e cônjuge</E></legend>
           {regras
             ? <small className="muted"><E k="form.grupo2nota2">Casado(a) ou em união estável: todos os campos desta seção são obrigatórios.</E></small>
             : <small className="muted"><E k="form.grupo2nota">Preencha quando aplicável. Todos os campos permanecem visíveis para facilitar a conferência.</E></small>}
@@ -289,7 +340,7 @@ export default function IntentForm({
           <div className="row2">{I({ k: "j_nasc", label: "Nascimento do cônjuge", type: "date" })}{I({ k: "j_natural", label: "Cônjuge natural de (cidade/UF)" })}</div>
         </fieldset>}
 
-        <fieldset className="group"><legend><i>{esconde02 ? "02" : "03"}</i><E k="form.grupo3b">Dados do imóvel</E></legend>
+        {!faseA && <fieldset className="group"><legend><i>{esconde02 ? "02" : "03"}</i><E k="form.grupo3b">Dados do imóvel</E></legend>
           <div className="row2">{I({ k: "i_area", label: "Área total em hectares", mode: "decimal" })}{I({ k: "i_zona", label: "Zona / localização" })}</div>
           <div className="row2">{I({ k: "i_municipio", label: "Município / UF" })}{I({ k: "i_matriculas", label: "Matrícula(s) do imóvel" })}</div>
           <div className="row2">{I({ k: "i_cartorio", label: "Cartório de Registro de Imóveis" })}{I({ k: "i_car", lk: "i_car2", label: "Número do CAR, quando aplicável" })}</div>
@@ -300,22 +351,23 @@ export default function IntentForm({
           </div>
           <div className="field"><L k="obs">Observações</L><textarea id="ci-obs" value={v.obs ?? ""} onChange={on("obs")} /></div>
           {I({ k: "reuniao", label: "Melhor dia/horário para uma reunião" })}
-        </fieldset>
+        </fieldset>}
 
-        <div className="declara"><E k="form.declaracao2" html>{"<strong>Declaração.</strong> Declaro que desejo dar continuidade aos estudos de viabilidade técnica, jurídica, ambiental, comercial e econômica da gleba informada e à elaboração da carta de intenção com a JBL Incorporadora e Urbanismo."}</E></div>
+        {faseA && <p className="parte-a-nota"><E k="form.parteANota">Preencha estes dados para registrar o seu aceite inicial. Em seguida, você completa o restante para formalizar a minuta da carta.</E></p>}
+        {!faseA && <div className="declara"><E k="form.declaracao2" html>{"<strong>Declaração.</strong> Declaro que desejo dar continuidade aos estudos de viabilidade técnica, jurídica, ambiental, comercial e econômica da gleba informada e à elaboração da carta de intenção com a JBL Incorporadora e Urbanismo."}</E></div>}
         <div className="lgpd">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
           <span><E k="form.lgpd" html>{"<strong>Proteção dos seus dados (LGPD).</strong> Asseguramos o sigilo das informações enviadas, tratadas conforme a Lei Geral de Proteção de Dados (Lei n.º 13.709/2018). Os dados serão usados somente para a análise da área e a elaboração da carta de intenção, com acesso restrito à equipe responsável da JBL. A qualquer momento você pode pedir a consulta, a correção ou a exclusão dos seus dados."}</E></span>
         </div>
-        <label className="aceite">
+        {!faseA && <label className="aceite">
           <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
           <span><E k="form.aceite">Confirmo que tenho autorização para fornecer os dados informados e estou ciente de que eles serão registrados para análise, e de que esta é uma manifestação de interesse, não um contrato nem uma transferência do imóvel.</E></span>
-        </label>
+        </label>}
         {faltando.length > 0 && <p className="err" role="alert">Preencha os campos obrigatórios: {faltando.map((f) => f.nome).join(", ")}.</p>}
         {err && !faltando.length && <p className="err">{err}</p>}
 
         <div className="actions">
-          <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : <E k="form.enviar3">Enviar dados para a minuta ↗</E>}</button>
+          <button type="submit" className="dl dl-gold" disabled={sending}>{sending ? "Enviando…" : faseA ? <E k="form.enviarParteA">Confirmar meu aceite inicial ↗</E> : <E k="form.enviar3">Enviar dados para a minuta ↗</E>}</button>
           <button type="button" className="dl" onClick={limpar} disabled={sending || disabled}>Limpar formulário</button>
         </div>
         <p className="note intent-registro"><E k="txt.intentAside2">Os dados serão registrados neste sistema, com protocolo e acesso restrito ao responsável pelo site. Não haverá disparo automático de e-mail ou WhatsApp.</E></p>

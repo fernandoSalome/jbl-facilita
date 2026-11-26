@@ -2,17 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import BotoesCarta from "@/components/andamento/BotoesCarta";
 import LinhaDoTempo from "@/components/andamento/LinhaDoTempo";
 import { aplicarTratamento, dataPorExtenso, montarPassos, PASSOS, progressoPassos, tratamentoPadrao, type Andamento, type MarcaPasso } from "@/lib/passo-a-passo";
 import { chamar } from "./chamar";
-
-const hoje = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
 /**
  * Passo a passo do proprietário (pedido 25/11/2026): a equipe marca cada passo como realizado (à mão, por
  * enquanto), troca o texto ou deixa uma nota; o proprietário vê pelo link. Grava sozinho a cada mudança.
  */
-export default function PassoAPasso({ id, inicial, dono, token }: { id: string; inicial: Andamento; dono: string | null; token: string | null }) {
+export default function PassoAPasso({ id, inicial, dono, token, speHref, cartaHref }: { id: string; inicial: Andamento; dono: string | null; token: string | null; speHref: string | null; cartaHref: string | null }) {
+  const botoes = <BotoesCarta speHref={speHref} cartaHref={cartaHref} />;
   const router = useRouter();
   const [a, setA] = useState<Andamento>(inicial);
   const [modo, setModo] = useState<"editar" | "ver">("editar");
@@ -89,17 +89,17 @@ export default function PassoAPasso({ id, inicial, dono, token }: { id: string; 
         </section>
 
         {modo === "ver" ? (
-          <section className="card p-5 md:p-8"><LinhaDoTempo passos={passos} /></section>
+          <section className="card p-5 md:p-8"><LinhaDoTempo passos={passos} extras={{ "carta-spe": botoes }} /></section>
         ) : (
           passos.map((p) => {
             const m = a.passos[p.id] ?? {};
             const feito = p.situacao === "feito";
             const padrao = PASSOS.find((x) => x.id === p.id)!;
             return (
-              <section key={p.id} className={`card p-5 transition ${p.sub ? "ml-6" : ""} ${feito ? "border-gold-line" : p.situacao === "proximo" ? "border-gold ring-2 ring-gold-soft" : ""}`}>
+              <section key={p.id} className={`card p-5 transition ${feito ? "border-gold-line" : p.situacao === "proximo" ? "border-gold ring-2 ring-gold-soft" : ""}`}>
                 <div className="flex flex-wrap items-start gap-4">
                   <button
-                    onClick={() => marcar(p.id, { feitoEm: feito ? undefined : hoje() })}
+                    onClick={() => marcar(p.id, feito ? { feito: false, feitoEm: undefined } : { feito: true })}
                     title={feito ? "Desmarcar" : "Marcar como realizado"}
                     className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 transition ${feito ? "border-gold bg-gold text-white" : "border-line bg-white text-muted hover:border-gold hover:text-gold-deep"}`}
                   >
@@ -125,15 +125,27 @@ export default function PassoAPasso({ id, inicial, dono, token }: { id: string; 
                         {p.texto.split(/\n{2,}/).map((par, j) => <p key={j}>{par}</p>)}
                       </div>
                     )}
+                    {p.id === "carta-spe" && (
+                      <>
+                        {botoes}
+                        {(!speHref || !cartaHref) && (
+                          <p className="mt-2 text-[12.5px] text-muted">
+                            {!speHref && <>O botão “Baixar Modelo SPE” aparece depois que o modelo subir em <a className="font-semibold text-navy underline" href="/app/templates">Templates</a>. </>}
+                            {!cartaHref && <>O botão da Carta de Intenção aparece quando a área tiver proposta enviada.</>}
+                          </p>
+                        )}
+                      </>
+                    )}
                     <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-[13px]">
                       {feito ? (
-                        <label className="flex items-center gap-2 text-navy">
-                          <b>Realizado em</b>
-                          <input type="date" className="input w-auto py-1 text-[13px]" value={m.feitoEm ?? ""} onChange={(e) => e.target.value && marcar(p.id, { feitoEm: e.target.value })} />
-                          <span className="text-muted">({dataPorExtenso(m.feitoEm ?? hoje())})</span>
+                        // a data só aparece para o proprietário se a equipe puser (pedido 25/11/2026)
+                        <label className="flex flex-wrap items-center gap-2 text-navy">
+                          <b>Data (opcional)</b>
+                          <input type="date" className="input w-auto py-1 text-[13px]" value={m.feitoEm ?? ""} onChange={(e) => marcar(p.id, { feitoEm: e.target.value || undefined })} />
+                          <span className="text-muted">{m.feitoEm ? `aparece como ${dataPorExtenso(m.feitoEm)}` : "sem data: aparece só “Realizado”"}</span>
                         </label>
                       ) : (
-                        <button className={`${p.situacao === "proximo" ? "btn-gold" : "btn-ghost"} py-1.5 text-[13px]`} onClick={() => marcar(p.id, { feitoEm: hoje() })}>Marcar como realizado</button>
+                        <button className={`${p.situacao === "proximo" ? "btn-gold" : "btn-ghost"} py-1.5 text-[13px]`} onClick={() => marcar(p.id, { feito: true })}>Marcar como realizado</button>
                       )}
                       <span className="flex-1" />
                       {editando !== p.id && <button className="font-semibold text-navy hover:underline" onClick={() => setEditando(p.id)}>✏️ Editar texto</button>}

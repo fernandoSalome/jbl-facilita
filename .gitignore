@@ -18,3 +18,7 @@ backup-*.sql
 
 # Planilhas e arquivos de referência do cliente: ficam só neste computador
 base/
+
+# modelos de contrato (minuta da SPE etc.) vão pelo sistema, não pelo git: o repositório é público
+modelos/*.pdf
+modelos/*.docx

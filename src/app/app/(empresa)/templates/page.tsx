@@ -3,11 +3,14 @@ import { requireSession } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import PageHeader from "@/components/PageHeader";
 import TemplateActions, { UploadTemplateButton } from "@/components/TemplateActions";
+import ModeloSpe from "@/components/modelos/ModeloSpe";
+import { infoModeloSpe } from "@/lib/modelo-spe-db";
 
 export const dynamic = "force-dynamic";
 
 export default async function Templates() {
   const session = await requireSession();
+  const spe = await infoModeloSpe();
   const templates = await db.template.findMany({
     where: { deletedAt: null },
     orderBy: { createdAt: "asc" },
@@ -66,6 +69,10 @@ export default async function Templates() {
         <b className="text-navy">Como funciona um template novo:</b> envie o PDF, Word ou PowerPoint do modelo. A equipe transforma o arquivo em template,
         marcando onde entram os números do estudo, e ele aparece aqui como “Ativo” para ser escolhido nas próximas propostas.
       </div>
+      <ModeloSpe
+        admin={session.role === "ADMIN"}
+        info={spe ? { nome: spe.nome, tamanho: spe.tamanho, quando: spe.atualizadoEm.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }), por: spe.atualizadoPor } : null}
+      />
     </>
   );
 }

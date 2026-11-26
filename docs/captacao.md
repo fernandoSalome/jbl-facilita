@@ -49,12 +49,14 @@ Ao concluir uma etapa no botão do topo (`Gate.tsx`), a tela mostra "Etapa concl
 
 ## Passo a passo do proprietário
 
-No menu da área, **🧭 Passo a passo** (acima do Checklist, com moldura dourada e "feitos/total"), pedido 25/11/2026. São os 8 passos da parceria (01 Estudo preliminar, 01.1 Carta de Intenção e SPE, 02 Formalização … 07 Gestão e repasses), com os textos do Marcelo.
+No menu da área, **🧭 Passo a passo** (acima do Checklist, com moldura dourada e "feitos/total"), pedido 25/11/2026. São os 8 passos da parceria, numerados de 01 a 08 (01 Estudo preliminar, 02 Carta de Intenção e SPE, 03 Formalização … 08 Gestão e repasses), com os textos do Marcelo.
 
-- A equipe marca cada passo **à mão** como realizado (com a data), pode trocar o texto ("↩ Voltar ao texto original") e deixar uma **atualização** curta para o proprietário. Grava sozinho.
+- A equipe marca cada passo **à mão** como realizado. A data é opcional: sem data, o proprietário vê só "Realizado". Dá para trocar o texto ("↩ Voltar ao texto original") e deixar uma **atualização** curta para o proprietário. Grava sozinho.
 - "Como chamar o proprietário" troca `{O}`, `{ao}` e `{nome}` nos textos (padrão: "Sr." + primeiro nome do dono; "Sra./Dona" vira feminino).
-- **Link** (`/andamento/<token>`): página pública no visual da proposta, com o progresso, o **próximo passo** (o primeiro em aberto) em destaque e os outros como "A seguir". Não mostra estudo, conversas nem números. Dá para desativar.
-- Código: `passo-a-passo.ts` (regras e textos), `passo-a-passo-db.ts`, `PassoAPasso.tsx`, `src/components/andamento/`, `/api/areas/[id]/andamento`. Campos `andamento`, `andamentoToken`, `andamentoLinkEm` na `Area`.
+- **Link** (`/andamento/<token>`): página pública no visual da proposta (só a logo no topo, sem imprimir e sem rodapé), com o progresso, o **próximo passo** (o primeiro em aberto) em destaque e os outros como "A seguir". Não mostra estudo, conversas nem números. Dá para desativar.
+- **Passo 02** tem dois botões: **Baixar Modelo SPE** (abre `/andamento/<token>/spe`, com o PDF na página e o botão de baixar) e **Ir para a Carta de Intenção** (a proposta mais recente da área, já enviada, em `#intencao`). Cada botão só aparece quando existe o modelo ou a proposta.
+- **Modelo da SPE:** sobe em **Templates → Modelo da minuta da SPE** (só administrador, PDF até 4 MB). Fica no banco (`ModeloArquivo`, chave `spe`), **não no git**: o repositório é público. A pasta `modelos/*.pdf` está no `.gitignore`.
+- Código: `passo-a-passo.ts` (regras e textos), `passo-a-passo-db.ts`, `modelo-spe.ts` / `-db.ts`, `PassoAPasso.tsx`, `src/components/andamento/`, `src/components/modelos/ModeloSpe.tsx`, `/api/areas/[id]/andamento`, `/api/modelos/spe`, `/api/public/andamento/[token]/spe`. Campos `andamento`, `andamentoToken`, `andamentoLinkEm` na `Area`.
 
 ## Geladeira e descarte
 

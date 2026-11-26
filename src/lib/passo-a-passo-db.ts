@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { lerAndamento } from "./passo-a-passo";
+import { CHAVE_SPE } from "./modelo-spe";
 
 /** Banco do passo a passo do proprietário (as regras ficam em passo-a-passo.ts) */
 
@@ -32,5 +33,19 @@ export const desativarLinkAndamento = (areaId: string) => db.area.updateMany({ w
 /** Passo a passo pelo link público: só com código válido e área não apagada */
 export const andamentoPorToken = (token: string) =>
   /^[A-Za-z0-9_-]{24}$/.test(token)
-    ? db.area.findFirst({ where: { andamentoToken: token, deletedAt: null }, select: { nome: true, cidade: true, uf: true, hectares: true, dono: true, andamento: true, updatedAt: true } })
+    ? db.area.findFirst({ where: { andamentoToken: token, deletedAt: null }, select: { nome: true, cidade: true, uf: true, hectares: true, dono: true, andamento: true, updatedAt: true, projectId: true } })
     : Promise.resolve(null);
+
+/**
+ * Botões do passo da Carta de Intenção (pedido 25/11/2026): o modelo da SPE (se já subiu) e a carta na proposta
+ * da área (a mais recente já enviada ao proprietário, sem rascunho).
+ */
+export async function linksDaCarta(projectId: string | null) {
+  const [modelo, proposta] = await Promise.all([
+    db.modeloArquivo.findUnique({ where: { chave: CHAVE_SPE }, select: { chave: true } }),
+    projectId
+      ? db.proposal.findFirst({ where: { projectId, deletedAt: null, status: { not: "rascunho" } }, orderBy: { createdAt: "desc" }, select: { publicToken: true } })
+      : null,
+  ]);
+  return { temModeloSpe: !!modelo, propostaToken: proposta?.publicToken ?? null };
+}

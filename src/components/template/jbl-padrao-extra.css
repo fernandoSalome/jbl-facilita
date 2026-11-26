@@ -352,3 +352,9 @@
 .jblt .pill-ed.bf-sobre { outline: 2px dashed var(--gold); outline-offset: 2px; }
 /* a alça não cresce (a regra do texto, flex: 1, pegava a alça e espremia o texto) */
 .jblt .pills.bf-grid > span > span.bf-drag { flex: none; margin-right: -6px; }
+
+/* carta em duas partes (25/11/2026): aviso do aceite inicial e a nota antes do botão; classes novas, só aparecem
+   nas propostas em que a mudança vale (congelada.ts, "carta-parte-a") */
+.jblt .parte-a-ok { display: grid; gap: 4px; margin: 0 0 18px; padding: 14px 16px; border: 2px solid var(--gold); border-radius: 12px; background: var(--gold-soft); font-size: 15px; line-height: 1.5; color: var(--fg); scroll-margin-top: 90px; }
+.jblt .parte-a-ok strong { color: var(--navy); font-size: 16.5px; }
+.jblt .parte-a-nota { margin: 16px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--muted); }

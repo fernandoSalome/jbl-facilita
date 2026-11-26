@@ -566,3 +566,15 @@ model MensagemParticular {
   @@index([telefone, quando])
   @@index([audioPendente])
 }
+
+/// Modelos de documento que o proprietário pode ver e baixar (pedido 25/11/2026: a minuta da SPE, chave "spe").
+/// Fica no banco, não no git: o repositório é público.
+model ModeloArquivo {
+  chave         String   @id
+  nome          String
+  mime          String
+  tamanho       Int
+  dados         Bytes
+  atualizadoPor String?
+  atualizadoEm  DateTime @updatedAt
+}

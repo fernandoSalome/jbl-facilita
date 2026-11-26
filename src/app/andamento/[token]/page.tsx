@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PaginaAndamento from "@/components/andamento/PaginaAndamento";
-import { andamentoPorToken } from "@/lib/passo-a-passo-db";
+import { andamentoPorToken, linksDaCarta } from "@/lib/passo-a-passo-db";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +14,11 @@ export const metadata: Metadata = { title: "Acompanhamento da parceria · JBL In
 export default async function AndamentoPublico({ params }: { params: { token: string } }) {
   const a = await andamentoPorToken(params.token);
   if (!a) notFound();
-  return <PaginaAndamento a={a} />;
+  const l = await linksDaCarta(a.projectId);
+  return (
+    <PaginaAndamento
+      a={a}
+      links={{ speHref: l.temModeloSpe ? `/andamento/${params.token}/spe` : null, cartaHref: l.propostaToken ? `/p/${l.propostaToken}#intencao` : null }}
+    />
+  );
 }

@@ -8,18 +8,25 @@ describe("passo a passo do proprietário", () => {
       passos: {
         "estudo-preliminar": { feitoEm: "2026-11-20", nota: "ok" },
         "carta-spe": { feitoEm: "ontem", texto: "x".repeat(5000) },
-        inventado: { feitoEm: "2026-11-20" },
+        inventado: { feito: true },
         formalizacao: {},
       },
     });
     expect(a.tratamento).toBe("Sr. Rogério");
-    expect(a.passos["estudo-preliminar"]).toEqual({ feitoEm: "2026-11-20", nota: "ok" });
-    expect(a.passos["carta-spe"].feitoEm).toBeUndefined();
+    // marca antiga só com a data conta como realizado
+    expect(a.passos["estudo-preliminar"]).toEqual({ feito: true, feitoEm: "2026-11-20", nota: "ok" });
+    expect(a.passos["carta-spe"].feito).toBeUndefined();
     expect(a.passos["carta-spe"].texto).toHaveLength(2500);
     expect(a.passos.inventado).toBeUndefined();
     expect(a.passos.formalizacao).toBeUndefined();
     expect(lerAndamento(null)).toEqual({ passos: {} });
     expect(lerAndamento([1, 2])).toEqual({ passos: {} });
+  });
+
+  it("realizado sem data: fica realizado e sem data", () => {
+    const a = lerAndamento({ passos: { "estudo-preliminar": { feito: true } } });
+    expect(a.passos["estudo-preliminar"]).toEqual({ feito: true });
+    expect(montarPassos(a, null)[0]).toMatchObject({ situacao: "feito", feitoEm: undefined });
   });
 
   it("tratamento: primeiro nome do dono, e o feminino", () => {
@@ -29,8 +36,12 @@ describe("passo a passo do proprietário", () => {
     expect(aplicarTratamento("{O} {nome} enviará; repasses {ao} {nome}", "Sra. Ana")).toBe("A Sra. Ana enviará; repasses à Sra. Ana");
   });
 
+  it("numerados em sequência, de 01 a 08", () => {
+    expect(PASSOS.map((p) => p.numero)).toEqual(["01", "02", "03", "04", "05", "06", "07", "08"]);
+  });
+
   it("o primeiro passo em aberto é o próximo; os outros vêm depois", () => {
-    const p = montarPassos(lerAndamento({ passos: { "estudo-preliminar": { feitoEm: "2026-11-20" }, formalizacao: { feitoEm: "2026-11-21" } } }), "Rogério");
+    const p = montarPassos(lerAndamento({ passos: { "estudo-preliminar": { feito: true }, formalizacao: { feito: true } } }), "Rogério");
     expect(p.map((x) => x.situacao)).toEqual(["feito", "proximo", "feito", "depois", "depois", "depois", "depois", "depois"]);
     expect(p[1].texto).toContain("O Sr. Rogério enviará a Carta de Intenção");
     expect(p[1].textoPadrao).toBe(true);

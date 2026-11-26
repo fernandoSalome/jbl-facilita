@@ -4,7 +4,7 @@
  * {O}, {ao} e {nome} viram o tratamento da pessoa ("O Sr. Rogério", "ao Sr. Rogério"), editável na tela.
  */
 
-export type PassoPadrao = { id: string; numero: string; titulo: string; texto: string; sub?: boolean };
+export type PassoPadrao = { id: string; numero: string; titulo: string; texto: string };
 
 export const PASSOS: PassoPadrao[] = [
   {
@@ -12,7 +12,7 @@ export const PASSOS: PassoPadrao[] = [
     texto: "Análise da documentação do imóvel, das características da área, da demanda de mercado e da viabilidade econômica preliminar do empreendimento.",
   },
   {
-    id: "carta-spe", numero: "01.1", titulo: "Carta de Intenção e análise da SPE", sub: true,
+    id: "carta-spe", numero: "02", titulo: "Carta de Intenção e análise da SPE",
     texto: [
       "{O} {nome} enviará a Carta de Intenção por meio da página da proposta, formalizando seu interesse na continuidade dos estudos e na elaboração do projeto.",
       "A partir dessa manifestação, será realizado o estudo de massa da área, com prazo estimado de 30 dias, para aprofundamento da análise de viabilidade.",
@@ -21,30 +21,30 @@ export const PASSOS: PassoPadrao[] = [
     ].join("\n\n"),
   },
   {
-    id: "formalizacao", numero: "02", titulo: "Formalização da parceria",
+    id: "formalizacao", numero: "03", titulo: "Formalização da parceria",
     texto: "Após a confirmação da viabilidade do empreendimento por meio do estudo de massa, serão formalizadas as condições da parceria, definindo a participação de cada parte, a estrutura societária, as responsabilidades, as regras de governança e as condições de integralização do imóvel à SPE.",
   },
   {
-    id: "aprovacoes-1", numero: "03", titulo: "Condução das aprovações | Primeira etapa",
+    id: "aprovacoes-1", numero: "04", titulo: "Condução das aprovações | Primeira etapa",
     texto: "Elaboração dos projetos técnicos, encaminhamento dos processos administrativos e atendimento às exigências dos órgãos competentes, visando à obtenção das aprovações e autorizações necessárias à primeira etapa do empreendimento.",
   },
   {
-    id: "comercializacao-1", numero: "04", titulo: "Comercialização dos lotes | Primeira etapa",
+    id: "comercializacao-1", numero: "05", titulo: "Comercialização dos lotes | Primeira etapa",
     texto: "Estruturação da operação comercial, contemplando estratégias de marketing, equipe de corretores, contratos de venda e gestão dos pagamentos dos compradores, respeitando os requisitos legais e registrais aplicáveis à comercialização.",
   },
   {
-    id: "aprovacoes-2", numero: "05", titulo: "Condução das aprovações | Segunda etapa",
+    id: "aprovacoes-2", numero: "06", titulo: "Condução das aprovações | Segunda etapa",
     texto: "Continuidade dos processos de aprovação, elaboração dos projetos complementares e atendimento às exigências dos órgãos competentes, visando à obtenção das licenças e autorizações necessárias à execução da segunda etapa do empreendimento.",
   },
   {
-    id: "obras-2", numero: "06", titulo: "Execução das obras de infraestrutura | Segunda etapa",
+    id: "obras-2", numero: "07", titulo: "Execução das obras de infraestrutura | Segunda etapa",
     texto: [
       "Início das obras de infraestrutura após o cumprimento das condições comerciais, técnicas e legais previstas na parceria.",
       "O andamento das obras será acompanhado de forma transparente, com a apresentação quinzenal de relatórios, registros fotográficos e vídeos, permitindo {ao} {nome} acompanhar a evolução do empreendimento.",
     ].join("\n\n"),
   },
   {
-    id: "gestao-2", numero: "07", titulo: "Gestão administrativa, financeira e repasses | Segunda etapa",
+    id: "gestao-2", numero: "08", titulo: "Gestão administrativa, financeira e repasses | Segunda etapa",
     texto: "Gestão da carteira de recebíveis, acompanhamento dos pagamentos dos compradores, prestação de contas e realização dos repasses financeiros {ao} {nome}, conforme os percentuais, prazos e condições estabelecidos no contrato de parceria.",
   },
 ];
@@ -54,8 +54,11 @@ const LIMITE_TEXTO = 2500;
 const LIMITE_NOTA = 300;
 const LIMITE_TRATAMENTO = 60;
 
-/** O que a equipe grava por passo: data em que foi realizado, texto trocado e uma nota curta para o proprietário */
-export type MarcaPasso = { feitoEm?: string; texto?: string; nota?: string };
+/**
+ * O que a equipe grava por passo: realizado, a data (só se a equipe puser: pedido 25/11/2026), texto trocado e uma
+ * nota curta para o proprietário. Marca antiga só com a data também conta como realizado.
+ */
+export type MarcaPasso = { feito?: boolean; feitoEm?: string; texto?: string; nota?: string };
 export type Andamento = { tratamento?: string; passos: Record<string, MarcaPasso>; atualizadoEm?: string };
 
 export type Situacao = "feito" | "proximo" | "depois";
@@ -73,6 +76,7 @@ export function lerAndamento(v: unknown): Andamento {
     if (!IDS.has(id) || !m || typeof m !== "object") continue;
     const r = m as Record<string, unknown>;
     const marca: MarcaPasso = {};
+    if (r.feito === true || dataValida(r.feitoEm)) marca.feito = true;
     if (dataValida(r.feitoEm)) marca.feitoEm = r.feitoEm;
     const t = texto(r.texto, LIMITE_TEXTO);
     if (t) marca.texto = t;
@@ -103,7 +107,7 @@ export function montarPassos(a: Andamento, dono: string | null | undefined): Pas
   return PASSOS.map((p) => {
     const m = a.passos[p.id] ?? {};
     let situacao: Situacao = "feito";
-    if (!m.feitoEm) {
+    if (!m.feito) {
       situacao = achouProximo ? "depois" : "proximo";
       achouProximo = true;
     }

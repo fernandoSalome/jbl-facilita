@@ -1,25 +1,23 @@
-import BotaoImprimir from "@/components/captacao/BotaoImprimir";
+import BotoesCarta from "@/components/andamento/BotoesCarta";
 import LinhaDoTempo from "@/components/andamento/LinhaDoTempo";
 import { lerAndamento, montarPassos, progressoPassos, tratamentoPadrao } from "@/lib/passo-a-passo";
 
 type AreaDoLink = { nome: string; cidade: string; uf: string; hectares: number | null; dono: string | null; andamento: unknown; updatedAt: Date };
 
 /** A página que o proprietário vê pelo link (/andamento/<token>), no visual da proposta */
-export default function PaginaAndamento({ a }: { a: AreaDoLink }) {
+export default function PaginaAndamento({ a, links }: { a: AreaDoLink; links: { speHref?: string | null; cartaHref?: string | null } }) {
   const andamento = lerAndamento(a.andamento);
   const passos = montarPassos(andamento, a.dono);
   const prog = progressoPassos(passos);
   const proximo = passos.find((p) => p.situacao === "proximo");
   const tratamento = andamento.tratamento || tratamentoPadrao(a.dono);
   const ha = a.hectares ? ` · ${a.hectares.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha` : "";
-  const atualizado = new Date(andamento.atualizadoEm ?? a.updatedAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric" });
 
   return (
     <main className="min-h-screen bg-white text-ink">
       <header className="border-b-4 border-gold bg-white">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 px-4 py-5 md:px-6">
+        <div className="mx-auto max-w-4xl px-4 py-5 md:px-6">
           <img src="/brand/lockup.webp" alt="Grupo JBL Incorporadora" className="h-11 w-auto md:h-14" />
-          <div className="print:hidden"><BotaoImprimir /></div>
         </div>
       </header>
 
@@ -60,11 +58,7 @@ export default function PaginaAndamento({ a }: { a: AreaDoLink }) {
 
       <div className="mx-auto max-w-4xl px-4 py-12 md:px-6">
         <div className="eyebrow mb-8">Passo a passo</div>
-        <LinhaDoTempo passos={passos} />
-        <p className="mt-6 border-t border-line pt-6 text-[13px] leading-relaxed text-muted">
-          Atualizado em {atualizado}. As datas e prazos são estimados e podem mudar conforme os órgãos competentes e as condições
-          previstas na parceria. Página de uso exclusivo do destinatário.
-        </p>
+        <LinhaDoTempo passos={passos} extras={{ "carta-spe": <BotoesCarta speHref={links.speHref} cartaHref={links.cartaHref} /> }} />
       </div>
     </main>
   );

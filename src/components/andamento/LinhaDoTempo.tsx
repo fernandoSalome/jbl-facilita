@@ -4,7 +4,7 @@ import { dataPorExtenso, type PassoMostrado } from "@/lib/passo-a-passo";
  * Linha do tempo do passo a passo (pedido 25/11/2026), igual na página do proprietário e na pré-visualização:
  * realizados em dourado com a data, o próximo em destaque e os que vêm depois mais claros.
  */
-export default function LinhaDoTempo({ passos }: { passos: PassoMostrado[] }) {
+export default function LinhaDoTempo({ passos, extras }: { passos: PassoMostrado[]; extras?: Partial<Record<string, React.ReactNode>> }) {
   return (
     <ol className="relative">
       {passos.map((p, i) => {
@@ -31,7 +31,7 @@ export default function LinhaDoTempo({ passos }: { passos: PassoMostrado[] }) {
               )}
             </div>
 
-            <div className={`mb-6 min-w-0 flex-1 rounded-lg border p-4 md:p-6 ${p.sub ? "md:ml-8" : ""} ${proximo ? "border-gold bg-gold-soft shadow-[0_12px_30px_-18px_rgba(18,42,69,0.45)]" : feito ? "border-gold-line bg-white" : "border-line bg-alt"}`}>
+            <div className={`mb-6 min-w-0 flex-1 rounded-lg border p-4 md:p-6 ${proximo ? "border-gold bg-gold-soft shadow-[0_12px_30px_-18px_rgba(18,42,69,0.45)]" : feito ? "border-gold-line bg-white" : "border-line bg-alt"}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`font-display text-[13px] ${feito || proximo ? "text-gold-deep" : "text-muted"}`}>{p.numero}.</span>
                 {feito && <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-gold-ink">Realizado{p.feitoEm ? ` · ${dataPorExtenso(p.feitoEm)}` : ""}</span>}
@@ -42,6 +42,7 @@ export default function LinhaDoTempo({ passos }: { passos: PassoMostrado[] }) {
               <div className={`mt-2 grid gap-2.5 text-[15px] leading-relaxed ${p.situacao === "depois" ? "text-ink/70" : "text-ink"}`}>
                 {p.texto.split(/\n{2,}/).map((par, j) => <p key={j}>{par}</p>)}
               </div>
+              {extras?.[p.id]}
               {p.nota && (
                 <p className="mt-4 rounded-md border-l-[3px] border-gold bg-white px-4 py-2.5 text-[14px] text-navy">
                   <b className="mr-1 text-gold-deep">Atualização:</b>{p.nota}
