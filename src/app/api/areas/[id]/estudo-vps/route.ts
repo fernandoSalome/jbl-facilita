@@ -1,6 +1,6 @@
 import { json, withSession } from "@/lib/api";
 import { ehTipoEstudo } from "@/lib/estudo-andamento";
-import { pedirEstudoPelaTela } from "@/lib/estudo-andamento-db";
+import { pedirEstudoPelaTela, pedirOsDoisEstudos } from "@/lib/estudo-andamento-db";
 import { pararEstudo, retomarEstudo } from "@/lib/estudo-parar-db";
 import { db } from "@/lib/db";
 
@@ -10,9 +10,11 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withSession(async (s) => {
     const b = await req.json().catch(() => ({}));
-    if (!ehTipoEstudo(b?.tipo)) return json({ error: "Tipo de estudo inválido" }, 400);
+    // "os dois": a Legal agora e a Mercadológica logo depois (28/11/2026)
+    if (!ehTipoEstudo(b?.tipo) && b?.tipo !== "os-dois") return json({ error: "Tipo de estudo inválido" }, 400);
     try {
-      await pedirEstudoPelaTela(params.id.slice(0, 40), b.tipo, s.name.slice(0, 80));
+      if (b.tipo === "os-dois") await pedirOsDoisEstudos(params.id.slice(0, 40), s.name.slice(0, 80));
+      else await pedirEstudoPelaTela(params.id.slice(0, 40), b.tipo, s.name.slice(0, 80));
       return json({ ok: true });
     } catch (e) {
       return json({ error: (e as Error).message.slice(0, 200) }, 400);

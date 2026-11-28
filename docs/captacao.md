@@ -1,6 +1,6 @@
 # Áreas (Captação)
 
-No menu, **Áreas** (endereço `/app/captacao`). Cada cartão do funil é uma **área**: um terreno com KMZ, dono ou corretor. O mesmo dono pode ter várias áreas. O botão **+ Novo estudo** cria uma área: o KMZ entra clicando ou arrastando e soltando, e aparece à direita na foto de satélite para conferir se é o terreno certo (26/11/2026).
+No menu, **Áreas** (endereço `/app/captacao`). Cada cartão do funil é uma **área**: um terreno com KMZ, dono ou corretor. O mesmo dono pode ter várias áreas. O botão **+ Novo estudo** cria uma área: o KMZ entra clicando ou arrastando e soltando, e aparece à direita na foto de satélite para conferir se é o terreno certo (26/11/2026). Área sem KMZ (por exemplo, a que já tem proposta feita antes do KMZ): o quadro do mapa vira a caixa de subir o KMZ, com o mapa para conferir e a escolha dos estudos (os dois, só a Legal, só a Mercadológica ou nenhum). A etapa e a proposta não mudam (28/11/2026).
 
 ## Funil
 

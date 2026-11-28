@@ -51,3 +51,22 @@ export async function avisarFim(c: { areaId: string | null; tipo: string }, ok: 
   const { enviarTexto } = await import("./whatsapp");
   await enviarTexto(g.jid, `🤖 ${textoPronto(tituloArea(a), c.tipo, ok)}`);
 }
+
+/**
+ * Os dois estudos de uma vez (pedido 28/11/2026: área que já tem proposta e ganhou o KMZ agora). A Viabilidade Legal
+ * entra na fila; a Mercadológica espera ("aguarda") e entra sozinha quando a Legal termina, sem perguntar no Central.
+ * Nada muda na etapa nem na proposta.
+ */
+export async function pedirOsDoisEstudos(areaId: string, autor: string) {
+  await pedirEstudoPelaTela(areaId, "estudo", autor);
+  const a = await db.comandoClaude.findFirst({ where: { areaId, tipo: "estudo", status: "fila" }, orderBy: { createdAt: "desc" }, select: { grupoJid: true, texto: true } });
+  if (!a) return;
+  await db.comandoClaude.updateMany({ where: { areaId, tipo: "mercado", status: "aguarda" }, data: { status: "descartado" } });
+  await db.comandoClaude.create({ data: { texto: a.texto.replace(NOME_ESTUDO.estudo, NOME_ESTUDO.mercado), grupoJid: a.grupoJid, autor, tipo: "mercado", areaId, status: "aguarda" } });
+}
+
+/** Viabilidade Legal terminou: a Mercadológica que esperava entra na fila (ok) ou é cancelada (falhou) */
+export async function liberarMercado(areaId: string, ok: boolean) {
+  const r = await db.comandoClaude.updateMany({ where: { areaId, tipo: "mercado", status: "aguarda" }, data: ok ? { status: "fila", createdAt: new Date() } : { status: "cancelado" } });
+  return r.count > 0;
+}

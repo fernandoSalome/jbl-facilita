@@ -25,7 +25,7 @@ export async function trocarKmz(areaId: string, poligono: Poligono, modo: ModoTr
       checklist: checklistSemEstudo(lerChecklist(a.checklist)) as unknown as Prisma.InputJsonValue,
       etapa: etapaSemEstudo(a.etapa),
     });
-    await db.comandoClaude.updateMany({ where: { areaId: a.id, tipo: { in: ["estudo", "mercado"] }, status: { in: ["fila", "rodando", "parado", "confirmar"] } }, data: { status: "descartado" } });
+    await db.comandoClaude.updateMany({ where: { areaId: a.id, tipo: { in: ["estudo", "mercado"] }, status: { in: ["fila", "rodando", "parado", "confirmar", "aguarda"] } }, data: { status: "descartado" } });
   }
   await db.area.update({ where: { id: a.id }, data });
 }

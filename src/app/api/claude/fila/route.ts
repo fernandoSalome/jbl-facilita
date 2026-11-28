@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { json } from "@/lib/api";
 import { cortarResposta, senhaValida } from "@/lib/claude-ponte";
 import { enviarDaEspera, enviarTexto } from "@/lib/whatsapp";
-import { avisarComeco, avisarFim } from "@/lib/estudo-andamento-db";
+import { avisarComeco, avisarFim, liberarMercado } from "@/lib/estudo-andamento-db";
 import { confirmarParada, descartarVencidos } from "@/lib/estudo-parar-db";
 import { guardarEstudoDaVps } from "@/lib/captacao-db";
 import { guardarClassificacao, montarClassificacao, pedirClassificacao } from "@/lib/contatos-terra-db";
@@ -87,6 +87,8 @@ export async function POST(req: Request) {
     await db.comandoClaude.update({ where: { id }, data: { status: b.ok === false ? "erro" : "feito", resposta: resposta.slice(0, 20_000), terminadoEm: new Date(), enviadoEm: new Date() } });
     return json({ ok: true });
   }
+  // Viabilidade Legal falhou: a Mercadológica que esperava por ela é cancelada (28/11/2026)
+  if (b.ok === false && c.areaId && c.tipo === "estudo") await liberarMercado(c.areaId, false).catch(() => {});
   // estudo pronto: a área recebe a viabilidade (campos do formulário e o estudo completo)
   let aviso = "";
   if (b.ok !== false && c.areaId && (c.tipo === "estudo" || c.tipo === "mercado")) {

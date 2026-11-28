@@ -60,6 +60,8 @@ O `resultado.json` também traz `"checklist"`: as respostas do checklist oficial
 - Feito aqui, o estudo entra por um passo de dados em `prisma/seed-areas.ts`, com o HTML em `prisma/dados/relatorios/`. Exemplos: `raioXCompletoSorocaba`, `viabilidadesDentroDaArea`.
 - Ou entra pela própria área: aba **Página do estudo** → "Raio-x completo no link" (enviar o HTML do estudo; o de mercado vai em "Estudo de mercado no link").
 
+Os dois de uma vez (28/11/2026, área que ganhou o KMZ depois da proposta): a Legal entra na fila e a Mercadológica fica `aguarda`; quando a Legal termina, `liberarMercado` põe a Mercadológica na fila sem perguntar no Central (se a Legal falhar, ela é cancelada).
+
 ## Chat do estudo
 
 Pedido 27/11/2026. Na aba Estudo, ao lado de "Voltar ao estudo", o botão **💬 Conversar com o estudo** abre um chat lateral, um para cada estudo (Legal e Mercadológica), guardado na área (`EstudoMensagem`) e visto por toda a equipe.

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import AreaForm from "@/components/captacao/AreaForm";
 import ChatEstudo from "@/components/captacao/ChatEstudo";
+import SubirKmzArea from "@/components/captacao/SubirKmzArea";
 import TrocarKmz from "@/components/captacao/TrocarKmz";
 import BotaoProposta from "@/components/captacao/BotaoProposta";
 import ChecklistVivo from "@/components/captacao/ChecklistVivo";
@@ -96,7 +97,7 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
           <>
             {ver === "captacao" && (
               <>
-              <MapaInterativo poligono={poligono} altura={560} />
+              {poligono ? <MapaInterativo poligono={poligono} altura={560} /> : <SubirKmzArea id={a.id} haCadastro={a.hectares} />}
               <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
                 <ChatArea id={a.id} conversas={a.conversas} mensagens={mensagens.map((m) => ({ ...m, quando: m.quando.toISOString() }))} />
                 <section className="card p-5 text-sm">

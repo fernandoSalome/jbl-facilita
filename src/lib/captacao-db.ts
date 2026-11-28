@@ -194,10 +194,13 @@ export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "merca
   const a = await db.area.findFirst({ where: { id: areaId, deletedAt: null }, select: { id: true, etapa: true, estudo1: true, estudo2: true } });
   if (!a) throw new Error("área não encontrada");
   let linhas = "";
+  // os dois estudos pedidos juntos (28/11/2026): a Mercadológica já esperava e entra na fila agora, sem perguntar
+  const { liberarMercado } = await import("./estudo-andamento-db");
+  const mercadoJaPedido = tipo === "estudo" && (await liberarMercado(a.id, true));
   if (tipo === "estudo") {
     const antes = le1(a.estudo1);
     // já pergunta no grupo se segue para o mercado (o "1" no Central põe na fila)
-    const e = le1({ ...(estudo && typeof estudo === "object" ? estudo : {}), status: "perguntado", perguntadoEm: new Date().toISOString(), originais: antes.originais });
+    const e = le1({ ...(estudo && typeof estudo === "object" ? estudo : {}), status: mercadoJaPedido ? "sim" : "perguntado", perguntadoEm: new Date().toISOString(), originais: antes.originais });
     await db.area.update({ where: { id: a.id }, data: { estudo1: e, ...(a.etapa === "captacao" ? { etapa: "previabilidade" } : {}) } });
     if (html) linhas = `${(await guardarRelatorio(db, a.id, html)).secoes} seções`;
   } else {
@@ -214,7 +217,7 @@ export async function guardarEstudoDaVps(areaId: string, tipo: "estudo" | "merca
     await acrescentar(a.id, doChk);
     linhas = [linhas, `${doChk.length} itens do checklist`].filter(Boolean).join(", ");
   }
-  const pergunta = tipo === "estudo" ? "\n\nSigo para a Viabilidade Mercadológica?\n1 Sim · 2 Não" : "";
+  const pergunta = mercadoJaPedido ? "\n\n▶️ A Viabilidade Mercadológica já entrou na fila." : tipo === "estudo" ? "\n\nSigo para a Viabilidade Mercadológica?\n1 Sim · 2 Não" : "";
   return `\n\n✅ Entrou na plataforma${linhas ? ` (${linhas})` : ""}: abra a área em Projetos.${pergunta}`;
 }
 
