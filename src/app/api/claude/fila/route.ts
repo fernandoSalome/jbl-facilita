@@ -6,6 +6,7 @@ import { avisarComeco, avisarFim } from "@/lib/estudo-andamento-db";
 import { confirmarParada, descartarVencidos } from "@/lib/estudo-parar-db";
 import { guardarEstudoDaVps } from "@/lib/captacao-db";
 import { guardarClassificacao, montarClassificacao, pedirClassificacao } from "@/lib/contatos-terra-db";
+import { pedidoDoChat, respostaDoChat } from "@/lib/estudo-chat-db";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,11 @@ export async function GET(req: Request) {
   await import("@/lib/rotinas-whatsapp").then((r) => r.enviarLembretes()).catch(() => {});
   await import("@/lib/central-db").then((c) => c.limparMemoria()).catch(() => {});
   // a VPS roda vários ao mesmo tempo (26/11/2026); com as vagas de estudo cheias, pede só os rápidos, e vice-versa
-  const so = new URL(req.url).searchParams.get("so");
-  const tipo = so === "rapidos" ? { notIn: ["estudo", "mercado"] } : so === "estudos" ? { in: ["estudo", "mercado"] } : undefined;
+  const q = new URL(req.url).searchParams;
+  const so = q.get("so");
+  // o chat do estudo (27/11/2026) só vai para a ponte nova (v=2); a antiga o trataria como pesquisa
+  const fora = q.get("v") === "2" ? [] : ["chat"];
+  const tipo = so === "rapidos" ? { notIn: ["estudo", "mercado", ...fora] } : so === "estudos" ? { in: ["estudo", "mercado"] } : fora.length ? { notIn: fora } : undefined;
   const c = await db.comandoClaude.findFirst({ where: { status: "fila", ...(tipo ? { tipo } : {}) }, orderBy: { createdAt: "asc" } });
   if (!c) return json({ vazio: true });
   const pego = await db.comandoClaude.updateMany({ where: { id: c.id, status: "fila" }, data: { status: "rodando", iniciadoEm: new Date() } });
@@ -41,6 +45,13 @@ export async function GET(req: Request) {
     const texto = await montarClassificacao(c.id);
     if (texto) return json({ id: c.id, texto, autor: null, tipo: c.tipo, area: null });
     await db.comandoClaude.update({ where: { id: c.id }, data: { status: "feito", resposta: "(nada para ler)", terminadoEm: new Date(), enviadoEm: new Date() } });
+    return json({ vazio: true });
+  }
+  // chat ao lado do estudo (27/11/2026): instruções e arquivos montados agora, com a conversa até aqui
+  if (c.tipo === "chat") {
+    const p = await pedidoDoChat(c);
+    if (p) return json(p);
+    await db.comandoClaude.update({ where: { id: c.id }, data: { status: "erro", resposta: "(pedido do chat inválido)", terminadoEm: new Date(), enviadoEm: new Date() } });
     return json({ vazio: true });
   }
   // "Comecei a análise da gleba X" no JBL - Avisos (pedido 22/11/2026); falha no aviso não segura o estudo
@@ -68,6 +79,12 @@ export async function POST(req: Request) {
   if (c.tipo === "classificar") {
     await db.comandoClaude.update({ where: { id }, data: { status: b.ok === false ? "erro" : "feito", resposta: resposta.slice(0, 20_000), terminadoEm: new Date(), enviadoEm: new Date() } });
     if (b.ok !== false) await guardarClassificacao(c.texto, resposta);
+    return json({ ok: true });
+  }
+  // chat do estudo: a resposta vai para a tela, não para grupo nenhum
+  if (c.tipo === "chat") {
+    await respostaDoChat(c, b);
+    await db.comandoClaude.update({ where: { id }, data: { status: b.ok === false ? "erro" : "feito", resposta: resposta.slice(0, 20_000), terminadoEm: new Date(), enviadoEm: new Date() } });
     return json({ ok: true });
   }
   // estudo pronto: a área recebe a viabilidade (campos do formulário e o estudo completo)

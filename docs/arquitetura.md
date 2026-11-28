@@ -56,6 +56,7 @@ Claude da VPS ◄──► /api/claude/fila, /api/claude/audio, /api/claude/conv
 | `passo-a-passo.ts` / `-db.ts` | Passo a passo da parceria que o proprietário acompanha pelo link `/andamento/<token>` |
 | `estudo-parar.ts` / `-db.ts` | Parar e retomar o estudo (tela e WhatsApp): guardado 5 dias na VPS, depois descartado |
 | `robo.ts` | Entrada do robô: decide o que fazer com cada mensagem (grupo ou particular) |
+| `estudo-chat.ts` / `-db.ts`, `estudo-fontes.ts` | Chat ao lado do estudo (pergunta, e o combinado só entra no estudo com o "sim") e documentos que o estudo da VPS baixou |
 | `central.ts`, `central-db.ts` | Conversa do JBL - Central: memória de 90 dias, IA que entende o pedido, confirmação, ações (status, etapa, estudo, proposta, lembrete, reunião) e documentos em lote |
 | `robo-areas.ts`, `robo-estudos.ts`, `robo-propostas.ts` | Comandos sobre áreas, Central (KMZ, 1 Sim · 2 Não, "Claude, …"), propostas |
 | `grupos.ts` | Para que serve cada tipo de grupo |

@@ -45,7 +45,7 @@ Cidade-UF/
     1-poligono/  2-dados/  3-imagens-relatorio/  4-relatorio/  5-scripts/  6-conferencias/
 ```
 
-Na VPS, cada estudo trabalha em `~/estudos/trabalho/<id>/` e entrega `relatorio.html`, `resultado.json` e `resposta.txt`.
+Na VPS, cada estudo trabalha em `~/estudos/trabalho/<id>/` e entrega `relatorio.html`, `resultado.json` e `resposta.txt`. Desde 26/11/2026 também deixa `fontes.json` (tudo o que consultou, com link) e `documentos/` (lei, mapa oficial, certidões; até 8 arquivos de 3 MB). Os documentos vão para a aba **Documentos** da área como "Fonte do estudo: …" (`/api/claude/documento`, conferidos por `estudo-fontes.ts`); a pasta fica na VPS para o chat do estudo consultar.
 
 ## Como o estudo entra na área
 
@@ -59,6 +59,17 @@ O `resultado.json` também traz `"checklist"`: as respostas do checklist oficial
 - Pela VPS, isso acontece sozinho (`guardarEstudoDaVps`).
 - Feito aqui, o estudo entra por um passo de dados em `prisma/seed-areas.ts`, com o HTML em `prisma/dados/relatorios/`. Exemplos: `raioXCompletoSorocaba`, `viabilidadesDentroDaArea`.
 - Ou entra pela própria área: aba **Página do estudo** → "Raio-x completo no link" (enviar o HTML do estudo; o de mercado vai em "Estudo de mercado no link").
+
+## Chat do estudo
+
+Pedido 27/11/2026. Na aba Estudo, ao lado de "Voltar ao estudo", o botão **💬 Conversar com o estudo** abre um chat lateral, um para cada estudo (Legal e Mercadológica), guardado na área (`EstudoMensagem`) e visto por toda a equipe.
+
+| Passo | O que acontece |
+|---|---|
+| Pergunta | Vai para a fila do Claude da VPS (tipo `chat`, vagas rápidas). A ponte grava em `~/estudos/chat/<área>-<estudo>/` o estudo (`relatorio.json`), os campos (`estudo.json`), a área e a conversa (`conversa.md`), e aponta a pasta do estudo original (fontes e documentos). O Claude responde sem mexer no estudo e diz o que mudaria (`proposta.txt`) |
+| "Incluir o que conversamos na pesquisa?" | Aparece depois de **toda** resposta. **Não**: fica só na conversa. **Sim, incluir**: o Claude devolve o estudo inteiro mudado, que o Facilita valida (`relatorioDoChat`, `estudoDoChat` em `estudo-chat.ts`: só os blocos do formato, HTML limpo, sem imagem nova, andamento e "voltar ao original" mantidos) e grava. A página recarrega com o estudo novo |
+
+Uma mensagem por vez em cada chat. A resposta leva de 20 s a 1 min (o Claude da assinatura abre a cada pergunta); a tela confere a cada 4 s.
 
 ## Depois do estudo
 

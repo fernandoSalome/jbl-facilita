@@ -55,7 +55,8 @@ async function estudo(c) {
   rmSync(`${pasta}/parado.txt`, { force: true });
   const a = c.area || {};
   writeFileSync(`${pasta}/entrada.json`, JSON.stringify({ tipo: c.tipo, pedido: c.texto, area: { nome: a.nome, cidade: a.cidade, uf: a.uf, hectares: a.hectares }, poligono: a.poligono, estudo1: a.estudo1, estudo2: a.estudo2 }, null, 1));
-  const prompt = `Leia ~/estudos/CLAUDE.md e as referências que ele indica. Depois faça o pedido descrito em trabalho/${c.id}/entrada.json (tipo "${c.tipo}") e entregue em trabalho/${c.id}/ os três arquivos: relatorio.html, resultado.json e resposta.txt.${retomando ? ` Este estudo foi parado e retomado: a pasta trabalho/${c.id}/ já tem o que foi feito antes (andamento.txt e arquivos). Confira o que já está pronto e continue dali, sem refazer.` : ""}`;
+  // fontes e documentos (pedido 26/11/2026): ficam na pasta para o chat do estudo consultar, e os documentos vão para a área
+  const prompt = `Leia ~/estudos/CLAUDE.md e as referências que ele indica. Depois faça o pedido descrito em trabalho/${c.id}/entrada.json (tipo "${c.tipo}") e entregue em trabalho/${c.id}/ os três arquivos: relatorio.html, resultado.json e resposta.txt. Grave também trabalho/${c.id}/fontes.json (lista de { "titulo", "url", "tipo": "lei" | "mapa" | "site" | "documento", "arquivo" }) com tudo o que consultou, e deixe em trabalho/${c.id}/documentos/ os documentos principais que baixou (lei do Plano Diretor e de zoneamento, mapa oficial, certidões), em PDF, PNG ou JPG, até 8 arquivos de no máximo 3 MB cada, com nomes que digam o que são.${retomando ? ` Este estudo foi parado e retomado: a pasta trabalho/${c.id}/ já tem o que foi feito antes (andamento.txt e arquivos). Confira o que já está pronto e continue dali, sem refazer.` : ""}`;
   // andamento (pedido 22/11/2026): o Claude grava "60 Calculando os lotes" em andamento.txt; a cada 30 s vai para a tela.
   // A resposta diz se pediram para parar (pedido 23/11/2026): mata o Claude e guarda a pasta por 5 dias.
   const controle = {};
@@ -79,12 +80,51 @@ async function estudo(c) {
   const html = existsSync(`${pasta}/relatorio.html`) && statSync(`${pasta}/relatorio.html`).size <= MAX_HTML ? ler("relatorio.html") : "";
   const resposta = ler("resposta.txt").trim() || res.texto;
   const ok = !!(estudoJson || html);
+  if (ok) await enviarDocumentos(c.id, `${pasta}/documentos`);
   return { ok, resposta: ok ? resposta : `Não consegui terminar o estudo. ${res.texto}`.slice(0, 2000), estudo: estudoJson, relatorioHtml: html };
+}
+
+/** Documentos que o estudo baixou: um por vez para a aba Documentos da área (o Facilita confere tipo e tamanho) */
+const MAX_DOC = 3 * 1024 * 1024;
+async function enviarDocumentos(id, pasta) {
+  if (!existsSync(pasta)) return;
+  const nomes = readdirSync(pasta).filter((n) => /\.(pdf|png|jpe?g)$/i.test(n)).slice(0, 8);
+  for (const nome of nomes) {
+    const arq = `${pasta}/${nome}`;
+    if (statSync(arq).size > MAX_DOC) continue;
+    await fetch(`${URL_BASE}/api/claude/documento`, { method: "POST", headers: cab, body: JSON.stringify({ id, nome, base64: readFileSync(arq).toString("base64") }) })
+      .catch((e) => console.error(new Date().toISOString(), "documento", nome, e.message));
+  }
+}
+
+/**
+ * Chat ao lado do estudo (pedido 27/11/2026). O Facilita manda as instruções e os arquivos (estudo, campos, conversa);
+ * a pasta ~/estudos/chat/<área>-<estudo> continua entre as mensagens. "pergunta" só responde; "incluir" devolve o
+ * estudo mudado, que o Facilita valida antes de gravar.
+ */
+async function chat(c) {
+  if (!/^chat\/[a-z0-9]+-(estudo|mercado)$/.test(c.pasta || "")) return { ok: false, resposta: "pasta inválida" };
+  const pasta = `${ESTUDOS}/${c.pasta}`;
+  mkdirSync(pasta, { recursive: true });
+  for (const f of ["resposta.txt", "proposta.txt", "relatorio-novo.json", "estudo-novo.json"]) rmSync(`${pasta}/${f}`, { force: true });
+  for (const [nome, conteudo] of Object.entries(c.arquivos || {})) if (/^[a-z]+\.(json|md)$/.test(nome)) writeFileSync(`${pasta}/${nome}`, String(conteudo));
+  const incluir = c.modo === "incluir";
+  const res = await rodarClaude(c.texto, { cwd: ESTUDOS, ferramentas: FERRAMENTAS_ESTUDO, limite: (incluir ? 30 : 15) * 60_000, turnos: incluir ? "150" : "60" });
+  const ler = (f) => (existsSync(`${pasta}/${f}`) ? readFileSync(`${pasta}/${f}`, "utf8").trim() : "");
+  const resposta = ler("resposta.txt") || res.texto;
+  if (!incluir) return { ok: res.ok || !!ler("resposta.txt"), resposta, proposta: ler("proposta.txt") };
+  const json = (f) => { try { return JSON.parse(ler(f) || "null"); } catch { return null; } };
+  const relatorio = json("relatorio-novo.json");
+  return { ok: !!relatorio, resposta: relatorio ? resposta : `${res.texto}`.slice(0, 2000), relatorio, estudo: json("estudo-novo.json") };
 }
 
 /** Um pedido da fila, do começo ao fim (devolve a resposta ao Facilita) */
 async function atender(c) {
   console.log(new Date().toISOString(), "pedido", c.id, c.tipo);
+  if (c.tipo === "chat") {
+    await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ...(await chat(c)) }) });
+    return;
+  }
   if (c.tipo === "estudo" || c.tipo === "mercado") {
     await fetch(`${URL_BASE}/api/claude/fila`, { method: "POST", headers: cab, body: JSON.stringify({ id: c.id, ...(await estudo(c)) }) });
     return;
@@ -110,7 +150,7 @@ async function ciclo() {
   const vagaEstudo = rodando.estudos < MAX_ESTUDOS;
   const vagaRapido = rodando.rapidos < MAX_RAPIDOS;
   if (!vagaEstudo && !vagaRapido) return false;
-  const so = !vagaEstudo ? "?so=rapidos" : !vagaRapido ? "?so=estudos" : "";
+  const so = !vagaEstudo ? "?v=2&so=rapidos" : !vagaRapido ? "?v=2&so=estudos" : "?v=2";
   const r = await fetch(`${URL_BASE}/api/claude/fila${so}`, { headers: cab });
   if (!r.ok) throw new Error(`fila: ${r.status}`);
   const c = await r.json();
@@ -199,6 +239,6 @@ for (;;) {
   } catch (e) {
     console.error(new Date().toISOString(), e.message);
   }
-  // pegou um: tenta o próximo logo (se houver vaga); senão espera
-  await new Promise((r) => setTimeout(r, teve ? 2_000 : ESPERA_MS));
+  // pegou um: tenta o próximo logo (se houver vaga); senão espera 10 s (o chat do estudo não pode demorar 30 s para começar)
+  await new Promise((r) => setTimeout(r, teve ? 2_000 : 10_000));
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import AreaForm from "@/components/captacao/AreaForm";
+import ChatEstudo from "@/components/captacao/ChatEstudo";
 import TrocarKmz from "@/components/captacao/TrocarKmz";
 import BotaoProposta from "@/components/captacao/BotaoProposta";
 import ChecklistVivo from "@/components/captacao/ChecklistVivo";
@@ -180,19 +181,20 @@ export default async function AreaPagina({ params, searchParams }: { params: { i
         )}
         {aba === "estudo" && (() => {
           // o estudo completo dentro do projeto (pedido 20/11/2026), no lugar do link para o artifact
-          const rels = [relatorioGravado(a.relatorioCompleto), relatorioGravado(a.relatorioMercado)].filter((r): r is NonNullable<typeof r> => !!r);
+          const rels = ([[relatorioGravado(a.relatorioCompleto), "estudo"], [relatorioGravado(a.relatorioMercado), "mercado"]] as const).flatMap(([r, estudo]) => (r ? [{ ...r, estudo }] : []));
           if (!rels.length) return <section className="card p-5 text-sm">Esta área ainda não tem o estudo completo. Suba o raio-x em 🌐 Página do estudo.</section>;
           return (
             <>
               {rels.length > 1 && (
                 <nav className="flex flex-wrap gap-2">
-                  {rels.map((r, i) => <a key={i} href={`#estudo-${i + 1}`} className="btn-ghost">{i === 0 ? "🔬 Viabilidade Legal" : "📊 Viabilidade Mercadológica"}</a>)}
+                  {rels.map((r, i) => <a key={i} href={`#estudo-${i + 1}`} className="btn-ghost">{r.estudo === "estudo" ? "🔬 Viabilidade Legal" : "📊 Viabilidade Mercadológica"}</a>)}
                 </nav>
               )}
               {rels.map((rel, i) => (
                 <section key={i} id={`estudo-${i + 1}`} className="card px-8 py-6">
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="h-display flex-1 text-[26px]">{rel.titulo}</h2>
+                    <ChatEstudo areaId={a.id} estudo={rel.estudo} />
                     <Link className="btn-ghost" href="?aba=etapa&ver=previabilidade">◀ Voltar ao estudo</Link>
                   </div>
                   {rel.veredito && <p className="mt-2 font-semibold text-gold-ink">{rel.veredito}</p>}

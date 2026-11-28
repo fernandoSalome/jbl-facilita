@@ -513,7 +513,7 @@ model ComandoClaude {
   texto       String
   grupoJid    String
   autor       String?
-  /// pesquisa (pergunta livre) | estudo (Viabilidade Legal da área) | mercado (Viabilidade Mercadológica)
+  /// pesquisa (pergunta livre) | estudo (Viabilidade Legal da área) | mercado (Viabilidade Mercadológica) | classificar | chat (chat do estudo, 27/11/2026)
   tipo        String    @default("pesquisa")
   areaId      String?
   /// fila | rodando | feito | erro | confirmar | cancelado | parado (guardado 5 dias na VPS) | descartado
@@ -598,4 +598,26 @@ model ModeloArquivo {
   dados         Bytes
   atualizadoPor String?
   atualizadoEm  DateTime @updatedAt
+}
+
+/// Chat ao lado do estudo (pedido 27/11/2026): a equipe pergunta, o Claude da VPS responde lendo o estudo, e o que
+/// for combinado só entra no estudo depois do "sim" (inclusao). Ver src/lib/estudo-chat.ts
+model EstudoMensagem {
+  id        String   @id @default(cuid())
+  areaId    String
+  /// estudo (Viabilidade Legal) | mercado (Viabilidade Mercadológica)
+  estudo    String
+  /// eu (pessoa da equipe) | claude | sistema
+  papel     String
+  autor     String?
+  texto     String
+  /// resposta do Claude: o que mudaria no estudo se incluir (vazio = nada a mudar)
+  proposta  String?
+  /// pergunta "inclui na pesquisa?": vazio = sem resposta | sim | nao | feito | erro
+  inclusao  String?
+  /// pedido da fila do Claude (ComandoClaude) que gerou ou aplica esta mensagem
+  comandoId String?
+  createdAt DateTime @default(now())
+
+  @@index([areaId, estudo, createdAt])
 }
